@@ -99,6 +99,10 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         url = f"{config.base_url}/products.json?limit=250&page={page}"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
+            if resp.status_code == 400 and page > 1:
+                # Shopify page-based API is hard-capped at page 100
+                logger.debug("[%s] Reached Shopify page limit at page %d", config.vendor_name, page)
+                break
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
