@@ -142,6 +142,8 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                     continue
 
                 in_stock = bool(variant.get("available", False))
+                if not in_stock:
+                    continue
                 discount = compute_discount(price_sale, price_original)
                 bike_id = make_bike_id(config.vendor_name, product_url, frame_size)
 
