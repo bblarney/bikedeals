@@ -1,0 +1,14 @@
+vendor_name: "Bikeology"
+city: "Brisbane"
+max_pages: 5
+base_url: "https://www.bikeology.com.au"
+pipeline: "shopify"
+# Scott-specialist dealer. All bikes use product_type "Bikes" — categories resolved from tags.
+# Tags observed: "road", "mountain", "cross country", "triathlon", "endurance", "aero".
+category_map:
+  mountain: Mountain
+  cross country: Mountain
+  road: Road
+  triathlon: Road
+  endurance: Road
+  aero: Road

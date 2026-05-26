@@ -82,7 +82,8 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
     page = 1
 
     while True:
-        url = f"{config.base_url}/shop/page/{page}/" if page > 1 else f"{config.base_url}/shop/"
+        path = config.shop_path.strip("/")
+        url = f"{config.base_url}/{path}/page/{page}/" if page > 1 else f"{config.base_url}/{path}/"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
@@ -102,6 +103,9 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                 continue
 
             raw_sale = _sel(item, sel["price_sale"])
+            # Fall back to regular price selector for non-sale items
+            if not raw_sale and sel.get("price_regular"):
+                raw_sale = _sel(item, sel["price_regular"])
             raw_original = _sel(item, sel.get("price_original", "")) if sel.get("price_original") else None
 
             price_sale = _parse_price(raw_sale)

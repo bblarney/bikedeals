@@ -1,0 +1,21 @@
+vendor_name: "Giant"
+city: "Sydney"
+max_pages: 10
+base_url: "https://www.giantsydney.com.au"
+pipeline: "shopify"
+# Flat product_type names: "Dual Suspension E-MTB", "Trail Bikes", "Road E-Bikes", etc.
+# /collections/bikes exists but is empty; scrape full catalogue and filter by category.
+# e-mtb before mtb so "Dual Suspension E-MTB" maps to E-Bike, not Mountain.
+# e-bike before commuter/urban so "Urban & Commuter E-Bikes" maps to E-Bike.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  trail bikes: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  triathlon: Road
+  road: Road
+  urban: Commuter
+  commuter: Commuter
+  hybrid: Commuter
+  kids: Commuter

@@ -1,0 +1,15 @@
+vendor_name: "The Mountain Biker"
+city: "Brisbane"
+collection: "bikes"
+max_pages: 5
+base_url: "https://www.themountainbiker.com.au"
+pipeline: "shopify"
+# product_type is brand name or "Default" — no category info.
+# Categories resolved from tags: "E-Bikes"/"Ebike" for electrics,
+# "gravel" in title for the one gravel bike, "bike" tag as MTB fallback.
+# e-bike keys must come before "bike" so e-MTBs don't get classified as Mountain.
+category_map:
+  e-bikes: E-Bike
+  ebike: E-Bike
+  gravel: Gravel
+  bike: Mountain
