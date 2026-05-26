@@ -12,6 +12,9 @@ pipeline: "shopify"
 category_map:
   mountain bikes: Mountain
   mountain bike: Mountain
+  trail bikes: Mountain
+  trail bike: Mountain
+  enduro: Mountain
   fat bike: Mountain
   fat-bike: Mountain
   road bikes: Road

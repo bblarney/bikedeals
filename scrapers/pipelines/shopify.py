@@ -80,16 +80,17 @@ async def _check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
 
 
 def _resolve_category(
-    product_type: str, tags: list[str], category_map: dict[str, str]
+    product_type: str, tags: list[str], title: str, category_map: dict[str, str]
 ) -> str | None:
-    candidates = [product_type.lower()] + [t.lower() for t in tags]
-    # Exact key match first (tags are usually short and exact)
+    # Priority order: product_type → title → tags
+    # Title is checked before tags because it reliably contains the bike type
+    # (e.g. "Trek Marlin 5 Mountain Bike") while tags can be broad/misleading.
+    candidates = [product_type.lower(), title.lower()] + [t.lower() for t in tags]
+    # Exact key match first
     for candidate in candidates:
         if candidate in category_map:
             return category_map[candidate]
-    # Substring match: check whether any map key appears inside the candidate.
-    # This handles hierarchical product_type strings like
-    # "Bikes & Scooters : Bikes : Mountain Bikes" where the key is "mountain bikes".
+    # Substring match for hierarchical product_type strings and title phrases
     for candidate in candidates:
         for key, value in category_map.items():
             if key in candidate:
@@ -147,7 +148,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             if _is_accessory(product_type):
                 continue
 
-            category = _resolve_category(product_type, tags, config.category_map)
+            category = _resolve_category(product_type, tags, model_name, config.category_map)
             if category is None:
                 logger.debug(
                     "[%s] No category match for %r (type=%r, tags=%r); skipping",
