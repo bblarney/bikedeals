@@ -1,4 +1,10 @@
 vendor_name: "99 Bikes"
+cities:
+  - Brisbane
+  - Melbourne
+  - Perth
+  - Sydney
+  - Canberra
 base_url: "https://www.99bikes.com.au"
 pipeline: "shopify"
 # Keys are matched as substrings of product_type (case-insensitive).

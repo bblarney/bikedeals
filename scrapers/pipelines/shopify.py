@@ -174,7 +174,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                 if not in_stock:
                     continue
                 discount = compute_discount(price_sale, price_original)
-                bike_id = make_bike_id(config.vendor_name, product_url, frame_size)
+                bike_id = make_bike_id(config.vendor_name, product_url, frame_size, config.city)
 
                 try:
                     record = BikeRecord(
@@ -206,6 +206,17 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
 
         page += 1
         await asyncio.sleep(random.uniform(1.0, 2.0))
+
+    # Fan out national chains: duplicate each record once per city
+    if config.cities:
+        expanded = []
+        for bike in bikes:
+            for city in config.cities:
+                expanded.append(bike.model_copy(update={
+                    "city": city,
+                    "id": make_bike_id(config.vendor_name, bike.product_url, bike.frame_size, city),
+                }))
+        bikes = expanded
 
     logger.info("[%s] Shopify scrape complete: %d bikes", config.vendor_name, len(bikes))
     return bikes
