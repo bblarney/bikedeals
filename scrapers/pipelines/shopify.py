@@ -61,9 +61,17 @@ def _resolve_category(
     product_type: str, tags: list[str], category_map: dict[str, str]
 ) -> str | None:
     candidates = [product_type.lower()] + [t.lower() for t in tags]
+    # Exact key match first (tags are usually short and exact)
     for candidate in candidates:
         if candidate in category_map:
             return category_map[candidate]
+    # Substring match: check whether any map key appears inside the candidate.
+    # This handles hierarchical product_type strings like
+    # "Bikes & Scooters : Bikes : Mountain Bikes" where the key is "mountain bikes".
+    for candidate in candidates:
+        for key, value in category_map.items():
+            if key in candidate:
+                return value
     return None
 
 

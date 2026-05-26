@@ -1,28 +1,28 @@
 vendor_name: "99 Bikes"
 city: "Brisbane"
 base_url: "https://www.99bikes.com.au"
-pipeline: "woocommerce"
+pipeline: "shopify"
+# Keys are matched as substrings of product_type (case-insensitive).
+# 99 Bikes uses a hierarchical format: "Bikes & Scooters : Bikes : Mountain Bikes"
+# so keys should match the leaf or any segment of that hierarchy.
 category_map:
-  road: Road
-  road bikes: Road
-  mountain: Mountain
   mountain bikes: Mountain
-  mtb: Mountain
-  trail: Mountain
-  gravel: Gravel
+  mountain bike: Mountain
+  road bikes: Road
+  road bike: Road
+  road & gravel: Road
   gravel bikes: Gravel
-  e-bike: E-Bike
-  e-bikes: E-Bike
+  gravel bike: Gravel
   electric bikes: E-Bike
-  commuter: Commuter
+  electric bike: E-Bike
+  e-bikes: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  kids bikes: Commuter
+  hybrid bikes: Commuter
+  hybrid bike: Commuter
   commuter bikes: Commuter
+  commuter bike: Commuter
   city bikes: Commuter
-  hybrid: Commuter
-selectors:
-  product_list: "ul.products li.product"
-  model_name: ".woocommerce-loop-product__title"
-  price_sale: ".price ins .amount"
-  price_original: ".price del .amount"
-  product_url: "a.woocommerce-LoopProduct-link"
-  image_url: "img.attachment-woocommerce_thumbnail"
-  frame_size: ".variation-size"
+  city bike: Commuter
+  urban bikes: Commuter
