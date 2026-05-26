@@ -19,6 +19,9 @@ dist/
 *.sqlite
 *.db
 
+# Scraper output
+output.json
+
 # OS
 .DS_Store
 Thumbs.db

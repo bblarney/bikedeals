@@ -1,0 +1,35 @@
+# WooCommerce vendor template — copy this file, rename it (remove the leading _),
+# and fill in the real shop details.  The selectors below match standard WooCommerce
+# themes; override any that differ for the specific shop.
+#
+# To confirm a shop uses WooCommerce, load its shop page and search the HTML for
+# "woocommerce" — standard WC themes expose this in class names.
+
+vendor_name: "Example Bike Shop"
+city: "Melbourne"
+base_url: "https://www.example-bike-shop.com.au"
+pipeline: "woocommerce"
+category_map:
+  road: Road
+  road bikes: Road
+  mountain: Mountain
+  mountain bikes: Mountain
+  mtb: Mountain
+  trail: Mountain
+  gravel: Gravel
+  gravel bikes: Gravel
+  e-bike: E-Bike
+  e-bikes: E-Bike
+  electric bikes: E-Bike
+  commuter: Commuter
+  commuter bikes: Commuter
+  city bikes: Commuter
+  hybrid: Commuter
+selectors:
+  product_list: "ul.products li.product"
+  model_name: ".woocommerce-loop-product__title"
+  price_sale: ".price ins .amount"
+  price_original: ".price del .amount"
+  product_url: "a.woocommerce-LoopProduct-link"
+  image_url: "img.attachment-woocommerce_thumbnail"
+  frame_size: ".variation-size"
