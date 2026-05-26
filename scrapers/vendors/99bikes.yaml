@@ -1,5 +1,4 @@
 vendor_name: "99 Bikes"
-city: "Australia"
 base_url: "https://www.99bikes.com.au"
 pipeline: "shopify"
 # Keys are matched as substrings of product_type (case-insensitive).

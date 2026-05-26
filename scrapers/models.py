@@ -20,7 +20,7 @@ def compute_discount(price_sale: float, price_original: float | None) -> int:
 
 class VendorConfig(BaseModel):
     vendor_name: str
-    city: str
+    city: str | None = None
     base_url: str
     pipeline: Literal["shopify", "woocommerce", "custom"]
     category_map: dict[str, str]
@@ -30,7 +30,7 @@ class VendorConfig(BaseModel):
 class BikeRecord(BaseModel):
     id: str
     vendor_name: str
-    city: str
+    city: str | None
     brand: str
     model_name: str
     category: Literal["Road", "Mountain", "Gravel", "E-Bike", "Commuter"]

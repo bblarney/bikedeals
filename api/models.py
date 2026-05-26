@@ -20,7 +20,7 @@ class Bike(Base):
 
     id = Column(Text, primary_key=True)
     vendor_name = Column(Text, nullable=False)
-    city = Column(Text, nullable=False)
+    city = Column(Text, nullable=True)
     brand = Column(Text, nullable=False)
     model_name = Column(Text, nullable=False)
     category = Column(Text, nullable=False)
