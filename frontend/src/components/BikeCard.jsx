@@ -13,21 +13,29 @@ export default function BikeCard({ bike }) {
     image_url,
   } = bike
 
-  const saving = price_original ? price_original - price_sale : null
+  const saving = price_original ? Math.round(price_original - price_sale) : null
+  const bigDeal = discount_percentage >= 30
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+    <div className="flex items-center gap-4 px-5 py-3.5 bg-white border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
       {/* Image */}
-      <div className="w-16 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
+      <div className="group relative w-16 h-16 flex-shrink-0 rounded overflow-visible bg-gray-100 flex items-center justify-center">
         {image_url ? (
-          <img
-            src={image_url}
-            alt={`${brand} ${model_name}`}
-            width={64}
-            height={64}
-            loading="lazy"
-            className="object-contain w-full h-full"
-          />
+          <>
+            <img
+              src={image_url}
+              alt={`${brand} ${model_name}`}
+              width={64}
+              height={64}
+              loading="lazy"
+              className="object-contain w-full h-full rounded cursor-zoom-in"
+            />
+            <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-30 hidden group-hover:block">
+              <div className="w-52 h-52 bg-white border border-gray-200 rounded-lg shadow-xl flex items-center justify-center p-2">
+                <img src={image_url} alt={`${brand} ${model_name}`} className="object-contain w-full h-full" />
+              </div>
+            </div>
+          </>
         ) : (
           <span className="text-2xl">🚲</span>
         )}
@@ -35,30 +43,32 @@ export default function BikeCard({ bike }) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">
+        <p className="text-sm font-semibold text-slate-900 truncate leading-snug">
           {brand} {model_name}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-slate-500 mt-0.5">
           {category} · Size {frame_size}
         </p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">
-          {vendor_name}
-          {city ? ` · ${city}` : ''}
+        <p className="text-xs text-slate-400 mt-0.5 truncate">
+          {vendor_name}{city ? ` · ${city}` : ''}
         </p>
       </div>
 
-      {/* Price + badge */}
-      <div className="flex-shrink-0 text-right">
+      {/* Discount badge */}
+      <div className="flex-shrink-0 text-right min-w-[100px]">
         {discount_percentage > 0 && (
-          <span className="inline-block bg-red-100 text-red-700 text-xs font-bold px-1.5 py-0.5 rounded mb-1">
-            {discount_percentage}% OFF
-            {saving ? ` · Save $${Math.round(saving)}` : ''}
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 ${
+            bigDeal ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700'
+          }`}>
+            {discount_percentage}% off{saving ? ` · $${saving}` : ''}
           </span>
         )}
-        <p className="text-sm font-bold text-gray-900">${price_sale.toFixed(0)}</p>
-        {price_original && price_original > price_sale && (
-          <p className="text-xs text-gray-400 line-through">${price_original.toFixed(0)}</p>
-        )}
+        <div>
+          <span className="text-base font-bold text-slate-900">${price_sale.toFixed(0)}</span>
+          {price_original && price_original > price_sale && (
+            <span className="text-xs text-slate-400 line-through ml-1.5">${price_original.toFixed(0)}</span>
+          )}
+        </div>
       </div>
 
       {/* CTA */}
@@ -66,9 +76,12 @@ export default function BikeCard({ bike }) {
         href={product_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex-shrink-0 ml-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded transition-colors whitespace-nowrap"
+        className="flex-shrink-0 ml-1 inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
       >
-        View Deal →
+        View deal
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2.5 6h7M6.5 3l3 3-3 3" />
+        </svg>
       </a>
     </div>
   )

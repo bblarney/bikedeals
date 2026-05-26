@@ -2,18 +2,33 @@ export default function Header({ total, lastScrapedAt }) {
   const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-xl font-bold text-gray-900">🚲 BikeDeals</span>
-        <span className="text-xs text-gray-400 hidden sm:inline">AU</span>
+    <header className="bg-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="flex items-center gap-3">
+        <BikeIcon />
+        <span className="text-white font-semibold text-lg tracking-tight">BikeDeals</span>
+        <span className="text-slate-500 text-xs font-medium bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+          AU
+        </span>
       </div>
       {total != null && (
-        <p className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-700">{total.toLocaleString()}</span> deals
-          {timeAgo && <> · updated {timeAgo}</>}
+        <p className="text-sm text-slate-400">
+          <span className="text-white font-medium">{total.toLocaleString()}</span> in-stock deals
+          {timeAgo && <span className="ml-2 text-slate-600">· updated {timeAgo}</span>}
         </p>
       )}
     </header>
+  )
+}
+
+function BikeIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5.5" cy="17.5" r="3.5" />
+      <circle cx="18.5" cy="17.5" r="3.5" />
+      <path d="M5.5 17.5L9 10h6l2 7.5" />
+      <path d="M9 10l4-4 3 4" />
+      <path d="M3 10h4" />
+    </svg>
   )
 }
 
