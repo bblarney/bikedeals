@@ -21,6 +21,10 @@ dist/
 
 # Scraper output
 output.json
+*_sample.json
+
+# Vite cache
+frontend/.vite/
 
 # OS
 .DS_Store

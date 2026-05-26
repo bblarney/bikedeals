@@ -1,0 +1,20 @@
+vendor_name: "Planet Cycles"
+city: "Brisbane"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.planetcycles.com.au"
+pipeline: "shopify"
+# Specialized dealer. product_type: "MOUNTAIN", "ROAD", "GRAVEL", "FITNESS", "RIDER".
+# FITNESS mixes e-commuters (Turbo Vado/Como/Tero), kids bikes, and fitness/hybrid bikes.
+# "fitness" is intentionally absent from the map — falls through to title/tag resolution:
+#   - "turbo" in title catches Specialized e-commuters as E-Bike
+#   - "kids" tag catches Riprock/Hotwalk as Commuter
+#   - "active" tag catches Sirrus X / Roll as Commuter
+# /collections/bikes keeps the 220-product curated list, excluding accessories.
+category_map:
+  mountain: Mountain
+  road: Road
+  gravel: Gravel
+  turbo: E-Bike
+  kids: Commuter
+  active: Commuter

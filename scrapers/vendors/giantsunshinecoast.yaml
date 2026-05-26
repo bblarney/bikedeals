@@ -1,0 +1,17 @@
+vendor_name: "Giant"
+city: "Sunshine Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.giantsunshinecoast.com.au"
+pipeline: "shopify"
+# All-caps hierarchical product_type: "BIKES - ELECTRIC BIKES - ELECTRIC CITY BIKES", etc.
+# electric before mountain/road so e-MTBs and e-city bikes map to E-Bike.
+# hybrid before road so "ROAD BIKES - CITY - HYBRID" maps to Commuter, not Road.
+category_map:
+  electric: E-Bike
+  mountain: Mountain
+  gravel: Gravel
+  hybrid: Commuter
+  road: Road
+  kids: Commuter
+  city: Commuter

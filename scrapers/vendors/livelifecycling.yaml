@@ -1,0 +1,14 @@
+vendor_name: "Live Life Cycling"
+city: "Brisbane"
+max_pages: 10
+base_url: "https://www.livelifecycling.com.au"
+pipeline: "shopify"
+# Mixed product_type: "Road Bike", "Electric Road Bike", "Electric MTB", "Gravel Bike",
+# and "bicycle" (used for Trek road bikes with "road bike" tag).
+# "road bike" key catches both the product_type AND the tag on "bicycle"-typed products.
+category_map:
+  electric mtb: E-Bike
+  electric road bike: E-Bike
+  gravel bike: Gravel
+  road bike: Road
+  road: Road

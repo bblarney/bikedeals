@@ -1,0 +1,20 @@
+vendor_name: "Giant"
+city: "Wollongong"
+max_pages: 10
+base_url: "https://www.giantwollongong.com.au"
+pipeline: "shopify"
+# product_type is just the brand name: "Giant", "Giant E-Bikes", "Liv".
+# "Giant E-Bikes" is caught by the e-bikes key on product_type.
+# Non-electric Giant/Liv bikes use tags for category (e.g. "Mountain Bikes", "Full Suspension").
+# Untagged products will be skipped — the store's tagging is incomplete.
+category_map:
+  e-bikes: E-Bike
+  electric: E-Bike
+  mountain bikes: Mountain
+  full suspension: Mountain
+  hardtail: Mountain
+  gravel: Gravel
+  road bikes: Road
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
