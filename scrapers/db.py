@@ -17,19 +17,23 @@ async def init_db(engine) -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
+_CHUNK_SIZE = 1000
+
+
 async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
     if not records:
         return 0
-    for r in records:
-        data = r.model_dump()
-        stmt = pg_insert(Bike).values(**data).on_conflict_do_update(
+    for i in range(0, len(records), _CHUNK_SIZE):
+        chunk = records[i : i + _CHUNK_SIZE]
+        stmt = pg_insert(Bike).values([r.model_dump() for r in chunk])
+        stmt = stmt.on_conflict_do_update(
             index_elements=["id"],
             set_={
-                "price_sale": r.price_sale,
-                "price_original": r.price_original,
-                "discount_percentage": r.discount_percentage,
-                "in_stock": r.in_stock,
-                "last_seen_at": r.last_seen_at,
+                "price_sale": stmt.excluded.price_sale,
+                "price_original": stmt.excluded.price_original,
+                "discount_percentage": stmt.excluded.discount_percentage,
+                "in_stock": stmt.excluded.in_stock,
+                "last_seen_at": stmt.excluded.last_seen_at,
             },
         )
         await session.execute(stmt)

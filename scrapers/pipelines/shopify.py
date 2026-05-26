@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 from datetime import datetime, timezone
 
 import httpx
@@ -113,24 +114,35 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         return []
 
     bikes: list[BikeRecord] = []
-    since_id: int | None = None
     now = datetime.now(timezone.utc)
 
     headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
 
-    while True:
-        url = f"{config.base_url}/products.json?limit=250"
-        if since_id is not None:
-            url += f"&since_id={since_id}"
+    # Scope to a specific collection if configured — avoids crawling the full
+    # historical catalogue which can be millions of discontinued products.
+    if config.collection:
+        products_path = f"/collections/{config.collection}/products.json"
+    else:
+        products_path = "/products.json"
+
+    # Shopify cursor pagination: prefer Link header page_info cursor (no page cap),
+    # fall back to since_id if the store doesn't emit Link headers.
+    next_url: str | None = f"{config.base_url}{products_path}?limit=250"
+    page = 0
+
+    while next_url:
+        page += 1
+        logger.info("[%s] Fetching page %d: %s", config.vendor_name, page, next_url)
         try:
-            resp = await client.get(url, headers=headers, follow_redirects=True)
+            resp = await client.get(next_url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
-            logger.error("[%s] Failed to fetch (since_id=%s): %s", config.vendor_name, since_id, exc)
+            logger.error("[%s] Failed to fetch page %d: %s", config.vendor_name, page, exc)
             break
 
         products = data.get("products", [])
+        logger.info("[%s] Page %d returned %d products", config.vendor_name, page, len(products))
         if not products:
             break
 
@@ -200,10 +212,24 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                         config.vendor_name, handle, frame_size, exc,
                     )
 
-        since_id = products[-1]["id"]
-
         if len(products) < 250:
             break
+
+        if config.max_pages and page >= config.max_pages:
+            logger.info("[%s] Reached max_pages=%d; stopping", config.vendor_name, config.max_pages)
+            break
+
+        # Prefer Shopify cursor (page_info) from Link header — no hard page cap.
+        # Fall back to since_id if the store doesn't return a Link header.
+        link_header = resp.headers.get("Link", "")
+        next_match = re.search(r'<([^>]+)>;\s*rel="next"', link_header)
+        if next_match:
+            next_url = next_match.group(1)
+            logger.debug("[%s] Following Link cursor to page %d", config.vendor_name, page + 1)
+        else:
+            since_id = products[-1]["id"]
+            next_url = f"{config.base_url}{products_path}?limit=250&since_id={since_id}"
+            logger.debug("[%s] No Link header; using since_id=%s", config.vendor_name, since_id)
 
         await asyncio.sleep(random.uniform(1.0, 2.0))
 

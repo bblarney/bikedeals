@@ -1,4 +1,9 @@
 vendor_name: "99 Bikes"
+# Scope to bikes collection to avoid crawling their full historical catalogue.
+# Find the handle by visiting https://www.99bikes.com.au/collections/ and checking
+# the URL of their bikes section. Common handles: bikes, bicycles, bikes-scooters.
+collection: "bikes"
+max_pages: 40
 cities:
   - Brisbane
   - Melbourne

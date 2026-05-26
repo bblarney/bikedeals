@@ -9,15 +9,6 @@ from scrapers.pipelines.woocommerce import scrape_woocommerce
 
 logger = logging.getLogger(__name__)
 
-MAX_CONCURRENT_VENDORS = 5
-
-
-async def run_all(vendors: list[VendorConfig]) -> list[ScrapeResult]:
-    sem = asyncio.Semaphore(MAX_CONCURRENT_VENDORS)
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        tasks = [scrape_vendor(v, client, sem) for v in vendors]
-        return await asyncio.gather(*tasks)
-
 
 async def scrape_vendor(
     config: VendorConfig, client: httpx.AsyncClient, sem: asyncio.Semaphore
