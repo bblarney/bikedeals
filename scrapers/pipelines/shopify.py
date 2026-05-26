@@ -113,23 +113,21 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         return []
 
     bikes: list[BikeRecord] = []
-    page = 1
+    since_id: int | None = None
     now = datetime.now(timezone.utc)
 
     headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
 
     while True:
-        url = f"{config.base_url}/products.json?limit=250&page={page}"
+        url = f"{config.base_url}/products.json?limit=250"
+        if since_id is not None:
+            url += f"&since_id={since_id}"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
-            if resp.status_code == 400 and page > 1:
-                # Shopify page-based API is hard-capped at page 100
-                logger.debug("[%s] Reached Shopify page limit at page %d", config.vendor_name, page)
-                break
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
-            logger.error("[%s] Failed to fetch page %d: %s", config.vendor_name, page, exc)
+            logger.error("[%s] Failed to fetch (since_id=%s): %s", config.vendor_name, since_id, exc)
             break
 
         products = data.get("products", [])
@@ -202,10 +200,11 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                         config.vendor_name, handle, frame_size, exc,
                     )
 
+        since_id = products[-1]["id"]
+
         if len(products) < 250:
             break
 
-        page += 1
         await asyncio.sleep(random.uniform(1.0, 2.0))
 
     # Fan out national chains: duplicate each record once per city
