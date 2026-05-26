@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class BikeResponse(BaseModel):
     id: str
     vendor_name: str
-    city: str
+    city: str | None
     brand: str
     model_name: str
     category: str

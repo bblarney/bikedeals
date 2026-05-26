@@ -5,8 +5,8 @@ from typing import Literal
 from pydantic import BaseModel, model_validator
 
 
-def make_bike_id(vendor_name: str, product_url: str, frame_size: str) -> str:
-    key = f"{vendor_name}::{product_url}::{frame_size}"
+def make_bike_id(vendor_name: str, product_url: str, frame_size: str, city: str | None = None) -> str:
+    key = f"{vendor_name}::{city or ''}::{product_url}::{frame_size}"
     return hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
@@ -20,7 +20,8 @@ def compute_discount(price_sale: float, price_original: float | None) -> int:
 
 class VendorConfig(BaseModel):
     vendor_name: str
-    city: str
+    city: str | None = None      # single-location vendors
+    cities: list[str] | None = None  # national chains: one record per city
     base_url: str
     pipeline: Literal["shopify", "woocommerce", "custom"]
     category_map: dict[str, str]
@@ -30,7 +31,7 @@ class VendorConfig(BaseModel):
 class BikeRecord(BaseModel):
     id: str
     vendor_name: str
-    city: str
+    city: str | None
     brand: str
     model_name: str
     category: Literal["Road", "Mountain", "Gravel", "E-Bike", "Commuter"]

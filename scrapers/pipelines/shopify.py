@@ -9,6 +9,23 @@ from scrapers.models import BikeRecord, ScrapeResult, VendorConfig, compute_disc
 
 logger = logging.getLogger(__name__)
 
+# Product-type words that indicate an accessory, not a bike.
+# If any of these words appear in product_type the product is skipped,
+# regardless of whether a category key also substring-matches.
+_ACCESSORY_WORDS = {
+    "helmet", "helmets", "glove", "gloves", "shoe", "shoes", "boot", "boots",
+    "jersey", "bib", "sock", "socks", "jacket", "vest", "cap", "shorts",
+    "glasses", "goggle", "goggles", "sunglasses", "clothing", "apparel",
+    "pump", "lock", "light", "lights", "computer",
+    "saddle", "seatpost", "pedal", "pedals",
+    "tyre", "tyres", "tire", "tires", "tube", "tubes",
+    "grip", "grips", "handlebar", "stem", "fork",
+    "cassette", "chain", "brake", "brakes", "derailleur", "crankset",
+    "bottle", "cage", "rack", "mudguard", "fender",
+    "bag", "backpack", "pannier", "trailer",
+    "protection", "accessory", "accessories", "parts",
+}
+
 _COLOUR_KEYWORDS = {
     "black", "white", "red", "blue", "green", "yellow", "orange", "purple",
     "pink", "grey", "gray", "silver", "gold", "bronze", "brown", "beige",
@@ -20,6 +37,11 @@ _SIZE_KEYWORDS = {
     "extra small", "small", "medium", "large", "extra large",
     "one size", "one-size", "default",
 }
+
+
+def _is_accessory(product_type: str) -> bool:
+    words = set(product_type.lower().replace(":", " ").replace("/", " ").replace("-", " ").split())
+    return bool(words & _ACCESSORY_WORDS)
 
 
 def _is_size_variant(title: str) -> bool:
@@ -99,6 +121,10 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         url = f"{config.base_url}/products.json?limit=250&page={page}"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
+            if resp.status_code == 400 and page > 1:
+                # Shopify page-based API is hard-capped at page 100
+                logger.debug("[%s] Reached Shopify page limit at page %d", config.vendor_name, page)
+                break
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
@@ -117,6 +143,9 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             handle = product.get("handle", "")
             images = product.get("images", [])
             image_url = images[0]["src"] if images else None
+
+            if _is_accessory(product_type):
+                continue
 
             category = _resolve_category(product_type, tags, config.category_map)
             if category is None:
@@ -142,8 +171,10 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                     continue
 
                 in_stock = bool(variant.get("available", False))
+                if not in_stock:
+                    continue
                 discount = compute_discount(price_sale, price_original)
-                bike_id = make_bike_id(config.vendor_name, product_url, frame_size)
+                bike_id = make_bike_id(config.vendor_name, product_url, frame_size, config.city)
 
                 try:
                     record = BikeRecord(
@@ -175,6 +206,17 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
 
         page += 1
         await asyncio.sleep(random.uniform(1.0, 2.0))
+
+    # Fan out national chains: duplicate each record once per city
+    if config.cities:
+        expanded = []
+        for bike in bikes:
+            for city in config.cities:
+                expanded.append(bike.model_copy(update={
+                    "city": city,
+                    "id": make_bike_id(config.vendor_name, bike.product_url, bike.frame_size, city),
+                }))
+        bikes = expanded
 
     logger.info("[%s] Shopify scrape complete: %d bikes", config.vendor_name, len(bikes))
     return bikes

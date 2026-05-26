@@ -1,16 +1,23 @@
 vendor_name: "99 Bikes"
-city: "Brisbane"
+cities:
+  - Brisbane
+  - Melbourne
+  - Perth
+  - Sydney
+  - Canberra
 base_url: "https://www.99bikes.com.au"
 pipeline: "shopify"
 # Keys are matched as substrings of product_type (case-insensitive).
 # 99 Bikes uses a hierarchical format: "Bikes & Scooters : Bikes : Mountain Bikes"
-# so keys should match the leaf or any segment of that hierarchy.
 category_map:
   mountain bikes: Mountain
   mountain bike: Mountain
+  fat bike: Mountain
+  fat-bike: Mountain
   road bikes: Road
   road bike: Road
   road & gravel: Road
+  touring: Road
   gravel bikes: Gravel
   gravel bike: Gravel
   electric bikes: E-Bike
@@ -19,6 +26,7 @@ category_map:
   e-bike: E-Bike
   ebike: E-Bike
   kids bikes: Commuter
+  kids bike: Commuter
   hybrid bikes: Commuter
   hybrid bike: Commuter
   commuter bikes: Commuter
@@ -26,3 +34,9 @@ category_map:
   city bikes: Commuter
   city bike: Commuter
   urban bikes: Commuter
+  urban bike: Commuter
+  cargo bikes: Commuter
+  cargo bike: Commuter
+  folding bikes: Commuter
+  folding bike: Commuter
+  bmx: Commuter
