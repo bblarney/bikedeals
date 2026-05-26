@@ -1,6 +1,9 @@
 from typing import Annotated
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Query, Response
+
+load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
