@@ -29,7 +29,7 @@ class Bike(Base):
     price_sale = Column(Float, nullable=False)
     discount_percentage = Column(Integer, nullable=False, default=0)
     in_stock = Column(Boolean, nullable=False, default=True)
-    product_url = Column(Text, nullable=False, unique=True)
+    product_url = Column(Text, nullable=False)
     image_url = Column(Text, nullable=True)
     scraped_at = Column(DateTime(timezone=True), nullable=False)
     last_seen_at = Column(DateTime(timezone=True), nullable=False)
