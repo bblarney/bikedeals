@@ -1,0 +1,28 @@
+vendor_name: "99 Bikes"
+city: "Brisbane"
+base_url: "https://www.99bikes.com.au"
+pipeline: "woocommerce"
+category_map:
+  road: Road
+  road bikes: Road
+  mountain: Mountain
+  mountain bikes: Mountain
+  mtb: Mountain
+  trail: Mountain
+  gravel: Gravel
+  gravel bikes: Gravel
+  e-bike: E-Bike
+  e-bikes: E-Bike
+  electric bikes: E-Bike
+  commuter: Commuter
+  commuter bikes: Commuter
+  city bikes: Commuter
+  hybrid: Commuter
+selectors:
+  product_list: "ul.products li.product"
+  model_name: ".woocommerce-loop-product__title"
+  price_sale: ".price ins .amount"
+  price_original: ".price del .amount"
+  product_url: "a.woocommerce-LoopProduct-link"
+  image_url: "img.attachment-woocommerce_thumbnail"
+  frame_size: ".variation-size"
