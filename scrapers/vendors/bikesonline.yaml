@@ -1,0 +1,32 @@
+vendor_name: "Bikes Online"
+collection: "bikes"
+max_pages: 20
+cities:
+  - Brisbane
+  - Melbourne
+  - Perth
+  - Sydney
+  - Canberra
+base_url: "https://www.bikesonline.com.au"
+pipeline: "shopify"
+# Bikes Online uses a flat product_type ("Bikes") for all bikes.
+# Categories are resolved entirely from the product title.
+# E-bike keys must come before mountain/commuter keys so that
+# "Hardtail eMTB" and "Commuter eBike" both map to E-Bike.
+category_map:
+  ebike: E-Bike
+  e-bike: E-Bike
+  emtb: E-Bike
+  mountain bike: Mountain
+  hardtail: Mountain
+  dirt jump: Mountain
+  youth mountain: Mountain
+  kids mountain: Mountain
+  gravel bike: Gravel
+  road bike: Road
+  folding bike: Commuter
+  commuter: Commuter
+  urban: Commuter
+  cruiser: Commuter
+  city bike: Commuter
+  cargo: Commuter

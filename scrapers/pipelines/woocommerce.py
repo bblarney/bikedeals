@@ -75,6 +75,7 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
         return []
 
+    logger.info("[%s] Scraping...", config.vendor_name)
     headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
     sel = config.selectors
     bikes: list[BikeRecord] = []
@@ -82,7 +83,8 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
     page = 1
 
     while True:
-        url = f"{config.base_url}/shop/page/{page}/" if page > 1 else f"{config.base_url}/shop/"
+        path = config.shop_path.strip("/")
+        url = f"{config.base_url}/{path}/page/{page}/" if page > 1 else f"{config.base_url}/{path}/"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
@@ -102,6 +104,9 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                 continue
 
             raw_sale = _sel(item, sel["price_sale"])
+            # Fall back to regular price selector for non-sale items
+            if not raw_sale and sel.get("price_regular"):
+                raw_sale = _sel(item, sel["price_regular"])
             raw_original = _sel(item, sel.get("price_original", "")) if sel.get("price_original") else None
 
             price_sale = _parse_price(raw_sale)
@@ -168,5 +173,5 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
         page += 1
         await asyncio.sleep(random.uniform(1.0, 2.0))
 
-    logger.info("[%s] WooCommerce scrape complete: %d bikes", config.vendor_name, len(bikes))
+    logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
     return bikes

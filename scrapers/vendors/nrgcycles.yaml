@@ -1,0 +1,24 @@
+vendor_name: "NRG Cycles"
+city: "Brisbane"
+shop_path: "product-category/bikes"
+base_url: "https://www.nrgcycles.com.au"
+pipeline: "woocommerce"
+category_map:
+  ebike: E-Bike
+  e-bike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+selectors:
+  product_list: "article.product"
+  model_name: "h4.entry-title a"
+  price_sale: "span.price ins bdi"
+  price_regular: "span.price bdi"
+  price_original: "span.price del bdi"
+  product_url: "h4.entry-title a"
+  image_url: "img[data-src]"

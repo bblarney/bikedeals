@@ -1,0 +1,20 @@
+vendor_name: "Pedal Inn"
+city: "Brisbane"
+collection: "bikes"
+max_pages: 15
+base_url: "https://www.pedalinn.au"
+pipeline: "shopify"
+# Hierarchical product_type: "Bikes | E-bike | Mtb | Full Suspension", "Bikes | Road | Gravel/All Road", etc.
+# Mixed casing (MTB vs Mtb) handled by lowercase substring matching.
+# gravel before road so "Road | Gravel/All Road" maps to Gravel, not Road.
+# e-bike before mtb so e-MTBs map to E-Bike, not Mountain.
+category_map:
+  e-bike: E-Bike
+  mtb: Mountain
+  fat: Mountain
+  gravel: Gravel
+  road: Road
+  city: Commuter
+  hybrid: Commuter
+  juvenile: Commuter
+  bmx: Commuter

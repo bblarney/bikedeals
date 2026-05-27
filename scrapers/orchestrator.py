@@ -21,7 +21,6 @@ async def scrape_vendor(
                 bikes = await scrape_woocommerce(config, client)
             else:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
-            logger.info("[%s] Scraped %d bikes", config.vendor_name, len(bikes))
             return ScrapeResult(vendor_name=config.vendor_name, bikes=bikes)
         except Exception as exc:
             logger.error("[%s] Scrape failed: %s", config.vendor_name, exc, exc_info=True)

@@ -1,0 +1,9 @@
+vendor_name: "Electric Bikes Brisbane"
+city: "Brisbane"
+collection: "electric-bikes"
+max_pages: 10
+base_url: "https://www.electricbikesbrisbane.com.au"
+pipeline: "shopify"
+# Specialist e-bike store. All bikes have product_type "Electric Bicycles".
+category_map:
+  electric bicycles: E-Bike

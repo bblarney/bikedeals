@@ -1,0 +1,17 @@
+vendor_name: "Bike Line"
+city: "Toowoomba"
+max_pages: 20
+base_url: "https://www.bikeline.com.au"
+pipeline: "shopify"
+# Compact flat product_type: "MTB", "eMTB", "ROAD", "Roadbike", "Citybike", "Citybike-E", etc.
+# Exact key match disambiguates "citybike-e" (E-Bike) from "citybike" (Commuter).
+# "road" substring matches both "ROAD" and "Roadbike".
+category_map:
+  citybike-e: E-Bike
+  emtb: E-Bike
+  e-road: E-Bike
+  mtb: Mountain
+  road: Road
+  citybike: Commuter
+  kidsbike: Commuter
+  cargobike: Commuter

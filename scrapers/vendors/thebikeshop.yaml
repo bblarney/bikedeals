@@ -1,0 +1,14 @@
+vendor_name: "The Bike Shop"
+city: "Brisbane"
+max_pages: 15
+base_url: "https://www.thebikeshop.au"
+pipeline: "shopify"
+# Hierarchical dash-separated product_type: "Bikes - E-Bikes - E-Mountain Bike", "Bikes - MTB - Hardtail", etc.
+# Accessory types ("Accessories - *", "Clothing - *") filtered by _is_accessory before reaching here.
+# e-bikes before mtb so "Bikes - E-Bikes - E-Mountain Bike" maps to E-Bike, not Mountain.
+category_map:
+  e-bikes: E-Bike
+  mtb: Mountain
+  dirt jumper: Mountain
+  road: Road
+  kids: Commuter

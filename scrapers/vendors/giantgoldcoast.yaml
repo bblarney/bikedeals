@@ -1,0 +1,13 @@
+vendor_name: "Giant"
+city: "Gold Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.giantgoldcoast.com.au"
+pipeline: "shopify"
+# Simple flat product_type: "Mountain Bike", "Electric Bike", "Cross & Gravel Bike", etc.
+category_map:
+  electric bike: E-Bike
+  mountain bike: Mountain
+  gravel: Gravel
+  road bike: Road
+  kids: Commuter

@@ -29,6 +29,7 @@ selectors:
   product_list: "ul.products li.product"
   model_name: ".woocommerce-loop-product__title"
   price_sale: ".price ins .amount"
+  price_regular: ".price .amount"
   price_original: ".price del .amount"
   product_url: "a.woocommerce-LoopProduct-link"
   image_url: "img.attachment-woocommerce_thumbnail"
