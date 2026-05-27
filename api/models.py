@@ -33,6 +33,7 @@ class Bike(Base):
     image_url = Column(Text, nullable=True)
     scraped_at = Column(DateTime(timezone=True), nullable=False)
     last_seen_at = Column(DateTime(timezone=True), nullable=False)
+    click_count = Column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
         CheckConstraint(
@@ -50,6 +51,7 @@ class Bike(Base):
         Index("idx_bikes_city", "city"),
         Index("idx_bikes_discount_desc", "discount_percentage"),
         Index("idx_bikes_in_stock", "in_stock"),
+        Index("idx_bikes_click_count", "click_count"),
     )
 
 

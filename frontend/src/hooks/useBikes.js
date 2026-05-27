@@ -24,10 +24,11 @@ export function useBikeParams() {
   }
 
   return {
-    category: get('category'),
-    city: get('city'),
+    category: getAll('category'),
+    city: getAll('city'),
     size: getAll('size'),
-    vendor: get('vendor'),
+    vendor: getAll('vendor'),
+    brand: getAll('brand'),
     min_discount: getInt('min_discount', 0),
     q: get('q'),
     sort: get('sort', 'discount_desc'),

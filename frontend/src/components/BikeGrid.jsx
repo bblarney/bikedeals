@@ -4,6 +4,7 @@ const SORT_LABELS = {
   discount_desc: 'biggest discount',
   price_asc: 'price: low → high',
   price_desc: 'price: high → low',
+  clicks_desc: 'most popular',
 }
 
 export default function BikeGrid({ bikes, isLoading, isError, total, params, onUpdate }) {
@@ -31,7 +32,7 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
         </svg>
         <p className="font-medium text-slate-700">No deals match your filters</p>
         <button
-          onClick={() => onUpdate({ category: '', city: '', size: [], vendor: '', min_discount: 0, q: '' })}
+          onClick={() => onUpdate({ category: [], city: [], size: [], vendor: [], brand: [], min_discount: 0, q: '' })}
           className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
           Clear all filters
