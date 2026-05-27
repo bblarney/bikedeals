@@ -23,12 +23,14 @@ class VendorConfig(BaseModel):
     city: str | None = None      # single-location vendors
     cities: list[str] | None = None  # national chains: one record per city
     base_url: str
-    pipeline: Literal["shopify", "woocommerce", "custom"]
+    pipeline: Literal["shopify", "woocommerce", "bigcommerce", "giant", "custom"]
     category_map: dict[str, str]
     selectors: dict[str, str] | None = None
     collection: str | None = None
+    collections: list[str] | None = None   # multi-collection Shopify stores
     max_pages: int | None = None
     shop_path: str = "shop"
+    shop_paths: list[str] | None = None    # multi-path WooCommerce/BigCommerce/Giant stores
     brand_map: dict[str, str] | None = None  # vendor-specific brand name overrides
 
 

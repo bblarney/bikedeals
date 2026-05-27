@@ -1,0 +1,26 @@
+vendor_name: "Giant Ramsgate"
+city: "Sydney"
+shop_paths:
+  # Electric-bikes path first so e-road and e-MTB products get E-Bike category
+  # before road-bikes and mountain-bikes paths encounter them.
+  - au/bikes/electric-bikes
+  - au/bikes/road-bikes
+  - au/bikes/mountain-bikes
+  - au/bikes/cross-and-gravel-bikes
+  - au/bikes/kids-bikes
+base_url: "https://giantramsgate.com.au"
+pipeline: "giant"
+# Giant Bicycles franchise store using Giant's proprietary brand CMS.
+# All bikes are Giant brand. Prices are RRP only (no sale markdowns shown).
+# Products duplicated across category paths are deduplicated by URL.
+brand_map:
+  giant: Giant
+category_map:
+  # electric must precede road/mountain to catch electric-road and electric-mountain
+  electric: E-Bike
+  road-bikes: Road
+  mountain-bikes: Mountain
+  cross-and-gravel-bikes: Gravel
+  gravel: Gravel
+  kids-bikes: Commuter
+  kids: Commuter

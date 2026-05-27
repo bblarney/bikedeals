@@ -1,0 +1,19 @@
+vendor_name: "Omafiets"
+city: "Sydney"
+collection: "bicycles"
+max_pages: 10
+base_url: "https://omafiets.com.au"
+pipeline: "shopify"
+# product_type: "Bicycles - Cargo", "Bicycles - Gravel", "Bicycles - Bikepacking & Off-Road"
+# Specialty shop for cargo, gravel, and bikepacking bikes. Cargo maps to Commuter.
+category_map:
+  gravel: Gravel
+  bikepacking: Gravel
+  off-road: Gravel
+  cargo: Commuter
+  city: Commuter
+  commuter: Commuter
+  mountain: Mountain
+  road: Road
+  electric: E-Bike
+  e-bike: E-Bike

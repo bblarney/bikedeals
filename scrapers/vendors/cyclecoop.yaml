@@ -1,0 +1,24 @@
+vendor_name: "Cycle Co-op"
+city: "Canberra"
+max_pages: 10
+base_url: "https://cycleco-op.au"
+pipeline: "shopify"
+# product_type uses pipe-separated hierarchy: "Bikes | City And Hybrid | Hybrid",
+# "Bikes | Road | Gravel/All Road", "Bikes | Road | Race", "Bikes | Juvenile | 20 Inch Boys | External Gears"
+# E-bike key before other keys to catch electric variants.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  gravel: Gravel
+  road: Road
+  city: Commuter
+  hybrid: Commuter
+  juvenile: Commuter
+  kids: Commuter
+  commuter: Commuter
+  bmx: Commuter

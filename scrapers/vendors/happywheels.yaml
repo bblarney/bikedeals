@@ -1,0 +1,44 @@
+vendor_name: "Happy Wheels"
+city: "Sydney"
+shop_paths:
+  - product-category/bikes-and-frames/mountain-bikes
+  - product-category/bikes-and-frames/road-aero-road
+  - product-category/bikes-and-frames/cyclocross-gravel
+  - product-category/bikes-and-frames/commuter-urban
+  - product-category/bikes-and-frames/kids-and-youth
+  - product-category/bikes-and-frames/track
+  - product-category/bikes-and-frames/triathlon-time-trial
+max_pages: 10
+base_url: "https://www.happywheels.com.au"
+pipeline: "woocommerce"
+# Custom WooCommerce theme. Top-level /product-category/bikes-and-frames/ shows
+# subcategory tiles only; all 7 subcategory paths return actual products.
+# Some items on each page are brand/category aggregation tiles (no price) —
+# these are skipped by the pipeline via the price_sale is None check.
+# Product URL is on a.btn ("more info" button), not a.woocommerce-loop-product__link.
+selectors:
+  product_list: "li.product"
+  model_name: "h2.woocommerce-loop-product__title"
+  product_url: "a.btn"
+  image_url: "a.feat img"
+  price_sale: "span.price ins span.woocommerce-Price-amount bdi"
+  price_original: "span.price del span.woocommerce-Price-amount bdi"
+  price_regular: "span.price span.woocommerce-Price-amount bdi"
+category_map:
+  # E-bike keys first
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  # Category paths map via product_cat-* classes
+  mountain-bikes: Mountain
+  road-aero-road: Road
+  road: Road
+  cyclocross-gravel: Gravel
+  gravel: Gravel
+  cyclocross: Gravel
+  commuter-urban: Commuter
+  commuter: Commuter
+  kids-and-youth: Commuter
+  kids: Commuter
+  track: Road
+  triathlon-time-trial: Road

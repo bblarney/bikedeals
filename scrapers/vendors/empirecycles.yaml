@@ -1,0 +1,22 @@
+vendor_name: "Empire Cycles"
+city: "Perth"
+collection: "bikes"
+max_pages: 10
+base_url: "https://empirecycles.com.au"
+pipeline: "shopify"
+# Specialized dealer. product_type seen: "ROAD" (uppercase).
+# turbo key catches Specialized e-bikes that may carry a road/mountain product_type.
+category_map:
+  turbo: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  enduro: Mountain
+  hardtail: Mountain
+  gravel: Gravel
+  road: Road
+  city: Commuter
+  commuter: Commuter
+  hybrid: Commuter
+  kids: Commuter

@@ -1,0 +1,19 @@
+vendor_name: "Ride 'n' Roll"
+city: "Gold Coast"
+collection: "all"
+max_pages: 10
+base_url: "https://www.ridenroll.com.au"
+pipeline: "shopify"
+# product_type: "ebike" and "" (empty). E-bike and general bike store.
+category_map:
+  ebike: E-Bike
+  e-bike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

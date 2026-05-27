@@ -1,0 +1,26 @@
+vendor_name: "Cycle Zone"
+city: "Sunshine Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://cyclezone.com.au"
+pipeline: "shopify"
+# product_type: "Mountain Bikes", "Mountain Bike", "Road"
+category_map:
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  enduro: Mountain
+  trail: Mountain
+  gravel bikes: Gravel
+  gravel bike: Gravel
+  gravel: Gravel
+  electric bikes: E-Bike
+  electric bike: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  road bikes: Road
+  road bike: Road
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

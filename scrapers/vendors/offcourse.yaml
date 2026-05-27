@@ -1,0 +1,35 @@
+vendor_name: "Off Course"
+city: "Melbourne"
+shop_path: "product-category/bikes"
+max_pages: 5
+base_url: "https://offcourse.bike"
+pipeline: "woocommerce"
+# Shoptimizer theme. Title in div.woocommerce-loop-product__title (div, not h2).
+# Sale markup uses <s> (original) and <strong> (sale) instead of WooCommerce standard <del>/<ins>.
+# Brand is in product_brand taxonomy — not exposed as a CSS class on the card; defaults to vendor_name.
+# Category from product_cat-* classes: gravel-all-road-bikes, mountain-bikes, bikepacking-bikes,
+#   commuting-bikes, road-bikes, touring-bikes.
+selectors:
+  product_list: "li.product"
+  model_name: "div.woocommerce-loop-product__title"
+  product_url: "a.woocommerce-loop-product__link"
+  image_url: "img.attachment-shop_catalog"
+  price_sale: "span.price strong bdi"
+  price_original: "span.price s bdi"
+  price_regular: "span.price bdi"
+category_map:
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain-bikes: Mountain
+  mountain bike: Mountain
+  gravel-all-road-bikes: Gravel
+  gravel: Gravel
+  bikepacking-bikes: Gravel
+  road-bikes: Road
+  road: Road
+  touring-bikes: Road
+  commuting-bikes: Commuter
+  commuter: Commuter
+  city: Commuter
+  kids: Commuter

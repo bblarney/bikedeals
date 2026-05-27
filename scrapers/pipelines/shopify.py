@@ -86,19 +86,19 @@ def _is_size_variant(title: str) -> bool:
     return True
 
 
-async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
-    if not await check_robots(config.base_url, client):
-        logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
-        return []
-
-    logger.info("[%s] Scraping...", config.vendor_name)
-    bikes: list[BikeRecord] = []
-    now = datetime.now(timezone.utc)
-
+async def _scrape_collection(
+    config: VendorConfig,
+    client: httpx.AsyncClient,
+    collection_handle: str | None,
+    seen_handles: set[str],
+    now: datetime,
+) -> tuple[list[BikeRecord], int]:
+    """Scrape a single Shopify collection. Returns (bikes, pages_fetched)."""
     headers = {"User-Agent": SCRAPER_USER_AGENT}
+    bikes: list[BikeRecord] = []
 
-    if config.collection:
-        products_path = f"/collections/{config.collection}/products.json"
+    if collection_handle:
+        products_path = f"/collections/{collection_handle}/products.json"
     else:
         products_path = "/products.json"
 
@@ -122,11 +122,15 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             break
 
         for product in products:
+            handle = product.get("handle", "")
+            if handle in seen_handles:
+                continue
+            seen_handles.add(handle)
+
             brand = _normalize_brand(product.get("vendor", "") or config.vendor_name, config.brand_map)
             model_name = product.get("title", "")
             product_type = product.get("product_type", "") or ""
             tags = product.get("tags", []) or []
-            handle = product.get("handle", "")
             images = product.get("images", [])
             image_url = images[0]["src"] if images else None
 
@@ -144,7 +148,9 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
 
             for variant in product.get("variants", []):
                 frame_size = variant.get("title", "")
-                if not _is_size_variant(frame_size):
+                if frame_size.lower().strip() == "default title":
+                    frame_size = "N/A"
+                elif not _is_size_variant(frame_size):
                     continue
 
                 variant_id = variant.get("id")
@@ -153,8 +159,6 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                 price_sale = parse_price(variant.get("price"))
                 price_original = parse_price(variant.get("compare_at_price"))
 
-                # compare_at_price must be strictly higher than price to count as a markdown;
-                # if it's equal or lower the store has bad data — treat as no sale.
                 if price_original is not None and price_original <= price_sale:
                     price_original = None
 
@@ -200,19 +204,44 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             logger.warning("[%s] Reached max_pages=%d; stopping early", config.vendor_name, config.max_pages)
             break
 
-        # Prefer Shopify cursor (page_info) from Link header — no hard page cap.
-        # Fall back to since_id if the store doesn't return a Link header.
         link_header = resp.headers.get("Link", "")
         next_match = re.search(r'<([^>]+)>;\s*rel="next"', link_header)
         if next_match:
             next_url = next_match.group(1)
-            logger.debug("[%s] Following Link cursor to page %d", config.vendor_name, page + 1)
         else:
             since_id = products[-1]["id"]
             next_url = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}&since_id={since_id}"
-            logger.debug("[%s] No Link header; using since_id=%s", config.vendor_name, since_id)
 
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
+
+    return bikes, page
+
+
+async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
+    if not await check_robots(config.base_url, client):
+        logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
+        return []
+
+    logger.info("[%s] Scraping...", config.vendor_name)
+    now = datetime.now(timezone.utc)
+
+    # Build the list of collection handles to scrape.
+    # Multi-collection stores list them in config.collections; single-collection
+    # stores use config.collection (which may be None → root /products.json).
+    handles: list[str | None] = config.collections if config.collections else [config.collection]
+
+    seen_product_handles: set[str] = set()
+    bikes: list[BikeRecord] = []
+    total_pages = 0
+
+    for handle in handles:
+        collection_bikes, pages = await _scrape_collection(
+            config, client, handle, seen_product_handles, now
+        )
+        bikes.extend(collection_bikes)
+        total_pages += pages
+        if len(handles) > 1:
+            await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
     # Fan out national chains: duplicate each record once per city
     if config.cities:
@@ -225,5 +254,8 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                 }))
         bikes = expanded
 
-    logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
+    logger.info(
+        "[%s] Done: %d bikes across %d collection(s), %d page(s)",
+        config.vendor_name, len(bikes), len(handles), total_pages,
+    )
     return bikes

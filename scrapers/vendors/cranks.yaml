@@ -1,0 +1,40 @@
+vendor_name: "Cranks"
+city: "Sydney"
+shop_path: "shop/bikes"
+max_pages: 10
+base_url: "https://cranks.com.au"
+pipeline: "woocommerce"
+# Custom theme. Title in div.product-title; price in div.price (not span.price).
+# Standard product_cat-* classes carry both category and brand info.
+# Category classes: product_cat-road-bike, product_cat-mountain-bikes, product_cat-e-bikes,
+#   product_cat-dual-suspension, product_cat-dirt-jumper, product_cat-city-commuter,
+#   product_cat-kids-bikes, product_cat-balance-bikes.
+# Brand classes: product_cat-trek, product_cat-norco, product_cat-hornit, product_cat-icon.
+brand_map:
+  trek: Trek
+  norco: Norco
+  hornit: Hornit
+  icon: Icon
+selectors:
+  product_list: "li.product"
+  model_name: "div.product-title"
+  product_url: "div.product-title a"
+  image_url: "img.thumb-image"
+  price_sale: "div.price ins span.woocommerce-Price-amount bdi"
+  price_original: "div.price del span.woocommerce-Price-amount bdi"
+  price_regular: "div.price span.woocommerce-Price-amount bdi"
+category_map:
+  e-bikes: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  dual-suspension: Mountain
+  dirt-jumper: Mountain
+  mountain-bikes: Mountain
+  mountain bike: Mountain
+  road-bike: Road
+  road bikes: Road
+  gravel: Gravel
+  city-commuter: Commuter
+  commuter-and-urban: Commuter
+  kids-bikes: Commuter
+  balance-bikes: Commuter

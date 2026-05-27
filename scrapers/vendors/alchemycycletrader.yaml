@@ -1,0 +1,24 @@
+vendor_name: "Alchemy Cycle Trader"
+city: "Melbourne"
+max_pages: 10
+base_url: "https://alchemycycletrader.com.au"
+pipeline: "shopify"
+# Multi-brand secondhand/clearance dealer. Brands include Specialized, Giant, Focus, etc.
+# product_type carries category; vendor field carries brand name.
+category_map:
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  e+: E-Bike
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

@@ -1,0 +1,22 @@
+vendor_name: "Glowworm Bicycles"
+city: "Sydney"
+collections:
+  - electric-bikes
+  - bosch-ebikes
+  - cargo
+max_pages: 10
+base_url: "https://glowwormbicycles.com.au"
+pipeline: "shopify"
+# E-bike and cargo specialist. Stocks Tern, Kalkhoff, Lekker, Vamos and others.
+# Three collections cover the full inventory; /collections/all includes accessories.
+# Products shared across electric-bikes and bosch-ebikes are deduplicated by handle.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  bosch: E-Bike
+  cargo: E-Bike
+  longtail: E-Bike
+  commuter: Commuter
+  city: Commuter
+  hybrid: Commuter

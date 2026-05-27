@@ -1,0 +1,31 @@
+vendor_name: "Bicycle Superstore"
+city: "Melbourne"
+collections:
+  - road-bikes
+  - mountain-bikes
+max_pages: 10
+base_url: "https://bicyclesuperstore.com.au"
+pipeline: "shopify"
+# Large Scott/Trek/Specialized dealer. Collections gravel-bikes, e-bikes, kids-bikes
+# are empty; only road-bikes and mountain-bikes confirmed to contain inventory.
+# product_type carries category (e.g. "Road Bikes", "Mountain Bikes").
+# vendor field carries brand.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
+  junior: Commuter

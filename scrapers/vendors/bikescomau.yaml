@@ -1,0 +1,26 @@
+vendor_name: "Bikes.com.au"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 20
+base_url: "https://bikes.com.au"
+pipeline: "shopify"
+# product_type uses flat category names: "Gravel Bikes", "Road Bikes", "Mountain Bikes", etc.
+category_map:
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  enduro: Mountain
+  trail: Mountain
+  downhill: Mountain
+  gravel bikes: Gravel
+  gravel bike: Gravel
+  road bikes: Road
+  road bike: Road
+  electric bikes: E-Bike
+  electric bike: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  hybrid: Commuter
+  commuter: Commuter
+  city: Commuter
+  kids: Commuter
+  bmx: Commuter

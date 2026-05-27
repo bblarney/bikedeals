@@ -1,0 +1,19 @@
+vendor_name: "Pedl"
+city: "Sydney"
+collections:
+  - 250w-e-bikes
+  - 500w-e-bikes
+  - e-bikes
+max_pages: 10
+base_url: "https://pedl.com.au"
+pipeline: "shopify"
+# E-bike and e-scooter store. Using watt-class collections to get bikes only;
+# /collections/all includes e-scooter tyres and accessories.
+# Products shared across watt-class and e-bikes collections are deduplicated by handle.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  bike: E-Bike
+  scooter: E-Bike
+  moped: E-Bike
