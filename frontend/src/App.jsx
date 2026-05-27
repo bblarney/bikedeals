@@ -10,11 +10,15 @@ import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
 import TermsPage from './pages/TermsPage'
+import LandingPage from './pages/LandingPage'
 
 function MainLayout() {
   const params = useBikeParams()
-  const { data: bikesData, isLoading, isError } = useBikes(params)
+  const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters()
+
+  const hasRegion = !!localStorage.getItem('bikedeals_region') || params.city.length > 0
+  if (!hasRegion) return <LandingPage onUpdate={params.update} />
 
   return (
     <>
@@ -24,6 +28,8 @@ function MainLayout() {
       <Header
         total={filtersData?.total_bikes}
         lastScrapedAt={filtersData?.last_scraped_at}
+        params={params}
+        onUpdate={params.update}
       />
       <div className="flex flex-1 min-h-0">
         <FilterSidebar
@@ -35,6 +41,7 @@ function MainLayout() {
           <BikeGrid
             bikes={bikesData?.results}
             isLoading={isLoading}
+            isFetching={isFetching}
             isError={isError}
             total={bikesData?.total}
             params={params}
