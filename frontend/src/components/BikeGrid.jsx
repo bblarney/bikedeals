@@ -8,7 +8,7 @@ const SORT_LABELS = {
   clicks_desc: 'most popular',
 }
 
-export default function BikeGrid({ bikes, isLoading, isError, total, params, onUpdate }) {
+export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate }) {
   const { offset, limit, sort } = params
   const page = Math.floor(offset / limit) + 1
   const totalPages = total ? Math.ceil(total / limit) : 1
@@ -47,6 +47,7 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
       {/* Results bar */}
       <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-100">
         <div className="flex items-center gap-2">
+          {isFetching && <Spinner />}
           <p className="text-sm text-slate-500">
             {total != null ? (
               <>
@@ -124,6 +125,14 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
         </div>
       )}
     </div>
+  )
+}
+
+function Spinner() {
+  return (
+    <svg className="animate-spin text-blue-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <path d="M12 2a10 10 0 0 1 10 10" />
+    </svg>
   )
 }
 

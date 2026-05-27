@@ -1,11 +1,17 @@
 import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
-import { DEFAULT_FILTERS } from '../constants'
+import { DEFAULT_FILTERS, REGIONS } from '../constants'
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 export default function FilterSidebar({ filters, params, onUpdate }) {
   const { category, city, size, vendor, brand, min_discount, q } = params
+
+  const activeRegion = useMemo(
+    () => REGIONS.find((r) => r.cities.some((c) => city.includes(c))),
+    [city],
+  )
+  const cityOptions = activeRegion ? activeRegion.cities : (filters?.cities ?? [])
 
   const sizes = useMemo(() => {
     if (!filters?.sizes) return []
@@ -46,11 +52,11 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
           />
         </FilterSection>
 
-        {filters?.cities?.length > 0 && (
+        {cityOptions.length > 0 && (
           <FilterSection label="City">
             <MultiSelectDropdown
               label="Cities"
-              options={filters.cities}
+              options={cityOptions}
               selected={city}
               onChange={(next) => onUpdate({ city: next })}
             />
