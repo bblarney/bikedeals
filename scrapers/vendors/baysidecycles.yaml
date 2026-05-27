@@ -1,0 +1,23 @@
+vendor_name: "Bayside Cycles"
+city: "Melbourne"
+collection: "bikes-for-sale-bayside-mornington-peninsula"
+max_pages: 10
+base_url: "https://baysidecycles.com.au"
+pipeline: "shopify"
+# product_type is very coarse: "Bikes & Frames", "BIKES & FRAMES - GRAVEL".
+# Categories primarily resolved from title keywords (Specialized dealer — Tarmac, Diverge, Jett, etc.).
+# E-bike / turbo must precede road so Turbo Vado/Como are not misclassified.
+category_map:
+  turbo: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  gravel: Gravel
+  cyclocross: Gravel
+  mountain: Mountain
+  mtb: Mountain
+  enduro: Mountain
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

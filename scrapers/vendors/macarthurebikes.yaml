@@ -1,0 +1,13 @@
+vendor_name: "Macarthur Bikes"
+city: "Sydney"
+collection: "electric-bikes-sydney"
+max_pages: 10
+base_url: "https://www.macarthurebikes.com.au"
+pipeline: "shopify"
+# E-bike specialist (southwest Sydney). product_type: "Fat Tyre e-Bike".
+# All products in this collection are electric bikes.
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  fat tyre: E-Bike

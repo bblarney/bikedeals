@@ -24,30 +24,27 @@ def _sel_attr(soup: BeautifulSoup, selector: str, attr: str) -> str | None:
     return el.get(attr) if el else None
 
 
-async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
-    if not config.selectors:
-        logger.error("[%s] WooCommerce pipeline requires selectors config", config.vendor_name)
-        return []
-
-    if not await check_robots(config.base_url, client):
-        logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
-        return []
-
-    logger.info("[%s] Scraping...", config.vendor_name)
+async def _scrape_woocommerce_path(
+    config: VendorConfig,
+    client: httpx.AsyncClient,
+    shop_path: str,
+    seen_urls: set[str],
+    now: datetime,
+) -> tuple[list[BikeRecord], int]:
+    """Scrape a single WooCommerce category path. Returns (bikes, pages_fetched)."""
     headers = {"User-Agent": SCRAPER_USER_AGENT}
     sel = config.selectors
     bikes: list[BikeRecord] = []
-    now = datetime.now(timezone.utc)
     page = 1
+    path = shop_path.strip("/")
 
     while True:
-        path = config.shop_path.strip("/")
         url = f"{config.base_url}/{path}/page/{page}/" if page > 1 else f"{config.base_url}/{path}/"
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
         except Exception as exc:
-            logger.error("[%s] Failed to fetch page %d: %s", config.vendor_name, page, exc)
+            logger.error("[%s] Failed to fetch page %d (%s): %s", config.vendor_name, page, path, exc)
             break
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -61,8 +58,13 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
             if not model_name:
                 continue
 
+            raw_url = _sel_attr(item, sel["product_url"], "href") or ""
+            product_url = urljoin(config.base_url, raw_url) if raw_url else ""
+            if not product_url or product_url in seen_urls:
+                continue
+            seen_urls.add(product_url)
+
             raw_sale = _sel(item, sel["price_sale"])
-            # Fall back to regular price selector for non-sale items
             if not raw_sale and sel.get("price_regular"):
                 raw_sale = _sel(item, sel["price_regular"])
             raw_original = _sel(item, sel.get("price_original", "")) if sel.get("price_original") else None
@@ -74,18 +76,32 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                 logger.debug("[%s] Skipping product with invalid price: %r", config.vendor_name, model_name)
                 continue
 
-            raw_url = _sel_attr(item, sel["product_url"], "href") or ""
-            product_url = urljoin(config.base_url, raw_url) if raw_url else ""
-            if not product_url:
-                continue
-
-            image_url = _sel_attr(item, sel["image_url"], "src") or _sel_attr(item, sel["image_url"], "data-src")
+            image_url = (
+                _sel_attr(item, sel["image_url"], "data-src")
+                or _sel_attr(item, sel["image_url"], "data-lazy-src")
+                or _sel_attr(item, sel["image_url"], "src")
+            )
+            if image_url and image_url.startswith("data:"):
+                image_url = None
 
             frame_size = _sel(item, sel["frame_size"]) if sel.get("frame_size") else "One Size"
             if not frame_size:
                 frame_size = "One Size"
 
-            category = resolve_category([model_name.lower()], config.category_map)
+            cat_tags = [
+                cls.replace("product_cat-", "")
+                for cls in item.get("class", [])
+                if cls.startswith("product_cat-")
+            ]
+
+            brand = config.vendor_name
+            if config.brand_map:
+                for tag in cat_tags:
+                    if tag in config.brand_map:
+                        brand = config.brand_map[tag]
+                        break
+
+            category = resolve_category([model_name.lower()] + cat_tags, config.category_map)
             if category is None:
                 logger.debug(
                     "[%s] No category match for %r; skipping",
@@ -101,7 +117,7 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                     id=bike_id,
                     vendor_name=config.vendor_name,
                     city=config.city,
-                    brand=config.vendor_name,
+                    brand=brand,
                     model_name=model_name,
                     category=category,
                     frame_size=frame_size,
@@ -121,13 +137,42 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                     config.vendor_name, model_name, exc,
                 )
 
-        # WooCommerce pagination: stop if fewer products than expected or no next page
-        next_page = soup.select_one("a.next.page-numbers")
+        next_page = soup.select_one("a.next.page-numbers") or soup.select_one("a.page-numbers.nav-next")
         if not next_page:
             break
 
         page += 1
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
-    logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
+    return bikes, page
+
+
+async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
+    if not config.selectors:
+        logger.error("[%s] WooCommerce pipeline requires selectors config", config.vendor_name)
+        return []
+
+    if not await check_robots(config.base_url, client):
+        logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
+        return []
+
+    logger.info("[%s] Scraping...", config.vendor_name)
+    now = datetime.now(timezone.utc)
+
+    paths = config.shop_paths if config.shop_paths else [config.shop_path]
+    seen_urls: set[str] = set()
+    bikes: list[BikeRecord] = []
+    total_pages = 0
+
+    for path in paths:
+        path_bikes, pages = await _scrape_woocommerce_path(config, client, path, seen_urls, now)
+        bikes.extend(path_bikes)
+        total_pages += pages
+        if len(paths) > 1:
+            await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
+
+    logger.info(
+        "[%s] Done: %d bikes across %d path(s), %d page(s)",
+        config.vendor_name, len(bikes), len(paths), total_pages,
+    )
     return bikes

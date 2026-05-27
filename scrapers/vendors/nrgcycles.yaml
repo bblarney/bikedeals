@@ -1,8 +1,18 @@
 vendor_name: "NRG Cycles"
 city: "Brisbane"
 shop_path: "product-category/bikes"
+max_pages: 5
 base_url: "https://www.nrgcycles.com.au"
 pipeline: "woocommerce"
+# Brand extracted from product_cat-<slug> CSS classes on each article element.
+# norco-bikes-2: WordPress appends -2 to disambiguate from a conflicting slug.
+brand_map:
+  avanti: Avanti
+  gt: GT
+  norco-bikes-2: Norco
+  pivot: Pivot
+  rocky-mountain: Rocky Mountain
+  scott: Scott
 category_map:
   ebike: E-Bike
   e-bike: E-Bike

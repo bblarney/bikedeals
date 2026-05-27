@@ -7,9 +7,13 @@ max_pages: 40
 cities:
   - Brisbane
   - Melbourne
-  - Perth
   - Sydney
+  - Adelaide
   - Canberra
+  - Hobart
+  - Gold Coast
+  - Sunshine Coast
+  # Perth not confirmed in current store locator — re-add if they open there
 base_url: "https://www.99bikes.com.au"
 pipeline: "shopify"
 # Keys are matched as substrings of product_type (case-insensitive).

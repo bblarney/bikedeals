@@ -1,0 +1,20 @@
+vendor_name: "Melbourne Bicycles"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.melbournebicycles.com.au"
+pipeline: "shopify"
+# product_type is clean: "Bicycle - Road", "Bicycle - Flat Bar - Commuter", "Bicycle - Electric"
+# XDS brand specialist; road, e-bike, and commuter focus.
+category_map:
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  gravel: Gravel
+  road: Road
+  flat bar: Commuter
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

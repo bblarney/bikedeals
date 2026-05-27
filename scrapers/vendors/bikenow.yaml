@@ -1,0 +1,25 @@
+vendor_name: "Bike Now"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 10
+base_url: "https://bikenow.com.au"
+pipeline: "shopify"
+# product_type uses flat names: "Gravel Bikes", "Mountain Bikes", "Electric Bikes", "Road Bikes"
+# Confirmed Specialized dealer (Stumpjumper, Tarmac, Turbo Levo, Diverge).
+# turbo key catches Specialized e-bikes that use product_type "Road Bikes" or "Mountain Bikes".
+category_map:
+  turbo: E-Bike
+  electric bikes: E-Bike
+  electric bike: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  gravel bikes: Gravel
+  gravel bike: Gravel
+  road bikes: Road
+  road bike: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

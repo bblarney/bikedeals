@@ -1,0 +1,21 @@
+vendor_name: "Saint Cloud"
+city: "Melbourne"
+max_pages: 10
+base_url: "https://saintcloud.com.au"
+pipeline: "shopify"
+# product_type: "Bikes - Gravel & CX bikes", "Bikes - Road bikes", "Bikes - Mountain bikes", etc.
+# Some products tagged "Unclassified" — fall through to title-based resolution.
+category_map:
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  mountain: Mountain
+  enduro: Mountain
+  road: Road
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  commuter: Commuter
+  city: Commuter
+  hybrid: Commuter
+  kids: Commuter

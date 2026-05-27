@@ -1,0 +1,22 @@
+vendor_name: "Bike Force Joondalup"
+city: "Perth"
+collection: "bikes"
+max_pages: 5
+base_url: "https://bikeforcejoondalup.com.au"
+pipeline: "shopify"
+# product_type: "Bikes - Junior Bikes - Junior Mountain Bikes", "Bikes - Junior Bikes - Junior Hybrids",
+# "Bikes - BMX Bikes - Freestyle BMXes". Small collection; primarily junior and BMX bikes.
+category_map:
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  enduro: Mountain
+  gravel: Gravel
+  road: Road
+  junior: Commuter
+  kids: Commuter
+  bmx: Commuter
+  hybrid: Commuter
+  commuter: Commuter

@@ -1,0 +1,41 @@
+vendor_name: "Summit Cycles"
+city: "Melbourne"
+shop_path: "product-category/bikes"
+max_pages: 10
+base_url: "https://summitcycles.bike"
+pipeline: "woocommerce"
+# WooPress theme. Products are wrapped in div.type-product (not li.product) — the outer
+# div carries all product_cat-* classes needed for brand and category resolution.
+# Title in div.product-title; URL on a.product-content-image href.
+# MTB specialist — Ibis, Deviate, Zerode, Juliana, Amflow (e-MTB).
+brand_map:
+  amflow: Amflow
+  ibis-cycles: Ibis
+  deviate-bikes: Deviate
+  zerode: Zerode
+  juliana: Juliana
+selectors:
+  product_list: "div.type-product"
+  model_name: "div.product-title"
+  product_url: "a.product-content-image"
+  image_url: "img.attachment-woocommerce_thumbnail"
+  price_sale: "span.price ins span.woocommerce-Price-amount bdi"
+  price_original: "span.price del span.woocommerce-Price-amount bdi"
+  price_regular: "span.price span.woocommerce-Price-amount bdi"
+category_map:
+  e-bikes: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  dual-suspension: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

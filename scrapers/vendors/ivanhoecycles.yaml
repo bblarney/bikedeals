@@ -1,0 +1,25 @@
+vendor_name: "Ivanhoe Cycles"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 10
+base_url: "https://ivanhoecycles.com.au"
+pipeline: "shopify"
+# product_type is hierarchical: "Bikes - Mountain Bikes - Hardtail", "Bikes - City & Hybrid Bikes - City Bikes", etc.
+# Stocks both new and secondhand bikes; category resolved from subcategory segment.
+category_map:
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  gravel: Gravel
+  road: Road
+  city: Commuter
+  hybrid: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  commuter: Commuter

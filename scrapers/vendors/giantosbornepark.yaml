@@ -1,0 +1,24 @@
+vendor_name: "Giant"
+city: "Perth"
+collection: "bikes"
+max_pages: 10
+base_url: "https://giantosbornepark.com.au"
+pipeline: "shopify"
+# product_type: "Bicycle" (flat). Category resolved from title and tag keywords.
+# E-bike keys before mtb/road/gravel to correctly classify e-MTBs.
+category_map:
+  e-bike: E-Bike
+  e-mtb: E-Bike
+  electric: E-Bike
+  mtb: Mountain
+  mountain: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  gravel: Gravel
+  road: Road
+  juvenile: Commuter
+  kids: Commuter
+  city: Commuter
+  hybrid: Commuter
+  commuter: Commuter

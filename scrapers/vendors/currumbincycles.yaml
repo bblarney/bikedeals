@@ -1,0 +1,14 @@
+vendor_name: "Currumbin Cycles"
+city: "Gold Coast"
+collection: "electric-bikes"
+max_pages: 10
+base_url: "https://www.currumbincycles.com.au"
+pipeline: "shopify"
+# E-bike specialist. product_type: "Electric Bike".
+# All products in the electric-bikes collection are e-bikes.
+category_map:
+  electric bike: E-Bike
+  electric bikes: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike

@@ -1,0 +1,27 @@
+vendor_name: "Just Ride Nerang"
+city: "Gold Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://justridenerang.com.au"
+pipeline: "shopify"
+# product_type uses dash-separated hierarchy: "Bikes - Mountain Bikes - Enduro",
+# "Bikes - Mountain Bikes - Cross-country", "Bikes - Active - Commuter", "Bikes - Kids - 16\"-20\""
+category_map:
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain bikes: Mountain
+  mountain bike: Mountain
+  enduro: Mountain
+  cross-country: Mountain
+  xc: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  road: Road
+  active: Commuter
+  commuter: Commuter
+  city: Commuter
+  hybrid: Commuter
+  kids: Commuter
+  junior: Commuter

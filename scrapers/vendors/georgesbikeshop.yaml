@@ -1,0 +1,69 @@
+vendor_name: "George's Bike Shop"
+city: "Perth"
+shop_path: "product-category/giant-bikes-perth"
+max_pages: 10
+base_url: "https://www.georgesbikeshop.com.au"
+pipeline: "woocommerce"
+# Giant dealer. All bikes are Giant brand; brand resolved from product_cat-giant-bikes-perth class.
+# Standard WooCommerce h2/img/span.price selectors.
+# Category product_cat classes are Giant-specific subcategories (product_cat-12-inch,
+#   product_cat-giant-kids-bikes-perth) — not useful for type mapping.
+# Categories resolved from Giant model name keywords instead.
+# E-bike keys precede mountain keys to correctly classify Trance E, Fathom E, etc.
+brand_map:
+  giant-bikes-perth: Giant
+  giant-kids-bikes-perth: Giant
+selectors:
+  product_list: "li.product"
+  model_name: "h2.woocommerce-loop-product__title"
+  product_url: "a.woocommerce-loop-product__link"
+  image_url: "img.attachment-woocommerce_thumbnail"
+  price_sale: "span.price ins span.woocommerce-Price-amount bdi"
+  price_original: "span.price del span.woocommerce-Price-amount bdi"
+  price_regular: "span.price span.woocommerce-Price-amount bdi"
+category_map:
+  # E-bikes first — catch "Trance E", "Fathom E", "E+" before their non-electric variants
+  e+: E-Bike
+  trance e: E-Bike
+  fathom e: E-Bike
+  stance e: E-Bike
+  reign e: E-Bike
+  explore e: E-Bike
+  fastroad e: E-Bike
+  tempt e: E-Bike
+  road-e: E-Bike
+  syncdrive: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  # Mountain
+  talon: Mountain
+  fathom: Mountain
+  reign: Mountain
+  trance: Mountain
+  anthem: Mountain
+  stance: Mountain
+  xtc: Mountain
+  maestro: Mountain
+  glory: Mountain
+  # Gravel
+  revolt: Gravel
+  toughroad: Gravel
+  # Road
+  contend: Road
+  propel: Road
+  defy: Road
+  tcr: Road
+  ocr: Road
+  avail: Road
+  # Commuter / kids
+  escape: Commuter
+  animator: Commuter
+  arx: Commuter
+  suede: Commuter
+  sedona: Commuter
+  roam: Commuter
+  fastroad: Commuter
+  triple x: Commuter
+  giant-kids-bikes-perth: Commuter
+  kids: Commuter

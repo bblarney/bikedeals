@@ -1,0 +1,21 @@
+vendor_name: "Bike Central GC"
+city: "Gold Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://bikecentralgc.com.au"
+pipeline: "shopify"
+# product_type: "Electric Bikes" and "" (empty). E-bike focused.
+category_map:
+  electric bikes: E-Bike
+  electric bike: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

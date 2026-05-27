@@ -1,0 +1,31 @@
+vendor_name: "Venture Cycles"
+city: "Sunshine Coast"
+collections:
+  - electric-bikes
+  - mountain-bikes
+  - road-bikes
+  - gravel-bikes
+max_pages: 10
+base_url: "https://venturecycles.com.au"
+pipeline: "shopify"
+# High-end multi-brand dealer (Santa Cruz, Wilier, Cannondale, Forbidden, etc.).
+# Four confirmed collections; /collections/all is empty, /collections/bikes overlaps.
+# Products shared across collections are deduplicated by handle.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  ebike: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
