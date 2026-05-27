@@ -1,20 +1,23 @@
+import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
+import { DEFAULT_FILTERS } from '../constants'
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 export default function FilterSidebar({ filters, params, onUpdate }) {
   const { category, city, size, vendor, brand, min_discount, q, sort } = params
 
-  const sizes = filters?.sizes
-    ? [...filters.sizes].sort((a, b) => {
-        const ai = SIZE_ORDER.indexOf(a)
-        const bi = SIZE_ORDER.indexOf(b)
-        if (ai !== -1 && bi !== -1) return ai - bi
-        if (ai !== -1) return -1
-        if (bi !== -1) return 1
-        return a.localeCompare(b)
-      })
-    : []
+  const sizes = useMemo(() => {
+    if (!filters?.sizes) return []
+    return [...filters.sizes].sort((a, b) => {
+      const ai = SIZE_ORDER.indexOf(a)
+      const bi = SIZE_ORDER.indexOf(b)
+      if (ai !== -1 && bi !== -1) return ai - bi
+      if (ai !== -1) return -1
+      if (bi !== -1) return 1
+      return a.localeCompare(b)
+    })
+  }, [filters])
 
   const active = hasActiveFilters(params)
 
@@ -24,9 +27,7 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
         <span className="text-sm font-semibold text-slate-800">Filters</span>
         {active && (
           <button
-            onClick={() =>
-              onUpdate({ category: [], city: [], size: [], vendor: [], brand: [], min_discount: 0, q: '' })
-            }
+            onClick={() => onUpdate(DEFAULT_FILTERS)}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             Clear all

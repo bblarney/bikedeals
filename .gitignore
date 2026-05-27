@@ -26,6 +26,11 @@ output.json
 # Vite cache
 frontend/.vite/
 
+# Test artifacts
+.pytest_cache/
+htmlcov/
+*.log
+
 # OS
 .DS_Store
 Thumbs.db

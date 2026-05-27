@@ -1,4 +1,5 @@
 import BikeCard from './BikeCard'
+import { DEFAULT_FILTERS } from '../constants'
 
 const SORT_LABELS = {
   discount_desc: 'biggest discount',
@@ -32,7 +33,7 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
         </svg>
         <p className="font-medium text-slate-700">No deals match your filters</p>
         <button
-          onClick={() => onUpdate({ category: [], city: [], size: [], vendor: [], brand: [], min_discount: 0, q: '' })}
+          onClick={() => onUpdate(DEFAULT_FILTERS)}
           className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
           Clear all filters
