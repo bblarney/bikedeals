@@ -1,15 +1,17 @@
+import { Link } from 'react-router-dom'
+
 export default function Header({ total, lastScrapedAt }) {
   const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
 
   return (
     <header className="bg-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
-      <div className="flex items-center gap-3">
+      <Link to="/" className="flex items-center gap-3">
         <BikeIcon />
         <span className="text-white font-semibold text-lg tracking-tight">BikeDeals</span>
         <span className="text-slate-500 text-xs font-medium bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
           AU
         </span>
-      </div>
+      </Link>
       {total != null && (
         <p className="text-sm text-slate-400">
           <span className="text-white font-medium">{total.toLocaleString()}</span> in-stock deals
