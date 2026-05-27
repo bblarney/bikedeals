@@ -1,59 +1,17 @@
 import asyncio
 import logging
 import random
-import re
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
 
+from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
+from scrapers.utils import check_robots, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
-
-
-async def _check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
-    try:
-        resp = await client.get(f"{base_url}/robots.txt", follow_redirects=True)
-        if resp.status_code != 200:
-            return True
-        text = resp.text.lower()
-        in_relevant_agent = False
-        for line in text.splitlines():
-            line = line.strip()
-            if line.startswith("user-agent:"):
-                agent = line.split(":", 1)[1].strip()
-                in_relevant_agent = agent in ("*", "bikedeals-scraper")
-            elif in_relevant_agent and line.startswith("disallow:"):
-                path = line.split(":", 1)[1].strip()
-                if path in ("/", "/*"):
-                    logger.warning("[%s] robots.txt disallows scraping: %s", base_url, path)
-                    return False
-        return True
-    except Exception as exc:
-        logger.warning("[%s] robots.txt check failed (%s); proceeding", base_url, exc)
-        return True
-
-
-def _parse_price(text: str | None) -> float | None:
-    if not text:
-        return None
-    cleaned = re.sub(r"[^\d.]", "", text.strip())
-    try:
-        return float(cleaned) if cleaned else None
-    except ValueError:
-        return None
-
-
-def _resolve_category(
-    model_name: str, category_map: dict[str, str]
-) -> str | None:
-    lower = model_name.lower()
-    for key, value in category_map.items():
-        if key in lower:
-            return value
-    return None
 
 
 def _sel(soup: BeautifulSoup, selector: str) -> str | None:
@@ -71,12 +29,12 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
         logger.error("[%s] WooCommerce pipeline requires selectors config", config.vendor_name)
         return []
 
-    if not await _check_robots(config.base_url, client):
+    if not await check_robots(config.base_url, client):
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
         return []
 
     logger.info("[%s] Scraping...", config.vendor_name)
-    headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
+    headers = {"User-Agent": SCRAPER_USER_AGENT}
     sel = config.selectors
     bikes: list[BikeRecord] = []
     now = datetime.now(timezone.utc)
@@ -109,8 +67,8 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                 raw_sale = _sel(item, sel["price_regular"])
             raw_original = _sel(item, sel.get("price_original", "")) if sel.get("price_original") else None
 
-            price_sale = _parse_price(raw_sale)
-            price_original = _parse_price(raw_original)
+            price_sale = parse_price(raw_sale)
+            price_original = parse_price(raw_original)
 
             if price_sale is None or price_sale <= 0:
                 logger.debug("[%s] Skipping product with invalid price: %r", config.vendor_name, model_name)
@@ -127,9 +85,7 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
             if not frame_size:
                 frame_size = "One Size"
 
-            brand = config.vendor_name
-
-            category = _resolve_category(model_name, config.category_map)
+            category = resolve_category([model_name.lower()], config.category_map)
             if category is None:
                 logger.debug(
                     "[%s] No category match for %r; skipping",
@@ -138,14 +94,14 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
                 continue
 
             discount = compute_discount(price_sale, price_original)
-            bike_id = make_bike_id(config.vendor_name, product_url, frame_size)
+            bike_id = make_bike_id(config.vendor_name, product_url, frame_size, config.city)
 
             try:
                 record = BikeRecord(
                     id=bike_id,
                     vendor_name=config.vendor_name,
                     city=config.city,
-                    brand=brand,
+                    brand=config.vendor_name,
                     model_name=model_name,
                     category=category,
                     frame_size=frame_size,
@@ -171,7 +127,7 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
             break
 
         page += 1
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
     logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
     return bikes

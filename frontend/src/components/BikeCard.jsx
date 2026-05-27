@@ -1,7 +1,8 @@
+import { memo, useMemo } from 'react'
 import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
-export default function BikeCard({ bike }) {
+const BikeCard = memo(function BikeCard({ bike }) {
   const {
     brand,
     model_name,
@@ -16,11 +17,18 @@ export default function BikeCard({ bike }) {
     image_url,
   } = bike
 
-  const saving = price_original ? Math.round(price_original - price_sale) : null
-  const bigDeal = discount_percentage >= 30
-  const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
-    ? model_name.slice(brand.length).trim()
-    : model_name
+  const saving = useMemo(
+    () => (price_original ? Math.round(price_original - price_sale) : null),
+    [price_original, price_sale],
+  )
+  const bigDeal = useMemo(() => discount_percentage >= 30, [discount_percentage])
+  const displayModel = useMemo(
+    () =>
+      model_name.toLowerCase().startsWith(brand.toLowerCase())
+        ? model_name.slice(brand.length).trim()
+        : model_name,
+    [model_name, brand],
+  )
 
   return (
     <div className="flex items-center gap-4 px-5 py-4 bg-white border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
@@ -105,7 +113,9 @@ export default function BikeCard({ bike }) {
       </a>
     </div>
   )
-}
+})
+
+export default BikeCard
 
 function LogoImg({ src, fallbackSrc, alt, className }) {
   if (!src && !fallbackSrc) return null

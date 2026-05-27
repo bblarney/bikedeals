@@ -6,7 +6,9 @@ from datetime import datetime, timezone
 
 import httpx
 
-from scrapers.models import BikeRecord, ScrapeResult, VendorConfig, compute_discount, make_bike_id
+from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT, SHOPIFY_PAGE_SIZE
+from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
+from scrapers.utils import check_robots, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ _BRAND_ALIASES: dict[str, str] = {
     "Giant Gold Coast": "Giant",
     "Giant Sunshine Coast": "Giant",
     "Giant Wollongong": "Giant",
+    "Giant Bikes Wollongong": "Giant",
     # Liv variants
     "LIV": "Liv",
     # Other common case variants
@@ -48,6 +51,7 @@ _BRAND_ALIASES: dict[str, str] = {
     "MERIDA": "Merida",
     "CUBE": "Cube",
     "NORCO": "Norco",
+    "norco": "Norco",
     "KONA": "Kona",
 }
 
@@ -62,12 +66,6 @@ _COLOUR_KEYWORDS = {
     "black", "white", "red", "blue", "green", "yellow", "orange", "purple",
     "pink", "grey", "gray", "silver", "gold", "bronze", "brown", "beige",
     "navy", "teal", "cyan", "magenta", "maroon", "olive", "lime", "coral",
-}
-
-_SIZE_KEYWORDS = {
-    "xs", "s", "m", "l", "xl", "xxl", "2xl", "3xl",
-    "extra small", "small", "medium", "large", "extra large",
-    "one size", "one-size", "default",
 }
 
 
@@ -88,60 +86,8 @@ def _is_size_variant(title: str) -> bool:
     return True
 
 
-async def _check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
-    try:
-        resp = await client.get(f"{base_url}/robots.txt", follow_redirects=True)
-        if resp.status_code != 200:
-            return True  # no robots.txt → assume allowed
-        text = resp.text.lower()
-        # Look for disallow rules targeting /products.json or /*
-        in_relevant_agent = False
-        for line in text.splitlines():
-            line = line.strip()
-            if line.startswith("user-agent:"):
-                agent = line.split(":", 1)[1].strip()
-                in_relevant_agent = agent in ("*", "bikedeals-scraper")
-            elif in_relevant_agent and line.startswith("disallow:"):
-                path = line.split(":", 1)[1].strip()
-                if path in ("/", "/*", "/products.json", "/products"):
-                    logger.warning("[%s] robots.txt disallows scraping: %s", base_url, path)
-                    return False
-        return True
-    except Exception as exc:
-        logger.warning("[%s] robots.txt check failed (%s); proceeding", base_url, exc)
-        return True
-
-
-def _resolve_category(
-    product_type: str, tags: list[str], title: str, category_map: dict[str, str]
-) -> str | None:
-    # Priority order: product_type → title → tags
-    # Title is checked before tags because it reliably contains the bike type
-    # (e.g. "Trek Marlin 5 Mountain Bike") while tags can be broad/misleading.
-    candidates = [product_type.lower(), title.lower()] + [t.lower() for t in tags]
-    # Exact key match first
-    for candidate in candidates:
-        if candidate in category_map:
-            return category_map[candidate]
-    # Substring match for hierarchical product_type strings and title phrases
-    for candidate in candidates:
-        for key, value in category_map.items():
-            if key in candidate:
-                return value
-    return None
-
-
-def _parse_price(value: str | None) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(str(value).replace(",", "").strip())
-    except (ValueError, TypeError):
-        return None
-
-
 async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
-    if not await _check_robots(config.base_url, client):
+    if not await check_robots(config.base_url, client):
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
         return []
 
@@ -149,14 +95,14 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
     bikes: list[BikeRecord] = []
     now = datetime.now(timezone.utc)
 
-    headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
+    headers = {"User-Agent": SCRAPER_USER_AGENT}
 
     if config.collection:
         products_path = f"/collections/{config.collection}/products.json"
     else:
         products_path = "/products.json"
 
-    next_url: str | None = f"{config.base_url}{products_path}?limit=250"
+    next_url: str | None = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}"
     page = 0
 
     while next_url:
@@ -187,7 +133,8 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             if _is_accessory(product_type, model_name):
                 continue
 
-            category = _resolve_category(product_type, tags, model_name, config.category_map)
+            candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
+            category = resolve_category(candidates, config.category_map)
             if category is None:
                 logger.debug(
                     "[%s] No category match for %r (type=%r, tags=%r); skipping",
@@ -203,8 +150,8 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                 variant_id = variant.get("id")
                 product_url = f"{config.base_url}/products/{handle}?variant={variant_id}"
 
-                price_sale = _parse_price(variant.get("price"))
-                price_original = _parse_price(variant.get("compare_at_price"))
+                price_sale = parse_price(variant.get("price"))
+                price_original = parse_price(variant.get("compare_at_price"))
 
                 # compare_at_price must be strictly higher than price to count as a markdown;
                 # if it's equal or lower the store has bad data — treat as no sale.
@@ -246,7 +193,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                         config.vendor_name, handle, frame_size, exc,
                     )
 
-        if len(products) < 250:
+        if len(products) < SHOPIFY_PAGE_SIZE:
             break
 
         if config.max_pages and page >= config.max_pages:
@@ -262,10 +209,10 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             logger.debug("[%s] Following Link cursor to page %d", config.vendor_name, page + 1)
         else:
             since_id = products[-1]["id"]
-            next_url = f"{config.base_url}{products_path}?limit=250&since_id={since_id}"
+            next_url = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}&since_id={since_id}"
             logger.debug("[%s] No Link header; using since_id=%s", config.vendor_name, since_id)
 
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
     # Fan out national chains: duplicate each record once per city
     if config.cities:
