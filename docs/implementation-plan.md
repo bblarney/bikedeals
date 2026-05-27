@@ -845,7 +845,25 @@ Set `DATABASE_URL` as a GitHub Actions secret pointing to Supabase PostgreSQL.
 
 ---
 
-### Task 4.4 — Frontend deployment (Cloudflare Pages)
+### Task 4.4 — SEO pre-launch configuration
+
+Replace the placeholder domain `bikedeals.com.au` with the real production domain in the following files before deploying:
+
+- `frontend/public/sitemap.xml` — all `<loc>` entries
+- `frontend/public/robots.txt` — the `Sitemap:` line
+- `frontend/src/App.jsx` — `<link rel="canonical">` in `MainLayout`
+- `frontend/src/pages/AboutPage.jsx` — `<link rel="canonical">`
+- `frontend/src/pages/ContactPage.jsx` — `<link rel="canonical">`
+- `frontend/src/pages/SitemapPage.jsx` — `<link rel="canonical">`
+- `frontend/src/pages/TermsPage.jsx` — `<link rel="canonical">`
+
+After going live, submit `https://yourdomain.com/sitemap.xml` to Google Search Console.
+
+**Done when:** All canonical and sitemap URLs resolve to the live domain.
+
+---
+
+### Task 4.5 — Frontend deployment (Cloudflare Pages)
 
 1. Connect the GitHub repo to Cloudflare Pages.
 2. Set `Root directory: frontend`, `Build command: npm run build`, `Build output: dist`.
