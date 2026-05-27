@@ -26,9 +26,10 @@ class VendorConfig(BaseModel):
     pipeline: Literal["shopify", "woocommerce", "custom"]
     category_map: dict[str, str]
     selectors: dict[str, str] | None = None
-    collection: str | None = None   # Shopify: collection handle, scopes /products.json to that section
-    max_pages: int | None = None    # hard page cap as a safety net
-    shop_path: str = "shop"         # WooCommerce: path to paginate, e.g. "product-category/bikes"
+    collection: str | None = None
+    max_pages: int | None = None
+    shop_path: str = "shop"
+    brand_map: dict[str, str] | None = None  # vendor-specific brand name overrides
 
 
 class BikeRecord(BaseModel):

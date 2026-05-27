@@ -3,7 +3,7 @@ import MultiSelectDropdown from './MultiSelectDropdown'
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 export default function FilterSidebar({ filters, params, onUpdate }) {
-  const { category, city, size, vendor, min_discount, q, sort } = params
+  const { category, city, size, vendor, brand, min_discount, q, sort } = params
 
   const sizes = filters?.sizes
     ? [...filters.sizes].sort((a, b) => {
@@ -25,7 +25,7 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
         {active && (
           <button
             onClick={() =>
-              onUpdate({ category: '', city: '', size: [], vendor: '', min_discount: 0, q: '' })
+              onUpdate({ category: [], city: [], size: [], vendor: [], brand: [], min_discount: 0, q: '' })
             }
             className="text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
@@ -47,19 +47,23 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
 
         {filters?.cities?.length > 0 && (
           <FilterSection label="City">
-            <StyledSelect value={city} onChange={(v) => onUpdate({ city: v })}>
-              <option value="">All cities</option>
-              {filters.cities.map((c) => <option key={c} value={c}>{c}</option>)}
-            </StyledSelect>
+            <MultiSelectDropdown
+              label="Cities"
+              options={filters.cities}
+              selected={city}
+              onChange={(next) => onUpdate({ city: next })}
+            />
           </FilterSection>
         )}
 
         {filters?.categories?.length > 0 && (
           <FilterSection label="Category">
-            <StyledSelect value={category} onChange={(v) => onUpdate({ category: v })}>
-              <option value="">All categories</option>
-              {filters.categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </StyledSelect>
+            <MultiSelectDropdown
+              label="Categories"
+              options={filters.categories}
+              selected={category}
+              onChange={(next) => onUpdate({ category: next })}
+            />
           </FilterSection>
         )}
 
@@ -76,10 +80,23 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
 
         {filters?.vendors?.length > 0 && (
           <FilterSection label="Shop">
-            <StyledSelect value={vendor} onChange={(v) => onUpdate({ vendor: v })}>
-              <option value="">All shops</option>
-              {filters.vendors.map((v) => <option key={v} value={v}>{v}</option>)}
-            </StyledSelect>
+            <MultiSelectDropdown
+              label="Shops"
+              options={filters.vendors}
+              selected={vendor}
+              onChange={(next) => onUpdate({ vendor: next })}
+            />
+          </FilterSection>
+        )}
+
+        {filters?.brands?.length > 0 && (
+          <FilterSection label="Brand">
+            <MultiSelectDropdown
+              label="Brands"
+              options={filters.brands}
+              selected={brand}
+              onChange={(next) => onUpdate({ brand: next })}
+            />
           </FilterSection>
         )}
 
@@ -101,11 +118,16 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
 
         <div className="border-t border-slate-100 pt-5">
           <FilterSection label="Sort by">
-            <StyledSelect value={sort} onChange={(v) => onUpdate({ sort: v })}>
+            <select
+              value={sort}
+              onChange={(e) => onUpdate({ sort: e.target.value })}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none"
+            >
               <option value="discount_desc">Biggest discount</option>
               <option value="price_asc">Price: low → high</option>
               <option value="price_desc">Price: high → low</option>
-            </StyledSelect>
+              <option value="clicks_desc">Most popular</option>
+            </select>
           </FilterSection>
         </div>
       </div>
@@ -122,18 +144,6 @@ function FilterSection({ label, children }) {
   )
 }
 
-function StyledSelect({ value, onChange, children }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none"
-    >
-      {children}
-    </select>
-  )
-}
-
-function hasActiveFilters({ category, city, size, vendor, min_discount, q }) {
-  return category || city || size.length > 0 || vendor || min_discount > 0 || q
+function hasActiveFilters({ category, city, size, vendor, brand, min_discount, q }) {
+  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || q
 }

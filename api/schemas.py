@@ -18,6 +18,7 @@ class BikeResponse(BaseModel):
     product_url: str
     image_url: str | None
     last_seen_at: datetime
+    click_count: int
 
     model_config = {"from_attributes": True}
 
@@ -34,6 +35,7 @@ class FiltersResponse(BaseModel):
     cities: list[str]
     sizes: list[str]
     vendors: list[str]
+    brands: list[str]
     discount_range: dict
     total_bikes: int
     last_scraped_at: datetime | None

@@ -27,6 +27,37 @@ _ACCESSORY_WORDS = {
     "protection", "accessory", "accessories", "parts",
 }
 
+# Canonical brand names — maps any known variant (different casing, store suffix)
+# to the single name used in the DB. Add entries here as new variants are found.
+_BRAND_ALIASES: dict[str, str] = {
+    # Giant variants
+    "GIANT": "Giant",
+    "Giant Bicycles": "Giant",
+    "Giant Brisbane": "Giant",
+    "Giant Sydney": "Giant",
+    "Giant Gold Coast": "Giant",
+    "Giant Sunshine Coast": "Giant",
+    "Giant Wollongong": "Giant",
+    # Liv variants
+    "LIV": "Liv",
+    # Other common case variants
+    "TREK": "Trek",
+    "SPECIALIZED": "Specialized",
+    "CANNONDALE": "Cannondale",
+    "SCOTT": "Scott",
+    "MERIDA": "Merida",
+    "CUBE": "Cube",
+    "NORCO": "Norco",
+    "KONA": "Kona",
+}
+
+
+def _normalize_brand(brand: str, brand_map: dict[str, str] | None = None) -> str:
+    if brand_map and brand in brand_map:
+        return brand_map[brand]
+    return _BRAND_ALIASES.get(brand, brand)
+
+
 _COLOUR_KEYWORDS = {
     "black", "white", "red", "blue", "green", "yellow", "orange", "purple",
     "pink", "grey", "gray", "silver", "gold", "bronze", "brown", "beige",
@@ -145,7 +176,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             break
 
         for product in products:
-            brand = product.get("vendor", "") or config.vendor_name
+            brand = _normalize_brand(product.get("vendor", "") or config.vendor_name, config.brand_map)
             model_name = product.get("title", "")
             product_type = product.get("product_type", "") or ""
             tags = product.get("tags", []) or []

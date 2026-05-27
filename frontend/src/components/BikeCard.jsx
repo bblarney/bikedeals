@@ -1,3 +1,4 @@
+import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
 export default function BikeCard({ bike }) {
@@ -34,7 +35,7 @@ export default function BikeCard({ bike }) {
       </div>
 
       {/* Bike image */}
-      <div className="group relative w-32 h-32 flex-shrink-0 rounded overflow-visible bg-gray-100 flex items-center justify-center">
+      <div className="group relative w-32 h-32 flex-shrink-0 rounded overflow-visible bg-white flex items-center justify-center">
         {image_url ? (
           <>
             <img
@@ -43,7 +44,7 @@ export default function BikeCard({ bike }) {
               width={128}
               height={128}
               loading="lazy"
-              className="object-contain w-full h-full rounded cursor-zoom-in"
+              className="object-contain w-full h-full rounded cursor-zoom-in mix-blend-multiply"
             />
             <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-30 hidden group-hover:block">
               <div className="w-[480px] h-[480px] bg-white border border-gray-200 rounded-lg shadow-xl flex items-center justify-center p-2">
@@ -94,6 +95,7 @@ export default function BikeCard({ bike }) {
         href={product_url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => api.recordClick(bike.id)}
         className="flex-shrink-0 ml-1 inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
       >
         View deal
