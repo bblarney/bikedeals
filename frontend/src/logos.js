@@ -15,6 +15,7 @@ export const BRAND_LOGOS = {
   'BMC':           '/logos/brands/bmc.png',
   'Cannondale':    '/logos/brands/cannondale.png',
   'Cube':          '/logos/brands/cube.png',
+  'Focus':         '/logos/brands/focus.png',
   'Giant':         '/logos/brands/giant.png',
   'GT':            '/logos/brands/gt.png',
   'Icon':          '/logos/brands/icon.png',

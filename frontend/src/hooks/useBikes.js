@@ -33,7 +33,7 @@ export function useBikeParams() {
     q: get('q'),
     sort: get('sort', 'discount_desc'),
     offset: getInt('offset', 0),
-    limit: 50,
+    limit: 48,
     update,
   }
 }
