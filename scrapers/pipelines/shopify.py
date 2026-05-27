@@ -40,9 +40,10 @@ _SIZE_KEYWORDS = {
 }
 
 
-def _is_accessory(product_type: str) -> bool:
-    words = set(product_type.lower().replace(":", " ").replace("/", " ").replace("-", " ").split())
-    return bool(words & _ACCESSORY_WORDS)
+def _is_accessory(product_type: str, title: str = "") -> bool:
+    def _words(s: str) -> set[str]:
+        return set(s.lower().replace(":", " ").replace("/", " ").replace("-", " ").split())
+    return bool((_words(product_type) | _words(title)) & _ACCESSORY_WORDS)
 
 
 def _is_size_variant(title: str) -> bool:
@@ -152,7 +153,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             images = product.get("images", [])
             image_url = images[0]["src"] if images else None
 
-            if _is_accessory(product_type):
+            if _is_accessory(product_type, model_name):
                 continue
 
             category = _resolve_category(product_type, tags, model_name, config.category_map)
