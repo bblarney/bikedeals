@@ -17,6 +17,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 MAX_CONCURRENT_VENDORS = 5
 
@@ -39,7 +41,7 @@ async def main() -> None:
         SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
     sem = asyncio.Semaphore(MAX_CONCURRENT_VENDORS)
-    ok = failed = 0
+    ok = failed = total_bikes = 0
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         tasks = {asyncio.ensure_future(scrape_vendor(v, client, sem)): v for v in vendors}
@@ -72,12 +74,13 @@ async def main() -> None:
                             status="ok",
                             bikes_upserted=count,
                         )
+                    total_bikes += count
                     logging.info("[%s] Upserted %d bikes", result.vendor_name, count)
 
     if engine:
         await engine.dispose()
 
-    logging.info("Done: %d successful vendor(s), %d failed", ok, failed)
+    logging.info("Done: %d vendor(s) ok, %d failed, %d total bikes upserted", ok, failed, total_bikes)
 
 
 if __name__ == "__main__":

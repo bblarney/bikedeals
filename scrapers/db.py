@@ -23,8 +23,9 @@ _CHUNK_SIZE = 1000
 async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
     if not records:
         return 0
-    for i in range(0, len(records), _CHUNK_SIZE):
-        chunk = records[i : i + _CHUNK_SIZE]
+    deduped = list({r.id: r for r in records}.values())
+    for i in range(0, len(deduped), _CHUNK_SIZE):
+        chunk = deduped[i : i + _CHUNK_SIZE]
         stmt = pg_insert(Bike).values([r.model_dump() for r in chunk])
         stmt = stmt.on_conflict_do_update(
             index_elements=["id"],
@@ -38,7 +39,7 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
         )
         await session.execute(stmt)
     await session.commit()
-    return len(records)
+    return len(deduped)
 
 
 async def mark_stale(

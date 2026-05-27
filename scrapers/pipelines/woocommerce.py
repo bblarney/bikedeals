@@ -75,6 +75,7 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
         return []
 
+    logger.info("[%s] Scraping...", config.vendor_name)
     headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
     sel = config.selectors
     bikes: list[BikeRecord] = []
@@ -172,5 +173,5 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
         page += 1
         await asyncio.sleep(random.uniform(1.0, 2.0))
 
-    logger.info("[%s] WooCommerce scrape complete: %d bikes", config.vendor_name, len(bikes))
+    logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
     return bikes

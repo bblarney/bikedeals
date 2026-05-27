@@ -113,26 +113,23 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
         return []
 
+    logger.info("[%s] Scraping...", config.vendor_name)
     bikes: list[BikeRecord] = []
     now = datetime.now(timezone.utc)
 
     headers = {"User-Agent": "BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)"}
 
-    # Scope to a specific collection if configured — avoids crawling the full
-    # historical catalogue which can be millions of discontinued products.
     if config.collection:
         products_path = f"/collections/{config.collection}/products.json"
     else:
         products_path = "/products.json"
 
-    # Shopify cursor pagination: prefer Link header page_info cursor (no page cap),
-    # fall back to since_id if the store doesn't emit Link headers.
     next_url: str | None = f"{config.base_url}{products_path}?limit=250"
     page = 0
 
     while next_url:
         page += 1
-        logger.info("[%s] Fetching page %d: %s", config.vendor_name, page, next_url)
+        logger.debug("[%s] Fetching page %d: %s", config.vendor_name, page, next_url)
         try:
             resp = await client.get(next_url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
@@ -142,7 +139,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             break
 
         products = data.get("products", [])
-        logger.info("[%s] Page %d returned %d products", config.vendor_name, page, len(products))
+        logger.debug("[%s] Page %d returned %d products", config.vendor_name, page, len(products))
         if not products:
             break
 
@@ -176,6 +173,11 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
 
                 price_sale = _parse_price(variant.get("price"))
                 price_original = _parse_price(variant.get("compare_at_price"))
+
+                # compare_at_price must be strictly higher than price to count as a markdown;
+                # if it's equal or lower the store has bad data — treat as no sale.
+                if price_original is not None and price_original <= price_sale:
+                    price_original = None
 
                 if price_sale is None or price_sale <= 0:
                     logger.debug("[%s] Skipping variant with invalid price_sale: %s", config.vendor_name, variant)
@@ -216,7 +218,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
             break
 
         if config.max_pages and page >= config.max_pages:
-            logger.info("[%s] Reached max_pages=%d; stopping", config.vendor_name, config.max_pages)
+            logger.warning("[%s] Reached max_pages=%d; stopping early", config.vendor_name, config.max_pages)
             break
 
         # Prefer Shopify cursor (page_info) from Link header — no hard page cap.
@@ -244,5 +246,5 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
                 }))
         bikes = expanded
 
-    logger.info("[%s] Shopify scrape complete: %d bikes", config.vendor_name, len(bikes))
+    logger.info("[%s] Done: %d bikes across %d page(s)", config.vendor_name, len(bikes), page)
     return bikes

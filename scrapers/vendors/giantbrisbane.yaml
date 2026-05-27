@@ -2,7 +2,7 @@ vendor_name: "Giant"
 city: "Brisbane"
 collection: "bikes"
 max_pages: 10
-base_url: "https://www.giantbrisbane.com.au"
+base_url: "https://giantbrisbane.com.au"
 pipeline: "shopify"
 # product_type is hierarchical: "Bikes | E-bike | Adventure", "Bikes | Mtb | Hardtail", etc.
 # E-bike keys must come before mtb/road/gravel to correctly classify e-MTBs.
