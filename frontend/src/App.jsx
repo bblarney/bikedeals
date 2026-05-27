@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import BackToTop from './components/BackToTop'
 import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
 import { useBikes, useBikeParams } from './hooks/useBikes'
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
       </Routes>
       <Footer />
+      <BackToTop />
     </div>
   )
 }

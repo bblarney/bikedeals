@@ -46,16 +46,36 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
     <div className="flex-1 flex flex-col min-h-0">
       {/* Results bar */}
       <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-100">
-        <p className="text-sm text-slate-500">
-          {total != null ? (
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-slate-500">
+            {total != null ? (
+              <>
+                <span className="font-semibold text-slate-800">{total.toLocaleString()}</span> deals
+              </>
+            ) : (
+              <span className="text-slate-400">Loading…</span>
+            )}
+          </p>
+          {total > limit && (
             <>
-              <span className="font-semibold text-slate-800">{total.toLocaleString()}</span> deals
-              {total > limit && <span className="text-slate-400"> · page {page} of {totalPages}</span>}
+              <button
+                disabled={offset === 0}
+                onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="text-xs text-slate-400 tabular-nums">{page} of {totalPages}</span>
+              <button
+                disabled={offset + limit >= total}
+                onClick={() => { onUpdate({ offset: offset + limit }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Next →
+              </button>
             </>
-          ) : (
-            <span className="text-slate-400">Loading…</span>
           )}
-        </p>
+        </div>
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-400">Sort by</span>
           <select
@@ -72,7 +92,13 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
 
       {/* Cards */}
       <div className={`flex-1 transition-opacity duration-150 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
-        {isLoading && !bikes?.length ? <SkeletonList /> : bikes?.map((bike) => <BikeCard key={bike.id} bike={bike} />)}
+        {isLoading && !bikes?.length ? (
+          <SkeletonGrid />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+            {bikes?.map((bike) => <BikeCard key={bike.id} bike={bike} />)}
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
@@ -80,7 +106,7 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
         <div className="flex items-center justify-center gap-2 px-5 py-4 bg-white border-t border-slate-100">
           <button
             disabled={offset === 0}
-            onClick={() => onUpdate({ offset: Math.max(0, offset - limit) })}
+            onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
             className="px-3.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             ← Prev
@@ -90,7 +116,7 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
           </span>
           <button
             disabled={offset + limit >= total}
-            onClick={() => onUpdate({ offset: offset + limit })}
+            onClick={() => { onUpdate({ offset: offset + limit }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
             className="px-3.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Next →
@@ -101,22 +127,20 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
   )
 }
 
-function SkeletonList() {
+function SkeletonGrid() {
   return (
-    <div className="divide-y divide-slate-100">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-3.5 animate-pulse">
-          <div className="w-[72px] h-[72px] bg-slate-100 rounded-xl flex-shrink-0" />
-          <div className="flex-1 space-y-2.5">
-            <div className="h-3.5 bg-slate-100 rounded-full w-44" />
-            <div className="h-2.5 bg-slate-100 rounded-full w-28" />
-            <div className="h-2.5 bg-slate-100 rounded-full w-36" />
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-xl border border-slate-100 overflow-hidden animate-pulse flex flex-col">
+          <div className="aspect-square bg-slate-100" />
+          <div className="p-3 flex flex-col gap-2">
+            <div className="h-3 bg-slate-100 rounded-full w-16" />
+            <div className="h-3.5 bg-slate-100 rounded-full w-full" />
+            <div className="h-3.5 bg-slate-100 rounded-full w-4/5" />
+            <div className="h-2.5 bg-slate-100 rounded-full w-24 mt-1" />
+            <div className="mt-3 h-4 bg-slate-100 rounded-full w-20" />
+            <div className="h-8 bg-slate-100 rounded-lg mt-1" />
           </div>
-          <div className="w-28 space-y-2 text-right">
-            <div className="h-3 bg-slate-100 rounded-full ml-auto w-20" />
-            <div className="h-5 bg-slate-100 rounded-full ml-auto w-16" />
-          </div>
-          <div className="w-20 h-8 bg-slate-100 rounded-lg" />
         </div>
       ))}
     </div>
