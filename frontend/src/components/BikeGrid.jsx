@@ -56,7 +56,18 @@ export default function BikeGrid({ bikes, isLoading, isError, total, params, onU
             <span className="text-slate-400">Loading…</span>
           )}
         </p>
-        <p className="text-xs text-slate-400">sorted by {SORT_LABELS[sort] ?? sort}</p>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-slate-400">Sort by</span>
+          <select
+            value={sort}
+            onChange={(e) => onUpdate({ sort: e.target.value })}
+            className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none cursor-pointer"
+          >
+            {Object.entries(SORT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Cards */}
