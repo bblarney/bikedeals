@@ -4,7 +4,7 @@ import { DEFAULT_FILTERS, REGIONS } from '../constants'
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
-export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile }) {
+export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
   const { category, city, size, vendor, brand, min_discount, q, added_since } = params
 
   const activeRegion = useMemo(
@@ -40,8 +40,9 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
       <aside
         className={`bg-white border-r border-slate-200 flex flex-col flex-shrink-0
           fixed inset-y-0 left-0 z-40 w-72 max-w-[85%] transform transition-transform duration-200
-          md:static md:transform-none md:w-60 md:transition-none
-          ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+          md:static md:transform-none md:transition-[width] md:duration-200
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${desktopCollapsed ? 'md:w-0 md:min-w-0 md:overflow-hidden md:border-r-0' : 'md:w-60'}`}
       >
       <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100">
         <span className="text-sm font-semibold text-slate-800">Filters</span>
