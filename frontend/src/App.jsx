@@ -22,6 +22,7 @@ function MainLayout() {
     () => !!localStorage.getItem('bikegrid_region')
   )
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
 
@@ -57,6 +58,25 @@ function MainLayout() {
         onChangeRegion={handleChangeRegion}
         onOpenSidebar={() => setSidebarOpen(true)}
       />
+      <button
+        onClick={() => setSidebarCollapsed(p => !p)}
+        aria-label={sidebarCollapsed ? 'Expand filters' : 'Collapse filters'}
+        style={{
+          left: sidebarCollapsed ? '8px' : '224px',
+          transition: 'left 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-50 w-8 h-8 items-center justify-center bg-white border border-slate-200 rounded-full shadow-md text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+      >
+        {sidebarCollapsed ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        )}
+      </button>
       <div className="flex flex-1 min-h-0">
         <FilterSidebar
           filters={filtersData}
@@ -64,6 +84,7 @@ function MainLayout() {
           onUpdate={params.update}
           mobileOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
+          desktopCollapsed={sidebarCollapsed}
         />
         <main className="flex-1 min-w-0 flex flex-col">
           <BikeGrid

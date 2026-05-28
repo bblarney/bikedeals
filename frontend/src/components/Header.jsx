@@ -50,19 +50,6 @@ export default function Header({ total, lastScrapedAt, params, onUpdate, onChang
               ))}
             </div>
             <div className="ml-auto relative flex items-center gap-3">
-              {onChangeRegion && (
-                <button
-                  type="button"
-                  onClick={onChangeRegion}
-                  className="text-xs text-slate-400 hover:text-white transition-colors hidden sm:inline-flex items-center gap-1"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
-                    <path d="M21 3v5h-5" />
-                  </svg>
-                  Change region
-                </button>
-              )}
               {total != null && (
                 <p className="text-sm text-slate-400">
                   <span className="text-white font-medium">{total.toLocaleString()}</span> in-stock deals
