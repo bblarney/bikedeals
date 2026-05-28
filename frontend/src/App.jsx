@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import BackToTop from './components/BackToTop'
 import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
+import ErrorBoundary from './components/ErrorBoundary'
 import { useBikes, useBikeParams } from './hooks/useBikes'
 import { useFilters } from './hooks/useFilters'
 import AboutPage from './pages/AboutPage'
@@ -15,11 +17,23 @@ import LandingPage from './pages/LandingPage'
 
 function MainLayout() {
   const params = useBikeParams()
+  const [regionSetThisSession, setRegionSetThisSession] = useState(
+    () => !!localStorage.getItem('bikegrid_region')
+  )
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
 
-  const hasRegion = !!localStorage.getItem('bikegrid_region') || params.city.length > 0
-  if (!hasRegion) return <LandingPage onUpdate={params.update} />
+  const showLanding = !regionSetThisSession && params.city.length === 0
+  if (showLanding) {
+    return (
+      <LandingPage
+        onUpdate={(changes) => {
+          setRegionSetThisSession(true)
+          params.update(changes)
+        }}
+      />
+    )
+  }
 
   return (
     <>
@@ -66,14 +80,16 @@ function StaticLayout({ children }) {
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Routes>
-        <Route path="/" element={<MainLayout />} />
-        <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
-        <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
-        <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />
-        <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
-        <Route path="/privacy" element={<StaticLayout><PrivacyPage /></StaticLayout>} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<MainLayout />} />
+          <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
+          <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
+          <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />
+          <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
+          <Route path="/privacy" element={<StaticLayout><PrivacyPage /></StaticLayout>} />
+        </Routes>
+      </ErrorBoundary>
       <Footer />
       <BackToTop />
     </div>
