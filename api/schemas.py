@@ -40,3 +40,10 @@ class FiltersResponse(BaseModel):
     discount_range: dict
     total_bikes: int
     last_scraped_at: datetime | None
+
+
+class StatsResponse(BaseModel):
+    new_today: int
+    shops_tracked: int
+    biggest_discount: int
+    avg_discount: int

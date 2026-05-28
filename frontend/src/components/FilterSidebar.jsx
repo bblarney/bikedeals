@@ -72,6 +72,27 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <FilterSection label="Region">
+          <div className="grid grid-cols-4 gap-1">
+            {REGIONS.map((r) => (
+              <button
+                key={r.abbr}
+                onClick={() => {
+                  localStorage.setItem('bikegrid_region', r.name)
+                  onUpdate({ city: r.cities })
+                }}
+                className={`py-1.5 rounded-lg border text-xs font-medium transition-colors text-center ${
+                  activeRegion?.abbr === r.abbr
+                    ? 'bg-blue-50 border-blue-300 text-blue-700'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {r.abbr}
+              </button>
+            ))}
+          </div>
+        </FilterSection>
+
         <FilterSection label="Date added">
           <div className="grid grid-cols-2 gap-1.5">
             {[

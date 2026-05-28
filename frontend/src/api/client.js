@@ -15,6 +15,7 @@ async function request(path, params = {}) {
 export const api = {
   getBikes: (params) => request('/api/v1/bikes', params),
   getFilters: (params) => request('/api/v1/meta/filters', params),
+  getStats: () => request('/api/v1/meta/stats'),
   recordClick: (id) =>
     fetch(`${BASE}/api/v1/bikes/${id}/click`, { method: 'POST' }).catch((err) =>
       console.warn('click record failed', err),

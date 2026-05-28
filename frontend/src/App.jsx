@@ -6,6 +6,7 @@ import BackToTop from './components/BackToTop'
 import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
 import ErrorBoundary from './components/ErrorBoundary'
+import StatsBanner from './components/StatsBanner'
 import { useBikes, useBikeParams } from './hooks/useBikes'
 import { usePins } from './hooks/usePins'
 import { useFilters } from './hooks/useFilters'
@@ -52,12 +53,11 @@ function MainLayout() {
       <title>BikeGrid — Daily Bike Deals from Australian Shops</title>
       <meta name="description" content="Browse hundreds of discounted bikes from local Australian bike shops. Updated daily. Filter by category, size, and brand." />
       <link rel="canonical" href={canonicalFor('/')} />
+      <StatsBanner />
       <Header
         total={filtersData?.total_bikes}
         lastScrapedAt={filtersData?.last_scraped_at}
         params={params}
-        onUpdate={params.update}
-        onChangeRegion={handleChangeRegion}
         onOpenSidebar={() => setSidebarOpen(true)}
       />
       <button
