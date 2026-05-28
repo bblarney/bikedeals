@@ -17,6 +17,7 @@ class BikeResponse(BaseModel):
     in_stock: bool
     product_url: str
     image_url: str | None
+    scraped_at: datetime
     last_seen_at: datetime
     click_count: int
 

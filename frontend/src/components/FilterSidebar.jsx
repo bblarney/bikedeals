@@ -5,7 +5,7 @@ import { DEFAULT_FILTERS, REGIONS } from '../constants'
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
 export default function FilterSidebar({ filters, params, onUpdate }) {
-  const { category, city, size, vendor, brand, min_discount, q } = params
+  const { category, city, size, vendor, brand, min_discount, q, added_since } = params
 
   const activeRegion = useMemo(
     () => REGIONS.find((r) => r.cities.some((c) => city.includes(c))),
@@ -42,6 +42,29 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        <FilterSection label="Date added">
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { value: 'day',   label: 'Last day' },
+              { value: 'week',  label: 'Last week' },
+              { value: 'month', label: 'Last month' },
+              { value: 'year',  label: 'Last year' },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => onUpdate({ added_since: added_since === value ? '' : value })}
+                className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                  added_since === value
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </FilterSection>
+
         <FilterSection label="Search">
           <input
             type="search"
@@ -138,6 +161,6 @@ function FilterSection({ label, children }) {
   )
 }
 
-function hasActiveFilters({ category, city, size, vendor, brand, min_discount, q }) {
-  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || q
+function hasActiveFilters({ category, city, size, vendor, brand, min_discount, q, added_since }) {
+  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || q || added_since
 }

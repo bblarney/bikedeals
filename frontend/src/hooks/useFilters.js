@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 
-export function useFilters() {
+export function useFilters(params) {
+  const { category, city, size, vendor, brand, min_discount, q, added_since } = params ?? {}
+  const filterParams = { category, city, size, vendor, brand, min_discount, q, added_since }
+
   return useQuery({
-    queryKey: ['filters'],
-    queryFn: api.getFilters,
-    staleTime: 60 * 60 * 1000,
+    queryKey: ['filters', filterParams],
+    queryFn: () => api.getFilters(filterParams),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   })
 }
