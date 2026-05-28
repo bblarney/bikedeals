@@ -9,6 +9,7 @@ export const VENDOR_LOGOS = {
 
 export const BRAND_LOGOS = {
   'Academy':       '/logos/brands/academy.png',
+  'Apollo':        '/logos/brands/apollo.png',
   'Avanti':        '/logos/brands/avanti.png',
   'Aventon':       '/logos/brands/aventon.png',
   'Berg':          '/logos/brands/berg.png',
@@ -43,6 +44,7 @@ export const BRAND_LOGOS = {
   'Strider':       '/logos/brands/strider.png',
   'Superior':      '/logos/brands/superior.png',
   'Surly':         '/logos/brands/surly.png',
+  'Trek':          '/logos/brands/trek.png',
   'Transition':    '/logos/brands/transition.png',
   'VelectriX':     '/logos/brands/velectrix.png',
   'XDS':           '/logos/brands/xds.png',

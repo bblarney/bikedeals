@@ -33,8 +33,10 @@ export default function PrivacyPage() {
               infrastructure.
             </li>
             <li>
-              <strong>Cookies:</strong> We use cookies to remember preferences (such as your selected
-              region) and to support site analytics.
+              <strong>Cookies and browser storage:</strong> We use browser localStorage to remember
+              your selected region and any deals you have pinned. This data is stored only on your
+              device and is never transmitted to our servers. You can clear it at any time from the
+              filter sidebar or by clearing your browser's site data.
             </li>
             <li>
               <strong>Email addresses (if provided):</strong> If you sign up for deal alerts or
