@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db
 from api.models import Bike, ScrapeLog
-from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes
+from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes, StatsResponse
 
 app = FastAPI(title="BikeGrid API", version="1.0")
 
@@ -42,6 +42,7 @@ _SORT_COLUMNS = {
 
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
 CACHE_FILTERS = "max-age=60"  # 1 min — filters change when vendors are added
+CACHE_STATS = "max-age=300"   # 5 min — stats change only after a scrape run
 
 _ADDED_SINCE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
 
@@ -204,4 +205,28 @@ async def get_filters(
         discount_range={"min": discount_row[0] or 0, "max": discount_row[1] or 0},
         total_bikes=total_r.scalar_one(),
         last_scraped_at=last_scraped_r.scalar_one(),
+    )
+
+
+@app.get("/api/v1/meta/stats", response_model=StatsResponse)
+async def get_stats(
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    in_stock = Bike.in_stock == True  # noqa: E712
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+
+    new_today_r        = await db.execute(select(func.count()).where(in_stock, Bike.scraped_at >= cutoff))
+    shops_r            = await db.execute(select(func.count(Bike.vendor_name.distinct())).where(in_stock))
+    biggest_discount_r = await db.execute(select(func.max(Bike.discount_percentage)).where(in_stock))
+    avg_discount_r     = await db.execute(
+        select(func.round(func.avg(Bike.discount_percentage))).where(in_stock, Bike.discount_percentage > 0)
+    )
+
+    response.headers["Cache-Control"] = CACHE_STATS
+    return StatsResponse(
+        new_today=new_today_r.scalar_one() or 0,
+        shops_tracked=shops_r.scalar_one() or 0,
+        biggest_discount=biggest_discount_r.scalar_one() or 0,
+        avg_discount=int(avg_discount_r.scalar_one() or 0),
     )
