@@ -17,7 +17,7 @@ from api.db import get_db
 from api.models import Bike, ScrapeLog
 from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes
 
-app = FastAPI(title="Bikedeals API", version="1.0")
+app = FastAPI(title="BikeGrid API", version="1.0")
 
 _default_origins = "https://bikegrid.com.au,https://www.bikegrid.com.au"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]

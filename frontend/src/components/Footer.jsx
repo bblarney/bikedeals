@@ -28,7 +28,7 @@ export default function Footer() {
             </p>
           </div>
 
-          <div>
+          <nav aria-label="Browse by category">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Explore
             </p>
@@ -44,9 +44,9 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
-          <div>
+          <nav aria-label="Company links">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
               Company
             </p>
@@ -62,7 +62,7 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
         </div>
 
         <div className="border-t border-slate-800 mt-8 pt-6 text-center">
