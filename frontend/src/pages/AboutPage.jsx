@@ -1,9 +1,11 @@
+import { canonicalFor } from '../seo'
+
 export default function AboutPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       <title>About BikeGrid — How We Find the Best Bike Deals</title>
       <meta name="description" content="BikeGrid automatically scans local Australian bike shop inventories every day to surface the best discounts in one place." />
-      <link rel="canonical" href="https://bikegrid.com.au/about" />
+      <link rel="canonical" href={canonicalFor('/about')} />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">About BikeGrid</h1>
       <p className="text-sm text-slate-400 mb-8">Updated daily · Australia-wide</p>
 

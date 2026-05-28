@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
+import { canonicalFor } from '../seo'
 
 export default function PrivacyPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       <title>Privacy Policy — BikeGrid</title>
       <meta name="description" content="Read the BikeGrid privacy policy — what data we collect, how we use it, and how we handle your information." />
-      <link rel="canonical" href="https://bikegrid.com.au/privacy" />
+      <link rel="canonical" href={canonicalFor('/privacy')} />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Privacy Policy</h1>
       <p className="text-sm text-slate-400 mb-8">Last updated: May 2026</p>
 

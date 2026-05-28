@@ -4,7 +4,7 @@ import { DEFAULT_FILTERS, REGIONS } from '../constants'
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
-export default function FilterSidebar({ filters, params, onUpdate }) {
+export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile }) {
   const { category, city, size, vendor, brand, min_discount, q, added_since } = params
 
   const activeRegion = useMemo(
@@ -28,17 +28,46 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
   const active = hasActiveFilters(params)
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`bg-white border-r border-slate-200 flex flex-col flex-shrink-0
+          fixed inset-y-0 left-0 z-40 w-72 max-w-[85%] transform transition-transform duration-200
+          md:static md:transform-none md:w-60 md:transition-none
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      >
       <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100">
         <span className="text-sm font-semibold text-slate-800">Filters</span>
-        {active && (
-          <button
-            onClick={() => onUpdate(DEFAULT_FILTERS)}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Clear all
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {active && (
+            <button
+              onClick={() => onUpdate(DEFAULT_FILTERS)}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear all
+            </button>
+          )}
+          {onCloseMobile && (
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              aria-label="Close filters"
+              className="md:hidden text-slate-400 hover:text-slate-700"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="6" y1="18" x2="18" y2="6" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
@@ -149,6 +178,7 @@ export default function FilterSidebar({ filters, params, onUpdate }) {
 
       </div>
     </aside>
+    </>
   )
 }
 
