@@ -22,7 +22,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
-            <span className="text-white font-semibold text-base">BikeGrid</span>
+            <img src="/logos/bikegrid/bikegrid_white.png" alt="BikeGrid" className="h-12 w-auto" />
             <p className="mt-2 text-slate-400 text-sm leading-relaxed">
               Daily deals from local Australian bike shops — in one place.
             </p>
