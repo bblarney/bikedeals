@@ -3,14 +3,25 @@ import { useEffect, useRef, useState } from 'react'
 export default function MultiSelectDropdown({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const buttonRef = useRef(null)
 
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
     }
+    function handleKey(e) {
+      if (e.key === 'Escape' && open) {
+        setOpen(false)
+        buttonRef.current?.focus()
+      }
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [open])
 
   function toggle(val) {
     onChange(selected.includes(val) ? selected.filter((x) => x !== val) : [...selected, val])
@@ -23,6 +34,9 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
     <div className="relative" ref={ref}>
       <button
         type="button"
+        ref={buttonRef}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left transition ${
           open

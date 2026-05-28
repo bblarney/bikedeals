@@ -15,7 +15,7 @@ export function useBikeParams() {
       Object.entries(changes).forEach(([k, v]) => {
         next.delete(k)
         if (Array.isArray(v)) v.forEach((i) => next.append(k, i))
-        else if (v !== undefined && v !== null && v !== '' && v !== 0 && v !== false) next.set(k, v)
+        else if (v !== undefined && v !== null && v !== '' && v !== 0) next.set(k, v)
       })
       // reset offset when any filter changes (unless offset itself is the change)
       if (!('offset' in changes)) next.delete('offset')
