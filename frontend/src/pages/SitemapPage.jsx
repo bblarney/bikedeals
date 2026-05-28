@@ -47,6 +47,7 @@ export default function SitemapPage() {
               { to: '/about', label: 'About BikeDeals' },
               { to: '/contact', label: 'Contact' },
               { to: '/terms', label: 'Terms of Use' },
+              { to: '/privacy', label: 'Privacy Policy' },
               { to: '/sitemap', label: 'Sitemap' },
             ].map(({ to, label }) => (
               <li key={to}>

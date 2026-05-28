@@ -31,6 +31,16 @@ export default function ContactPage() {
             promptly.
           </p>
         </div>
+
+        <div className="border-t border-slate-100 pt-6">
+          <h2 className="text-base font-semibold text-slate-800 mb-1">Takedown requests</h2>
+          <p className="text-slate-600 text-sm mb-2">
+            If you are a retailer or rights holder and want your listings removed from BikeDeals,
+            please contact us with your shop name, the relevant listing URLs, and the reason for
+            your request. We will review and action all valid requests promptly.
+          </p>
+          <p className="text-slate-500 text-sm italic">Contact details coming soon.</p>
+        </div>
       </div>
     </div>
   )

@@ -12,6 +12,7 @@ const COMPANY_LINKS = [
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
   { label: 'Terms of Use', to: '/terms' },
+  { label: 'Privacy Policy', to: '/privacy' },
   { label: 'Sitemap', to: '/sitemap' },
 ]
 
