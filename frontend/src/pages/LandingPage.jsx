@@ -15,8 +15,7 @@ export default function LandingPage({ onUpdate }) {
     <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 px-6 py-16">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
-        <BikeIcon />
-        <span className="text-slate-900 font-bold text-2xl tracking-tight">BikeGrid</span>
+        <img src="/logos/bikegrid/bikegrid-black.png" alt="BikeGrid" className="h-10 w-auto" />
         <span className="text-slate-400 text-sm font-medium bg-white px-2 py-0.5 rounded-full border border-slate-200">AU</span>
       </div>
 
@@ -55,14 +54,3 @@ export default function LandingPage({ onUpdate }) {
   )
 }
 
-function BikeIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="5.5" cy="17.5" r="3.5" />
-      <circle cx="18.5" cy="17.5" r="3.5" />
-      <path d="M5.5 17.5L9 10h6l2 7.5" />
-      <path d="M9 10l4-4 3 4" />
-      <path d="M3 10h4" />
-    </svg>
-  )
-}
