@@ -30,11 +30,21 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
         stmt = stmt.on_conflict_do_update(
             index_elements=["id"],
             set_={
+                # Pricing & stock change on every scrape
                 "price_sale": stmt.excluded.price_sale,
                 "price_original": stmt.excluded.price_original,
                 "discount_percentage": stmt.excluded.discount_percentage,
                 "in_stock": stmt.excluded.in_stock,
                 "last_seen_at": stmt.excluded.last_seen_at,
+                # Catalog details can change too: shops re-categorise, rename,
+                # or update images. Refresh them so the DB reflects the source.
+                # scraped_at is intentionally omitted to preserve first-seen.
+                "category": stmt.excluded.category,
+                "brand": stmt.excluded.brand,
+                "model_name": stmt.excluded.model_name,
+                "frame_size": stmt.excluded.frame_size,
+                "image_url": stmt.excluded.image_url,
+                "product_url": stmt.excluded.product_url,
             },
         )
         await session.execute(stmt)
