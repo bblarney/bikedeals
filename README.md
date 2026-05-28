@@ -1,4 +1,4 @@
-# Bikedeals
+# BikeGrid
 
 Aggregates discounted bike listings from local Australian bike shops into a single searchable feed.
 
