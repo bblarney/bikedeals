@@ -8,6 +8,7 @@ import BikeGrid from './components/BikeGrid'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useBikes, useBikeParams } from './hooks/useBikes'
 import { useFilters } from './hooks/useFilters'
+import { canonicalFor } from './seo'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
@@ -20,6 +21,7 @@ function MainLayout() {
   const [regionSetThisSession, setRegionSetThisSession] = useState(
     () => !!localStorage.getItem('bikegrid_region')
   )
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
 
@@ -35,22 +37,33 @@ function MainLayout() {
     )
   }
 
+  function handleChangeRegion() {
+    localStorage.removeItem('bikegrid_region')
+    params.update({ city: [] })
+    // Refresh so the landing page renders cleanly; cheaper than re-architecting state here.
+    window.location.assign('/')
+  }
+
   return (
     <>
       <title>BikeGrid — Daily Bike Deals from Australian Shops</title>
       <meta name="description" content="Browse hundreds of discounted bikes from local Australian bike shops. Updated daily. Filter by category, size, and brand." />
-      <link rel="canonical" href="https://bikegrid.com.au/" />
+      <link rel="canonical" href={canonicalFor('/')} />
       <Header
         total={filtersData?.total_bikes}
         lastScrapedAt={filtersData?.last_scraped_at}
         params={params}
         onUpdate={params.update}
+        onChangeRegion={handleChangeRegion}
+        onOpenSidebar={() => setSidebarOpen(true)}
       />
       <div className="flex flex-1 min-h-0">
         <FilterSidebar
           filters={filtersData}
           params={params}
           onUpdate={params.update}
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
         />
         <main className="flex-1 min-w-0 flex flex-col">
           <BikeGrid

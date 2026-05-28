@@ -1,9 +1,11 @@
+import { canonicalFor } from '../seo'
+
 export default function ContactPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       <title>Contact — BikeGrid</title>
       <meta name="description" content="Get in touch with the BikeGrid team. Questions, shop listing requests, or problem reports — we're here to help." />
-      <link rel="canonical" href="https://bikegrid.com.au/contact" />
+      <link rel="canonical" href={canonicalFor('/contact')} />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Contact</h1>
       <p className="text-sm text-slate-400 mb-8">We&apos;ll get back to you as soon as we can.</p>
 

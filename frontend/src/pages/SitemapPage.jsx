@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { canonicalFor } from '../seo'
 
 const CATEGORIES = ['Road', 'Mountain', 'Gravel', 'E-Bike', 'Commuter']
 
@@ -7,7 +8,7 @@ export default function SitemapPage() {
     <div className="max-w-3xl mx-auto px-6 py-12">
       <title>Sitemap — BikeGrid</title>
       <meta name="description" content="All pages on BikeGrid, including category shortcuts for road, mountain, gravel, e-bike, and commuter bikes." />
-      <link rel="canonical" href="https://bikegrid.com.au/sitemap" />
+      <link rel="canonical" href={canonicalFor('/sitemap')} />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Sitemap</h1>
       <p className="text-sm text-slate-400 mb-8">All pages and category shortcuts.</p>
 

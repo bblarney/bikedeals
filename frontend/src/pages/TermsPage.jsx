@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
+import { canonicalFor } from '../seo'
 
 export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       <title>Terms of Use — BikeGrid</title>
       <meta name="description" content="Read the BikeGrid terms of use, including our data accuracy disclaimer, affiliate disclosure, and liability policy." />
-      <link rel="canonical" href="https://bikegrid.com.au/terms" />
+      <link rel="canonical" href={canonicalFor('/terms')} />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Terms of Use</h1>
       <p className="text-sm text-slate-400 mb-8">Last updated: May 2026</p>
 

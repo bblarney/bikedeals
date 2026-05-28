@@ -1,6 +1,8 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
 const BikeCard = memo(function BikeCard({ bike }) {
   const {
@@ -18,23 +20,12 @@ const BikeCard = memo(function BikeCard({ bike }) {
     scraped_at,
   } = bike
 
-  const saving = useMemo(
-    () => (price_original ? Math.round(price_original - price_sale) : null),
-    [price_original, price_sale],
-  )
-  const bigDeal = useMemo(() => discount_percentage >= 30, [discount_percentage])
-  const isNew = useMemo(() => {
-    if (!scraped_at) return false
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-    return new Date(scraped_at).getTime() > sevenDaysAgo
-  }, [scraped_at])
-  const displayModel = useMemo(
-    () =>
-      model_name.toLowerCase().startsWith(brand.toLowerCase())
-        ? model_name.slice(brand.length).trim()
-        : model_name,
-    [model_name, brand],
-  )
+  const saving = price_original ? Math.round(price_original - price_sale) : null
+  const bigDeal = discount_percentage >= 30
+  const isNew = scraped_at && new Date(scraped_at).getTime() > Date.now() - SEVEN_DAYS_MS
+  const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
+    ? model_name.slice(brand.length).trim()
+    : model_name
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-slate-200 transition-all duration-150 flex flex-col">
