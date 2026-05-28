@@ -6,7 +6,7 @@ export const REGIONS = [
   { name: 'South Australia',         abbr: 'SA',  cities: ['Adelaide'] },
   { name: 'Western Australia',       abbr: 'WA',  cities: ['Perth'] },
   { name: 'Northern Territory',      abbr: 'NT',  cities: [] },
-  { name: 'Tasmania',                abbr: 'TAS', cities: [] },
+  { name: 'Tasmania',                abbr: 'TAS', cities: ['Hobart'] },
 ]
 
 export const DEFAULT_FILTERS = {
