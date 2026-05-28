@@ -10,6 +10,7 @@ import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
 import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
 
 function MainLayout() {
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
         <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />
         <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
+        <Route path="/privacy" element={<StaticLayout><PrivacyPage /></StaticLayout>} />
       </Routes>
       <Footer />
       <BackToTop />
