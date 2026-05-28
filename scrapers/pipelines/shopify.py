@@ -92,10 +92,11 @@ async def _scrape_collection(
     collection_handle: str | None,
     seen_handles: set[str],
     now: datetime,
-) -> tuple[list[BikeRecord], int]:
-    """Scrape a single Shopify collection. Returns (bikes, pages_fetched)."""
+) -> tuple[list[BikeRecord], int, int]:
+    """Scrape a single Shopify collection. Returns (bikes, pages_fetched, invalid_count)."""
     headers = {"User-Agent": SCRAPER_USER_AGENT}
     bikes: list[BikeRecord] = []
+    invalid_count = 0
 
     if collection_handle:
         products_path = f"/collections/{collection_handle}/products.json"
@@ -167,8 +168,6 @@ async def _scrape_collection(
                     continue
 
                 in_stock = bool(variant.get("available", False))
-                if not in_stock:
-                    continue
                 discount = compute_discount(price_sale, price_original)
                 bike_id = make_bike_id(config.vendor_name, product_url, frame_size, config.city)
 
@@ -192,6 +191,7 @@ async def _scrape_collection(
                     )
                     bikes.append(record)
                 except Exception as exc:
+                    invalid_count += 1
                     logger.warning(
                         "[%s] Validation error for variant %s/%s: %s",
                         config.vendor_name, handle, frame_size, exc,
@@ -214,13 +214,13 @@ async def _scrape_collection(
 
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
-    return bikes, page
+    return bikes, page, invalid_count
 
 
-async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
+async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> tuple[list[BikeRecord], int]:
     if not await check_robots(config.base_url, client):
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
-        return []
+        return [], 0
 
     logger.info("[%s] Scraping...", config.vendor_name)
     now = datetime.now(timezone.utc)
@@ -233,13 +233,15 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
     seen_product_handles: set[str] = set()
     bikes: list[BikeRecord] = []
     total_pages = 0
+    invalid_count = 0
 
     for handle in handles:
-        collection_bikes, pages = await _scrape_collection(
+        collection_bikes, pages, invalid = await _scrape_collection(
             config, client, handle, seen_product_handles, now
         )
         bikes.extend(collection_bikes)
         total_pages += pages
+        invalid_count += invalid
         if len(handles) > 1:
             await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
@@ -255,7 +257,7 @@ async def scrape_shopify(config: VendorConfig, client: httpx.AsyncClient) -> lis
         bikes = expanded
 
     logger.info(
-        "[%s] Done: %d bikes across %d collection(s), %d page(s)",
-        config.vendor_name, len(bikes), len(handles), total_pages,
+        "[%s] Done: %d bikes across %d collection(s), %d page(s), %d invalid",
+        config.vendor_name, len(bikes), len(handles), total_pages, invalid_count,
     )
-    return bikes
+    return bikes, invalid_count

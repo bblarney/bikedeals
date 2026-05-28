@@ -22,6 +22,11 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 MAX_CONCURRENT_VENDORS = 5
 
+# Quarantine threshold: if >5% of products fail validation we treat the run as
+# corrupt (vendor schema likely changed) and skip the upsert + mark_stale so we
+# don't poison the DB. The vendor stays unchanged until someone fixes it.
+QUARANTINE_INVALID_RATIO = 0.05
+
 
 async def main() -> None:
     vendors = load_registry()
@@ -61,21 +66,42 @@ async def main() -> None:
                             status="quarantined",
                             error_msg=result.error,
                         )
-            else:
-                ok += 1
+                continue
+
+            seen = len(result.bikes) + result.invalid_count
+            invalid_ratio = result.invalid_count / seen if seen else 0.0
+            if seen > 0 and invalid_ratio > QUARANTINE_INVALID_RATIO:
+                msg = (
+                    f"{result.invalid_count}/{seen} products failed validation "
+                    f"({invalid_ratio:.1%} > {QUARANTINE_INVALID_RATIO:.0%}) — quarantining"
+                )
+                logging.error("[%s] %s", result.vendor_name, msg)
+                failed += 1
                 if SessionLocal:
                     async with SessionLocal() as session:
-                        count = await upsert_bikes(session, result.bikes)
-                        await mark_stale(session, result.vendor_name, run_start)
                         await write_scrape_log(
                             session,
                             vendor_name=result.vendor_name,
                             run_at=run_start,
-                            status="ok",
-                            bikes_upserted=count,
+                            status="quarantined",
+                            error_msg=msg,
                         )
-                    total_bikes += count
-                    logging.info("[%s] Upserted %d bikes", result.vendor_name, count)
+                continue
+
+            ok += 1
+            if SessionLocal:
+                async with SessionLocal() as session:
+                    count = await upsert_bikes(session, result.bikes)
+                    await mark_stale(session, result.vendor_name, run_start)
+                    await write_scrape_log(
+                        session,
+                        vendor_name=result.vendor_name,
+                        run_at=run_start,
+                        status="ok",
+                        bikes_upserted=count,
+                    )
+                total_bikes += count
+                logging.info("[%s] Upserted %d bikes", result.vendor_name, count)
 
     if engine:
         await engine.dispose()

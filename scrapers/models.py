@@ -63,4 +63,5 @@ class BikeRecord(BaseModel):
 class ScrapeResult(BaseModel):
     vendor_name: str
     bikes: list[BikeRecord]
+    invalid_count: int = 0
     error: str | None = None

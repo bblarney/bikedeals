@@ -25,7 +25,7 @@ def _extract_giant_price(text: str) -> float | None:
     return parse_price(m.group(1))
 
 
-async def scrape_giant(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
+async def scrape_giant(config: VendorConfig, client: httpx.AsyncClient) -> tuple[list[BikeRecord], int]:
     """Scrape Giant Bicycles franchise CMS stores.
 
     These stores run Giant's proprietary brand platform (Cloudinary CDN). Each
@@ -35,7 +35,7 @@ async def scrape_giant(config: VendorConfig, client: httpx.AsyncClient) -> list[
     """
     if not await check_robots(config.base_url, client):
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
-        return []
+        return [], 0
 
     logger.info("[%s] Scraping...", config.vendor_name)
     headers = {"User-Agent": SCRAPER_USER_AGENT}
@@ -44,6 +44,7 @@ async def scrape_giant(config: VendorConfig, client: httpx.AsyncClient) -> list[
     paths = config.shop_paths or [config.shop_path]
     seen_urls: set[str] = set()
     bikes: list[BikeRecord] = []
+    invalid_count = 0
 
     for path in paths:
         url = f"{config.base_url}/{path.strip('/')}/"
@@ -143,10 +144,14 @@ async def scrape_giant(config: VendorConfig, client: httpx.AsyncClient) -> list[
                 )
                 bikes.append(record)
             except Exception as exc:
+                invalid_count += 1
                 logger.warning("[%s] Validation error for %r: %s", config.vendor_name, model_name, exc)
 
         if len(paths) > 1:
             await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
-    logger.info("[%s] Done: %d bikes across %d path(s)", config.vendor_name, len(bikes), len(paths))
-    return bikes
+    logger.info(
+        "[%s] Done: %d bikes across %d path(s), %d invalid",
+        config.vendor_name, len(bikes), len(paths), invalid_count,
+    )
+    return bikes, invalid_count

@@ -30,11 +30,12 @@ async def _scrape_woocommerce_path(
     shop_path: str,
     seen_urls: set[str],
     now: datetime,
-) -> tuple[list[BikeRecord], int]:
-    """Scrape a single WooCommerce category path. Returns (bikes, pages_fetched)."""
+) -> tuple[list[BikeRecord], int, int]:
+    """Scrape a single WooCommerce category path. Returns (bikes, pages_fetched, invalid_count)."""
     headers = {"User-Agent": SCRAPER_USER_AGENT}
     sel = config.selectors
     bikes: list[BikeRecord] = []
+    invalid_count = 0
     page = 1
     path = shop_path.strip("/")
 
@@ -132,6 +133,7 @@ async def _scrape_woocommerce_path(
                 )
                 bikes.append(record)
             except Exception as exc:
+                invalid_count += 1
                 logger.warning(
                     "[%s] Validation error for %r: %s",
                     config.vendor_name, model_name, exc,
@@ -144,17 +146,17 @@ async def _scrape_woocommerce_path(
         page += 1
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
-    return bikes, page
+    return bikes, page, invalid_count
 
 
-async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) -> list[BikeRecord]:
+async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) -> tuple[list[BikeRecord], int]:
     if not config.selectors:
         logger.error("[%s] WooCommerce pipeline requires selectors config", config.vendor_name)
-        return []
+        return [], 0
 
     if not await check_robots(config.base_url, client):
         logger.warning("[%s] Skipping — disallowed by robots.txt", config.vendor_name)
-        return []
+        return [], 0
 
     logger.info("[%s] Scraping...", config.vendor_name)
     now = datetime.now(timezone.utc)
@@ -163,16 +165,18 @@ async def scrape_woocommerce(config: VendorConfig, client: httpx.AsyncClient) ->
     seen_urls: set[str] = set()
     bikes: list[BikeRecord] = []
     total_pages = 0
+    invalid_count = 0
 
     for path in paths:
-        path_bikes, pages = await _scrape_woocommerce_path(config, client, path, seen_urls, now)
+        path_bikes, pages, invalid = await _scrape_woocommerce_path(config, client, path, seen_urls, now)
         bikes.extend(path_bikes)
         total_pages += pages
+        invalid_count += invalid
         if len(paths) > 1:
             await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
 
     logger.info(
-        "[%s] Done: %d bikes across %d path(s), %d page(s)",
-        config.vendor_name, len(bikes), len(paths), total_pages,
+        "[%s] Done: %d bikes across %d path(s), %d page(s), %d invalid",
+        config.vendor_name, len(bikes), len(paths), total_pages, invalid_count,
     )
-    return bikes
+    return bikes, invalid_count

@@ -18,16 +18,20 @@ async def scrape_vendor(
     async with sem:
         try:
             if config.pipeline == "shopify":
-                bikes = await scrape_shopify(config, client)
+                bikes, invalid_count = await scrape_shopify(config, client)
             elif config.pipeline == "woocommerce":
-                bikes = await scrape_woocommerce(config, client)
+                bikes, invalid_count = await scrape_woocommerce(config, client)
             elif config.pipeline == "bigcommerce":
-                bikes = await scrape_bigcommerce(config, client)
+                bikes, invalid_count = await scrape_bigcommerce(config, client)
             elif config.pipeline == "giant":
-                bikes = await scrape_giant(config, client)
+                bikes, invalid_count = await scrape_giant(config, client)
             else:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
-            return ScrapeResult(vendor_name=config.vendor_name, bikes=bikes)
+            return ScrapeResult(
+                vendor_name=config.vendor_name,
+                bikes=bikes,
+                invalid_count=invalid_count,
+            )
         except Exception as exc:
             logger.error("[%s] Scrape failed: %s", config.vendor_name, exc, exc_info=True)
             return ScrapeResult(vendor_name=config.vendor_name, bikes=[], error=str(exc))
