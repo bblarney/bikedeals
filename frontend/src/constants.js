@@ -3,6 +3,7 @@ export const REGIONS = [
   { name: 'New South Wales',         abbr: 'NSW', cities: ['Sydney', 'Wollongong'] },
   { name: 'Australian Capital Territory', abbr: 'ACT', cities: ['Canberra'] },
   { name: 'Victoria',                abbr: 'VIC', cities: ['Melbourne'] },
+  { name: 'South Australia',         abbr: 'SA',  cities: ['Adelaide'] },
   { name: 'Western Australia',       abbr: 'WA',  cities: ['Perth'] },
   { name: 'Northern Territory',      abbr: 'NT',  cities: [] },
   { name: 'Tasmania',                abbr: 'TAS', cities: [] },
@@ -16,4 +17,5 @@ export const DEFAULT_FILTERS = {
   brand: [],
   min_discount: 0,
   q: '',
+  added_since: '',
 }

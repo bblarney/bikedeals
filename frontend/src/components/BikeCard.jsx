@@ -15,6 +15,7 @@ const BikeCard = memo(function BikeCard({ bike }) {
     city,
     product_url,
     image_url,
+    scraped_at,
   } = bike
 
   const saving = useMemo(
@@ -22,6 +23,11 @@ const BikeCard = memo(function BikeCard({ bike }) {
     [price_original, price_sale],
   )
   const bigDeal = useMemo(() => discount_percentage >= 30, [discount_percentage])
+  const isNew = useMemo(() => {
+    if (!scraped_at) return false
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return new Date(scraped_at).getTime() > sevenDaysAgo
+  }, [scraped_at])
   const displayModel = useMemo(
     () =>
       model_name.toLowerCase().startsWith(brand.toLowerCase())
@@ -39,6 +45,11 @@ const BikeCard = memo(function BikeCard({ bike }) {
             bigDeal ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700'
           }`}>
             {discount_percentage}% off
+          </span>
+        )}
+        {isNew && (
+          <span className="absolute top-2 right-2 z-10 inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+            New
           </span>
         )}
         {image_url ? (

@@ -16,7 +16,7 @@ import LandingPage from './pages/LandingPage'
 function MainLayout() {
   const params = useBikeParams()
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
-  const { data: filtersData } = useFilters()
+  const { data: filtersData } = useFilters(params)
 
   const hasRegion = !!localStorage.getItem('bikegrid_region') || params.city.length > 0
   if (!hasRegion) return <LandingPage onUpdate={params.update} />

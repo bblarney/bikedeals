@@ -14,6 +14,6 @@ async function request(path, params = {}) {
 
 export const api = {
   getBikes: (params) => request('/api/v1/bikes', params),
-  getFilters: () => request('/api/v1/meta/filters'),
+  getFilters: (params) => request('/api/v1/meta/filters', params),
   recordClick: (id) => fetch(`${BASE}/api/v1/bikes/${id}/click`, { method: 'POST' }).catch(() => {}),
 }

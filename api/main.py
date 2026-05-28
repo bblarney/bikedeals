@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -31,6 +32,29 @@ _SORT_COLUMNS = {
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
 CACHE_FILTERS = "max-age=60"  # 1 min — filters change when vendors are added
 
+_ADDED_SINCE_DAYS = {'day': 1, 'week': 7, 'month': 30, 'year': 365}
+
+
+def _apply_filters(query, *, city, category, size, vendor, brand, min_discount, q, added_since):
+    if city:
+        query = query.where(func.lower(Bike.city).in_([c.lower() for c in city]))
+    if category:
+        query = query.where(Bike.category.in_(category))
+    if size:
+        query = query.where(Bike.frame_size.in_(size))
+    if vendor:
+        query = query.where(Bike.vendor_name.in_(vendor))
+    if brand:
+        query = query.where(Bike.brand.in_(brand))
+    if min_discount > 0:
+        query = query.where(Bike.discount_percentage >= min_discount)
+    if q:
+        query = query.where((Bike.brand + " " + Bike.model_name).ilike(f"%{q}%"))
+    if added_since:
+        delta = _ADDED_SINCE_DAYS[added_since]
+        query = query.where(Bike.scraped_at >= datetime.now(timezone.utc) - timedelta(days=delta))
+    return query
+
 
 @app.get("/api/v1/health")
 async def health():
@@ -50,29 +74,15 @@ async def get_bikes(
     in_stock: bool = True,
     q: str | None = None,
     sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
+    added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
     base = select(Bike)
-
-    if category:
-        base = base.where(Bike.category.in_(category))
-    if city:
-        base = base.where(func.lower(Bike.city).in_([c.lower() for c in city]))
-    if size:
-        base = base.where(Bike.frame_size.in_(size))
-    if vendor:
-        base = base.where(Bike.vendor_name.in_(vendor))
-    if brand:
-        base = base.where(Bike.brand.in_(brand))
-    if min_discount > 0:
-        base = base.where(Bike.discount_percentage >= min_discount)
+    base = _apply_filters(base, city=city, category=category, size=size, vendor=vendor,
+                          brand=brand, min_discount=min_discount, q=q, added_since=added_since)
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
-    if q:
-        base = base.where(
-            (Bike.brand + " " + Bike.model_name).ilike(f"%{q}%")
-        )
 
     count_result = await db.execute(select(func.count()).select_from(base.subquery()))
     total = count_result.scalar_one()
@@ -109,28 +119,31 @@ async def record_click(
 async def get_filters(
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
+    category: list[str] = Query(default=[]),
+    city: list[str] = Query(default=[]),
+    size: list[str] = Query(default=[]),
+    vendor: list[str] = Query(default=[]),
+    brand: list[str] = Query(default=[]),
+    min_discount: int = Query(default=0, ge=0, le=100),
+    q: str | None = None,
+    added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
 ):
-    categories_r = await db.execute(
-        select(Bike.category).distinct().order_by(Bike.category)
-    )
-    cities_r = await db.execute(
-        select(Bike.city).distinct().order_by(Bike.city)
-    )
-    sizes_r = await db.execute(
-        select(Bike.frame_size).distinct().order_by(Bike.frame_size)
-    )
-    vendors_r = await db.execute(
-        select(Bike.vendor_name).distinct().order_by(Bike.vendor_name)
-    )
-    brands_r = await db.execute(
-        select(Bike.brand).distinct().order_by(Bike.brand)
-    )
-    discount_r = await db.execute(
-        select(func.min(Bike.discount_percentage), func.max(Bike.discount_percentage))
-    )
-    total_r = await db.execute(select(func.count()).where(Bike.in_stock == True))  # noqa: E712
-    last_scraped_r = await db.execute(
-        select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok")
+    f = dict(city=city, category=category, size=size, vendor=vendor,
+             brand=brand, min_discount=min_discount, q=q, added_since=added_since)
+
+    def base_for(col, *, exclude):
+        q_ = select(col).distinct().where(Bike.in_stock == True).order_by(col)  # noqa: E712
+        return _apply_filters(q_, **{**f, exclude: [] if isinstance(f[exclude], list) else None})
+
+    categories_r, cities_r, sizes_r, vendors_r, brands_r, discount_r, total_r, last_scraped_r = (
+        await db.execute(base_for(Bike.category,     exclude='category')),
+        await db.execute(base_for(Bike.city,         exclude='city')),
+        await db.execute(base_for(Bike.frame_size,   exclude='size')),
+        await db.execute(base_for(Bike.vendor_name,  exclude='vendor')),
+        await db.execute(base_for(Bike.brand,        exclude='brand')),
+        await db.execute(select(func.min(Bike.discount_percentage), func.max(Bike.discount_percentage)).where(Bike.in_stock == True)),  # noqa: E712
+        await db.execute(select(func.count()).where(Bike.in_stock == True)),  # noqa: E712
+        await db.execute(select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok")),
     )
 
     discount_row = discount_r.one()
