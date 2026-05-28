@@ -7,6 +7,7 @@ import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useBikes, useBikeParams } from './hooks/useBikes'
+import { usePins } from './hooks/usePins'
 import { useFilters } from './hooks/useFilters'
 import { canonicalFor } from './seo'
 import AboutPage from './pages/AboutPage'
@@ -25,6 +26,7 @@ function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
+  const { pinnedBikes, pinnedIds, togglePin, clearPins } = usePins()
 
   const showLanding = !regionSetThisSession && params.city.length === 0
   if (showLanding) {
@@ -95,6 +97,10 @@ function MainLayout() {
             total={bikesData?.total}
             params={params}
             onUpdate={params.update}
+            pinnedBikes={pinnedBikes}
+            pinnedIds={pinnedIds}
+            onTogglePin={togglePin}
+            onClearPins={clearPins}
           />
         </main>
       </div>

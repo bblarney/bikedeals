@@ -4,7 +4,7 @@ import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
-const BikeCard = memo(function BikeCard({ bike }) {
+const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {} }) {
   const {
     brand,
     model_name,
@@ -28,7 +28,17 @@ const BikeCard = memo(function BikeCard({ bike }) {
     : model_name
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden hover:shadow-md hover:border-slate-200 transition-all duration-150 flex flex-col">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onTogglePin(bike)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTogglePin(bike) }}
+      className={`bg-white rounded-xl border overflow-hidden transition-all duration-150 flex flex-col cursor-pointer ${
+        isPinned
+          ? 'pin-glow'
+          : 'border-slate-100 hover:shadow-md hover:border-slate-200'
+      }`}
+    >
       {/* Image */}
       <div className="relative aspect-square bg-slate-50 flex items-center justify-center p-3">
         {discount_percentage > 0 && (
@@ -41,6 +51,13 @@ const BikeCard = memo(function BikeCard({ bike }) {
         {isNew && (
           <span className="absolute top-2 right-2 z-10 inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
             New
+          </span>
+        )}
+        {isPinned && (
+          <span className="absolute bottom-2 right-2 z-10 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
           </span>
         )}
         {image_url ? (
@@ -102,7 +119,7 @@ const BikeCard = memo(function BikeCard({ bike }) {
             href={product_url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => api.recordClick(bike.id)}
+            onClick={(e) => { e.stopPropagation(); api.recordClick(bike.id) }}
             className="flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
           >
             View deal

@@ -8,10 +8,11 @@ const SORT_LABELS = {
   clicks_desc: 'most popular',
 }
 
-export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate }) {
+export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate, pinnedBikes = [], pinnedIds = new Set(), onTogglePin = () => {}, onClearPins = () => {} }) {
   const { offset, limit, sort } = params
   const page = Math.floor(offset / limit) + 1
   const totalPages = total ? Math.ceil(total / limit) : 1
+  const mainBikes = bikes?.filter(b => !pinnedIds.has(b.id)) ?? []
 
   if (isError) {
     return (
@@ -25,7 +26,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
     )
   }
 
-  if (!isLoading && bikes?.length === 0) {
+  if (!isLoading && bikes?.length === 0 && pinnedBikes.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
@@ -76,6 +77,14 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
               </button>
             </>
           )}
+          {pinnedBikes.length > 0 && (
+            <button
+              onClick={onClearPins}
+              className="px-2.5 py-1 text-xs font-medium text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors"
+            >
+              Clear pins ({pinnedBikes.length})
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-400">Sort by</span>
@@ -97,7 +106,12 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
           <SkeletonGrid />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-            {bikes?.map((bike) => <BikeCard key={bike.id} bike={bike} />)}
+            {pinnedBikes.map(bike => (
+              <BikeCard key={`pin-${bike.id}`} bike={bike} isPinned={true} onTogglePin={onTogglePin} />
+            ))}
+            {mainBikes.map(bike => (
+              <BikeCard key={bike.id} bike={bike} isPinned={false} onTogglePin={onTogglePin} />
+            ))}
           </div>
         )}
       </div>
