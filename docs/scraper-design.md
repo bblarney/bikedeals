@@ -75,7 +75,7 @@ Small local bike shops run on shared hosting. Be a polite scraper:
 
 - **Delay between requests:** 1–2 seconds random jitter.
 - **Concurrent requests per vendor:** max 2.
-- **User-Agent:** Set a descriptive UA: `BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)`.
+- **User-Agent:** Set a descriptive UA: `BikeGrid-Scraper/1.0 (+https://bikegrid.example.com)`.
 - **robots.txt:** Check and respect `robots.txt` for each domain before scraping. Log a warning and skip if disallowed; do not scrape anyway.
 
 ```python

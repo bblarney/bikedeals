@@ -18,14 +18,14 @@ function MainLayout() {
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters()
 
-  const hasRegion = !!localStorage.getItem('bikedeals_region') || params.city.length > 0
+  const hasRegion = !!localStorage.getItem('bikegrid_region') || params.city.length > 0
   if (!hasRegion) return <LandingPage onUpdate={params.update} />
 
   return (
     <>
-      <title>BikeDeals — Daily Bike Deals from Australian Shops</title>
+      <title>BikeGrid — Daily Bike Deals from Australian Shops</title>
       <meta name="description" content="Browse hundreds of discounted bikes from local Australian bike shops. Updated daily. Filter by category, size, and brand." />
-      <link rel="canonical" href="https://bikedeals.com.au/" />
+      <link rel="canonical" href="https://bikegrid.com.au/" />
       <Header
         total={filtersData?.total_bikes}
         lastScrapedAt={filtersData?.last_scraped_at}

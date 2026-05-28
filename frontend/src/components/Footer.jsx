@@ -22,7 +22,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
-            <span className="text-white font-semibold text-base">BikeDeals</span>
+            <span className="text-white font-semibold text-base">BikeGrid</span>
             <p className="mt-2 text-slate-400 text-sm leading-relaxed">
               Daily deals from local Australian bike shops — in one place.
             </p>
@@ -67,7 +67,7 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-8 pt-6 text-center">
           <p className="text-slate-500 text-xs">
-            © {new Date().getFullYear()} BikeDeals. All rights reserved.
+            © {new Date().getFullYear()} BikeGrid. All rights reserved.
           </p>
         </div>
       </div>

@@ -11,7 +11,7 @@ export default function Header({ total, lastScrapedAt, params, onUpdate }) {
     <header className="bg-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
       <Link to="/" className="flex items-center gap-3">
         <BikeIcon />
-        <span className="text-white font-semibold text-lg tracking-tight">BikeDeals</span>
+        <span className="text-white font-semibold text-lg tracking-tight">BikeGrid</span>
       </Link>
 
       {params && (
@@ -20,7 +20,7 @@ export default function Header({ total, lastScrapedAt, params, onUpdate }) {
             <button
               key={r.abbr}
               onClick={() => {
-                localStorage.setItem('bikedeals_region', r.name)
+                localStorage.setItem('bikegrid_region', r.name)
                 onUpdate({ city: r.cities })
               }}
               className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${

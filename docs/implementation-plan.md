@@ -27,7 +27,7 @@ This document is the authoritative step-by-step build guide for Bikedeals. All d
 ## Repo layout (create this structure before writing any code)
 
 ```
-bikedeals/
+bikegrid/
 ├── scrapers/
 │   ├── vendors/                  # YAML vendor configs, one file per shop
 │   ├── pipelines/
@@ -245,7 +245,7 @@ The scraper must:
 
 1. Check `robots.txt` for the domain before making any product requests. If `/products.json` or `/*` is disallowed, log a warning and return an empty `ScrapeResult`.
 2. Paginate `GET {base_url}/products.json?limit=250&page={n}` until the response returns fewer than 250 products.
-3. Set `User-Agent: BikeDeals-Scraper/1.0 (+https://bikedeals.example.com)` on every request.
+3. Set `User-Agent: BikeGrid-Scraper/1.0 (+https://bikegrid.example.com)` on every request.
 4. Add `await asyncio.sleep(random.uniform(1.0, 2.0))` between page requests.
 5. For each product, iterate `variants[]` and emit one `BikeRecord` per variant. Skip variants whose `title` is `"Default Title"` or contains colour keywords rather than sizes (e.g. "Black", "Red", "Blue") — these are not size variants.
 6. Map fields per `docs/scraper-design.md § Field mapping`.
@@ -847,7 +847,7 @@ Set `DATABASE_URL` as a GitHub Actions secret pointing to Supabase PostgreSQL.
 
 ### Task 4.4 — SEO pre-launch configuration
 
-Replace the placeholder domain `bikedeals.com.au` with the real production domain in the following files before deploying:
+Replace the placeholder domain `bikegrid.com.au` with the real production domain in the following files before deploying:
 
 - `frontend/public/sitemap.xml` — all `<loc>` entries
 - `frontend/public/robots.txt` — the `Sitemap:` line

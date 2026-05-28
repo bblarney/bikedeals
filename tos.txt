@@ -1,0 +1,55 @@
+Moving fast with a "free first" model doesn't mean skipping the legal guardrails. Because **BikeGrid** is an **aggregator** that relies on pulling data from other sources, your legal documents have a very specific job to do compared to a standard blog or online shop.
+
+In Australia, your legal exposure doesn't come from your users paying you; it comes from **how you handle other people's data** and **the accuracy of what you show**.
+
+Here is a breakdown of what your **Terms of Service (ToS)** and **Privacy Policy** need to cover to protect you, tailored specifically to an Australian web-scraping aggregator.
+
+---
+
+## 1. The Terms of Service (ToS)
+
+Your ToS is a contract between you and the people visiting BikeGrid. For an aggregator, its primary job is **liability shield**.
+
+### Key Clauses to Include:
+
+* **The "Not a Party to the Sale" Disclaimer:** You must explicitly state that BikeGrid is a search engine, not a dealership or a marketplace. If a user buys a bike through a link they found on your site and the frame is cracked, or they get scammed, they cannot hold you liable.
+* **Data Accuracy & "As-Is" Clause:** Scraped data can lag or break. A bike might sell, but your scraper hasn't updated yet. Under the **Australian Consumer Law (ACL)**, businesses cannot engage in misleading conduct. To protect yourself, include a prominent disclaimer stating that prices, availability, and specifications are pulled automatically, are for informational purposes only, and must be verified on the target site.
+* **Intellectual Property (IP) Clarification:** Clearly state that all brand names, logos, and original listing text belong to their respective copyright holders (the original sites/sellers). State that BikeGrid uses them purely to direct buyers to the original source.
+* **No Scraping of Your Scraper:** It sounds ironic, but you want to forbid other bots from scraping *your* aggregated database.
+
+---
+
+## 2. The Privacy Policy
+
+Even if you don't charge money, if you collect email addresses for "Bike Alerts," drop cookies to track popular bike brands, or collect IP addresses via analytics, you are handling data.
+
+> **The Small Business Exemption Myth:** While Australian privacy laws generally exempt businesses with a turnover under $3 million, running an aggregator that handles consumer data means having a transparent Privacy Policy is best practice, builds trust, and is often **strictly required** by third-party tools you'll use (like Google Analytics, Mailchimp, or transaction/hosting servers).
+
+### Key Clauses to Include:
+
+* **What You Collect:** Explicitly list what you grab (e.g., email addresses for saved searches, search history, device types, and cookies).
+* **How You Use It:** State clearly that emails are *only* used to send the alerts the user requested, and analytics are used to improve the site.
+* **No Scraping of Personal Information:** State clearly that your aggregator **only scrapes public, non-personal product facts** (bike model, price, specs, public images) and explicitly filters out or discards personal identifiers (like private sellers' phone numbers, addresses, or personal names) from the original listings.
+
+---
+
+## 3. The "Aggregator Secret Weapon": A Take-Down Policy
+
+This is a section inside your ToS that completely changes the dynamic between you and the sites you scrape.
+
+Instead of waiting for a disgruntled bike shop or private seller to send you a hostile legal letter because their listing is on your site, you proactively provide a clear pathway for them.
+
+* **The "Notice and Takedown" Procedure:** Provide a dedicated email address (e.g., `takedown@bikegrid.com.au` or a simple contact form) where any seller or platform can request the immediate removal of their listings.
+* **Why this works:** In Australian copyright and contract landscape, showing that you act in good faith and instantly remove content upon request dramatically reduces the likelihood of anyone pursuing actual legal action or access blocks against your crawlers.
+
+---
+
+### Best Practice for an Aggregator
+
+When you build the site, don't just hide these links in tiny text in the footer (called a "browsewrap" agreement).
+
+When a user signs up for an email alert, include a checkbox that says:
+
+*“I agree to the Terms of Service and understand BikeGrid is a search engine and does not guarantee listing accuracy.”*
+
+This creates a legally binding "clickwrap" agreement, which Australian courts view as much more robust.
