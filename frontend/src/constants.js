@@ -9,6 +9,8 @@ export const REGIONS = [
   { name: 'Tasmania',                abbr: 'TAS', cities: ['Hobart'] },
 ]
 
+export const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+
 export const DEFAULT_FILTERS = {
   category: [],
   city: [],
