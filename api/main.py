@@ -1,11 +1,15 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query, Response
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,12 +19,19 @@ from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes
 
 app = FastAPI(title="Bikedeals API", version="1.0")
 
+_default_origins = "https://bikegrid.com.au,https://www.bikegrid.com.au"
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 _SORT_COLUMNS = {
     "discount_desc": Bike.discount_percentage.desc(),
@@ -101,7 +112,9 @@ async def get_bikes(
 
 
 @app.post("/api/v1/bikes/{bike_id}/click", status_code=204)
+@limiter.limit("30/minute")
 async def record_click(
+    request: Request,
     bike_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):

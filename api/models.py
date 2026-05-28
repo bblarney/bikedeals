@@ -49,9 +49,11 @@ class Bike(Base):
         Index("idx_bikes_frame_size", "frame_size"),
         Index("idx_bikes_vendor", "vendor_name"),
         Index("idx_bikes_city", "city"),
+        Index("idx_bikes_brand", "brand"),
         Index("idx_bikes_discount_desc", "discount_percentage"),
         Index("idx_bikes_in_stock", "in_stock"),
         Index("idx_bikes_click_count", "click_count"),
+        Index("idx_bikes_scraped_at", "scraped_at"),
     )
 
 
