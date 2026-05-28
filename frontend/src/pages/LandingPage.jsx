@@ -2,12 +2,12 @@ import { REGIONS } from '../constants'
 
 export default function LandingPage({ onUpdate }) {
   function pickRegion(region) {
-    localStorage.setItem('bikedeals_region', region.name)
+    localStorage.setItem('bikegrid_region', region.name)
     onUpdate({ city: region.cities })
   }
 
   function pickAll() {
-    localStorage.setItem('bikedeals_region', '__all__')
+    localStorage.setItem('bikegrid_region', '__all__')
     onUpdate({})
   }
 
@@ -16,7 +16,7 @@ export default function LandingPage({ onUpdate }) {
       {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
         <BikeIcon />
-        <span className="text-slate-900 font-bold text-2xl tracking-tight">BikeDeals</span>
+        <span className="text-slate-900 font-bold text-2xl tracking-tight">BikeGrid</span>
         <span className="text-slate-400 text-sm font-medium bg-white px-2 py-0.5 rounded-full border border-slate-200">AU</span>
       </div>
 

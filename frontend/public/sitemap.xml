@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://bikedeals.com.au/</loc>
+    <loc>https://bikegrid.com.au/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://bikedeals.com.au/about</loc>
+    <loc>https://bikegrid.com.au/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://bikedeals.com.au/contact</loc>
+    <loc>https://bikegrid.com.au/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://bikedeals.com.au/terms</loc>
+    <loc>https://bikegrid.com.au/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

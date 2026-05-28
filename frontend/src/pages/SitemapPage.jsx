@@ -5,9 +5,9 @@ const CATEGORIES = ['Road', 'Mountain', 'Gravel', 'E-Bike', 'Commuter']
 export default function SitemapPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
-      <title>Sitemap — BikeDeals</title>
-      <meta name="description" content="All pages on BikeDeals, including category shortcuts for road, mountain, gravel, e-bike, and commuter bikes." />
-      <link rel="canonical" href="https://bikedeals.com.au/sitemap" />
+      <title>Sitemap — BikeGrid</title>
+      <meta name="description" content="All pages on BikeGrid, including category shortcuts for road, mountain, gravel, e-bike, and commuter bikes." />
+      <link rel="canonical" href="https://bikegrid.com.au/sitemap" />
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Sitemap</h1>
       <p className="text-sm text-slate-400 mb-8">All pages and category shortcuts.</p>
 
@@ -44,7 +44,7 @@ export default function SitemapPage() {
           </h2>
           <ul className="space-y-2">
             {[
-              { to: '/about', label: 'About BikeDeals' },
+              { to: '/about', label: 'About BikeGrid' },
               { to: '/contact', label: 'Contact' },
               { to: '/terms', label: 'Terms of Use' },
               { to: '/privacy', label: 'Privacy Policy' },

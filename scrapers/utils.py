@@ -17,7 +17,7 @@ async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
             line = line.strip()
             if line.startswith("user-agent:"):
                 agent = line.split(":", 1)[1].strip()
-                in_relevant_agent = agent in ("*", "bikedeals-scraper")
+                in_relevant_agent = agent in ("*", "bikegrid-scraper")
             elif in_relevant_agent and line.startswith("disallow:"):
                 path = line.split(":", 1)[1].strip()
                 if path in ("/", "/*", "/products.json", "/products"):

@@ -12,7 +12,7 @@ The frontend is a static build (`vite build` → `dist/`). Deploy to Cloudflare 
 
 The API URL must be an environment variable:
 ```
-VITE_API_BASE_URL=https://api.bikedeals.example.com
+VITE_API_BASE_URL=https://api.bikegrid.example.com
 ```
 
 ---
