@@ -10,7 +10,18 @@ _SessionLocal = None
 def _get_session_factory():
     global _engine, _SessionLocal
     if _SessionLocal is None:
-        _engine = create_async_engine(os.environ["DATABASE_URL"])
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            raise RuntimeError(
+                "DATABASE_URL environment variable is required to start the API."
+            )
+        _engine = create_async_engine(
+            database_url,
+            pool_pre_ping=True,   # detect connections dropped by the Supabase pooler
+            pool_recycle=1800,    # recycle connections every 30 min
+            pool_size=10,
+            max_overflow=20,
+        )
         _SessionLocal = async_sessionmaker(_engine, expire_on_commit=False)
     return _SessionLocal
 

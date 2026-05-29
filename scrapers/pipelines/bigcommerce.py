@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
-from scrapers.utils import check_robots, parse_price, resolve_category
+from scrapers.utils import check_robots, get_with_retry, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ async def _scrape_bigcommerce_path(
         url = f"{config.base_url}/{path}/{qs}"
 
         try:
-            resp = await client.get(url, headers=headers, follow_redirects=True)
+            resp = await get_with_retry(client, url, headers=headers)
             resp.raise_for_status()
         except Exception as exc:
             logger.error("[%s] Failed to fetch page %d (%s): %s", config.vendor_name, page, path, exc)

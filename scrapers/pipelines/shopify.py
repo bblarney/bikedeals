@@ -11,6 +11,7 @@ from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bik
 from scrapers.utils import (
     check_robots,
     extract_frame_size,
+    get_with_retry,
     parse_drivetrain_groupset,
     parse_frame_material,
     parse_price,
@@ -104,6 +105,7 @@ async def _scrape_collection(
     headers = {"User-Agent": SCRAPER_USER_AGENT}
     bikes: list[BikeRecord] = []
     invalid_count = 0
+    category_skipped = 0
 
     if collection_handle:
         products_path = f"/collections/{collection_handle}/products.json"
@@ -117,7 +119,7 @@ async def _scrape_collection(
         page += 1
         logger.debug("[%s] Fetching page %d: %s", config.vendor_name, page, next_url)
         try:
-            resp = await client.get(next_url, headers=headers, follow_redirects=True)
+            resp = await get_with_retry(client, next_url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
         except Exception as exc:
@@ -158,6 +160,7 @@ async def _scrape_collection(
             candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
             category = resolve_category(candidates, config.category_map)
             if category is None:
+                category_skipped += 1
                 logger.debug(
                     "[%s] No category match for %r (type=%r, tags=%r); skipping",
                     config.vendor_name, handle, product_type, tags,
@@ -240,6 +243,14 @@ async def _scrape_collection(
             next_url = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}&since_id={since_id}"
 
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
+
+    # A misconfigured category_map silently yields zero bikes; surface it.
+    if category_skipped and not bikes:
+        logger.warning(
+            "[%s] collection %r produced 0 bikes but skipped %d product(s) with no "
+            "category match — check category_map",
+            config.vendor_name, collection_handle, category_skipped,
+        )
 
     return bikes, page, invalid_count
 

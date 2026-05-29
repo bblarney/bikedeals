@@ -31,7 +31,7 @@ export default function Footer() {
       setStatus('success')
       setEmail('')
     } catch (err) {
-      setStatus(err.message === '409' ? 'duplicate' : 'error')
+      setStatus(err.status === 409 ? 'duplicate' : 'error')
     }
   }
 

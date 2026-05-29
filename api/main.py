@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 from contextlib import asynccontextmanager
@@ -9,20 +10,37 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import distinct, func, select, update
+from sqlalchemy import distinct, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db, get_engine
 from api.models import Base, Bike, ScrapeLog, Subscriber
-from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes, StatsResponse, SubscribeRequest
+from api.schemas import (
+    BikeResponse,
+    FiltersResponse,
+    MessageResponse,
+    PaginatedBikes,
+    StatsResponse,
+    SubscribeRequest,
+    UnsubscribeRequest,
+)
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(name)s %(levelname)s: %(message)s",
+)
+logger = logging.getLogger("bikegrid.api")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # create_all is an idempotent dev/bootstrap convenience. Schema *changes* in
+    # production are managed by Alembic (`alembic upgrade head`); see migrations/.
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -38,12 +56,22 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Accept", "Origin"],
 )
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    # Log the full traceback server-side, but never leak it to the client.
+    logger.error("Unhandled exception on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred."}},
+    )
 
 _SORT_COLUMNS = {
     "discount_desc": Bike.discount_percentage.desc(),
@@ -117,12 +145,20 @@ def _apply_filters(
 
 
 @app.get("/api/v1/health")
-async def health():
-    return {"status": "ok"}
+async def health(response: Response, db: Annotated[AsyncSession, Depends(get_db)]):
+    try:
+        await db.execute(text("SELECT 1"))
+    except Exception:
+        logger.warning("Health check failed: database unreachable", exc_info=True)
+        response.status_code = 503
+        return {"status": "degraded", "database": "unreachable"}
+    return {"status": "ok", "database": "connected"}
 
 
 @app.get("/api/v1/bikes", response_model=PaginatedBikes)
+@limiter.limit("120/minute")
 async def get_bikes(
+    request: Request,
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
     category: list[str] = Query(default=[]),
@@ -136,7 +172,7 @@ async def get_bikes(
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
     in_stock: bool = True,
-    q: str | None = None,
+    q: str | None = Query(default=None, max_length=100),
     sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
     sku: str | None = None,
@@ -202,7 +238,9 @@ async def record_click(
 
 
 @app.get("/api/v1/meta/filters", response_model=FiltersResponse)
+@limiter.limit("120/minute")
 async def get_filters(
+    request: Request,
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
     category: list[str] = Query(default=[]),
@@ -215,7 +253,7 @@ async def get_filters(
     min_discount: int = Query(default=0, ge=0, le=100),
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
-    q: str | None = None,
+    q: str | None = Query(default=None, max_length=100),
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
 ):
     # Faceted filters: each facet's options are computed with all *other* active
@@ -283,7 +321,7 @@ async def get_filters(
     )
 
 
-@app.post("/api/v1/subscribe", status_code=201)
+@app.post("/api/v1/subscribe", status_code=201, response_model=MessageResponse)
 @limiter.limit("5/minute")
 async def subscribe(
     request: Request,
@@ -301,23 +339,31 @@ async def subscribe(
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="Already subscribed")
+    return MessageResponse(message="Subscribed")
 
 
-@app.get("/api/v1/unsubscribe/{token}", status_code=200)
+# POST (not GET) so that email-client / CDN link prefetching cannot trigger an
+# accidental unsubscribe, and so the token is not captured in proxy access logs.
+@app.post("/api/v1/unsubscribe", status_code=200, response_model=MessageResponse)
+@limiter.limit("10/minute")
 async def unsubscribe(
-    token: str,
+    request: Request,
+    body: UnsubscribeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    result = await db.execute(select(Subscriber).where(Subscriber.token == token))
+    result = await db.execute(select(Subscriber).where(Subscriber.token == body.token))
     subscriber = result.scalar_one_or_none()
     if subscriber is None:
         raise HTTPException(status_code=404, detail="Token not found")
     await db.delete(subscriber)
     await db.commit()
+    return MessageResponse(message="Unsubscribed")
 
 
 @app.get("/api/v1/meta/stats", response_model=StatsResponse)
+@limiter.limit("120/minute")
 async def get_stats(
+    request: Request,
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):

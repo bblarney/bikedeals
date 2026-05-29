@@ -1,5 +1,15 @@
 const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
+// Error carrying the HTTP status so callers can branch on it (e.g. 409, 404)
+// instead of brittle string-matching on the message.
+export class ApiError extends Error {
+  constructor(status, statusText) {
+    super(`API ${status}: ${statusText}`)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 async function request(path, params = {}) {
   const url = new URL(BASE + path, window.location.origin)
   Object.entries(params).forEach(([k, v]) => {
@@ -8,8 +18,18 @@ async function request(path, params = {}) {
     else url.searchParams.set(k, v)
   })
   const res = await fetch(url.toString())
-  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`)
+  if (!res.ok) throw new ApiError(res.status, res.statusText)
   return res.json()
+}
+
+async function post(path, body) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new ApiError(res.status, res.statusText)
+  return res
 }
 
 export const api = {
@@ -17,17 +37,9 @@ export const api = {
   getFilters: (params) => request('/api/v1/meta/filters', params),
   getStats: () => request('/api/v1/meta/stats'),
   recordClick: (id) =>
-    fetch(`${BASE}/api/v1/bikes/${id}/click`, { method: 'POST' }).catch((err) =>
-      console.warn('click record failed', err),
-    ),
-  subscribe: (email) =>
-    fetch(`${BASE}/api/v1/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).then((r) => { if (!r.ok) throw new Error(r.status) }),
-  unsubscribe: (token) =>
-    fetch(`${BASE}/api/v1/unsubscribe/${encodeURIComponent(token)}`).then(
-      (r) => { if (!r.ok) throw new Error(r.status) },
-    ),
+    post(`/api/v1/bikes/${encodeURIComponent(id)}/click`).catch((err) => {
+      if (import.meta.env.DEV) console.warn('click record failed', err)
+    }),
+  subscribe: (email) => post('/api/v1/subscribe', { email }),
+  unsubscribe: (token) => post('/api/v1/unsubscribe', { token }),
 }

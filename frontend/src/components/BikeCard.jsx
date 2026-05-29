@@ -4,6 +4,18 @@ import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
+// Image URLs come from scraped third-party data. Only render http(s) sources
+// (defence-in-depth against javascript:/data: and other unexpected schemes).
+function isHttpUrl(value) {
+  if (!value) return false
+  try {
+    const u = new URL(value)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {}, onSkuFilter = () => {} }) {
   const {
     brand,
@@ -26,6 +38,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     sku_vendor_count,
   } = bike
 
+  const safeImageUrl = isHttpUrl(image_url) ? image_url : null
   const saving = price_original ? Math.round(price_original - price_sale) : null
   const bigDeal = discount_percentage >= 30
   const cutoff = Date.now() - SEVEN_DAYS_MS
@@ -83,11 +96,12 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
             </svg>
           </span>
         )}
-        {image_url ? (
+        {safeImageUrl ? (
           <img
-            src={image_url}
+            src={safeImageUrl}
             alt={`${brand} ${model_name}`}
             loading="lazy"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
             className="object-contain w-full h-full mix-blend-multiply"
           />
         ) : (

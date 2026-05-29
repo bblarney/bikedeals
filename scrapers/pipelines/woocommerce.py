@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
-from scrapers.utils import check_robots, extract_frame_size, parse_price, resolve_category
+from scrapers.utils import check_robots, extract_frame_size, get_with_retry, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +36,14 @@ async def _scrape_woocommerce_path(
     sel = config.selectors
     bikes: list[BikeRecord] = []
     invalid_count = 0
+    category_skipped = 0
     page = 1
     path = shop_path.strip("/")
 
     while True:
         url = f"{config.base_url}/{path}/page/{page}/" if page > 1 else f"{config.base_url}/{path}/"
         try:
-            resp = await client.get(url, headers=headers, follow_redirects=True)
+            resp = await get_with_retry(client, url, headers=headers)
             resp.raise_for_status()
         except Exception as exc:
             logger.error("[%s] Failed to fetch page %d (%s): %s", config.vendor_name, page, path, exc)
@@ -77,6 +78,11 @@ async def _scrape_woocommerce_path(
                 logger.debug("[%s] Skipping product with invalid price: %r", config.vendor_name, model_name)
                 continue
 
+            # Mirror the Shopify pipeline: a non-discounted (or mis-scraped)
+            # original price <= sale price means "no discount", not invalid data.
+            if price_original is not None and price_original <= price_sale:
+                price_original = None
+
             image_url = (
                 _sel_attr(item, sel["image_url"], "data-src")
                 or _sel_attr(item, sel["image_url"], "data-lazy-src")
@@ -85,6 +91,10 @@ async def _scrape_woocommerce_path(
             if image_url and image_url.startswith("data:"):
                 image_url = None
 
+            # NOTE: WooCommerce listing pages expose one size per product card.
+            # Variant-level sizes are not parsed, so size-variant stores are
+            # represented as a single "One Size" row. Revisit if a vendor needs
+            # per-size rows (would require fetching each product detail page).
             frame_size = _sel(item, sel["frame_size"]) if sel.get("frame_size") else "One Size"
             frame_size = extract_frame_size(frame_size or "One Size")
 
@@ -96,13 +106,16 @@ async def _scrape_woocommerce_path(
 
             brand = config.vendor_name
             if config.brand_map:
-                for tag in cat_tags:
+                # Most-specific (longest) tag wins, so overlapping keys resolve
+                # deterministically regardless of class attribute order.
+                for tag in sorted(cat_tags, key=len, reverse=True):
                     if tag in config.brand_map:
                         brand = config.brand_map[tag]
                         break
 
             category = resolve_category([model_name.lower()] + cat_tags, config.category_map)
             if category is None:
+                category_skipped += 1
                 logger.debug(
                     "[%s] No category match for %r; skipping",
                     config.vendor_name, model_name,
@@ -144,6 +157,13 @@ async def _scrape_woocommerce_path(
 
         page += 1
         await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
+
+    if category_skipped and not bikes:
+        logger.warning(
+            "[%s] path %r produced 0 bikes but skipped %d product(s) with no "
+            "category match — check category_map",
+            config.vendor_name, path, category_skipped,
+        )
 
     return bikes, page, invalid_count
 
