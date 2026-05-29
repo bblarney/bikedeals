@@ -50,6 +50,12 @@ class BikeRecord(BaseModel):
     image_url: str | None
     scraped_at: datetime
     last_seen_at: datetime
+    sku: str | None = None
+    weight_grams: int | None = None
+    product_updated_at: datetime | None = None
+    tags: list[str] | None = None
+    frame_material: str | None = None
+    drivetrain_groupset: str | None = None
 
     @model_validator(mode="after")
     def check_prices(self) -> "BikeRecord":

@@ -8,7 +8,14 @@ import httpx
 
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT, SHOPIFY_PAGE_SIZE
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
-from scrapers.utils import check_robots, extract_frame_size, parse_price, resolve_category
+from scrapers.utils import (
+    check_robots,
+    extract_frame_size,
+    parse_drivetrain_groupset,
+    parse_frame_material,
+    parse_price,
+    resolve_category,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +145,16 @@ async def _scrape_collection(
             if _is_accessory(product_type, model_name):
                 continue
 
+            body_html = product.get("body_html") or ""
+            frame_material = parse_frame_material(body_html)
+            drivetrain_groupset = parse_drivetrain_groupset(body_html)
+
+            raw_updated = product.get("updated_at")
+            try:
+                product_updated_at = datetime.fromisoformat(raw_updated) if raw_updated else None
+            except (ValueError, TypeError):
+                product_updated_at = None
+
             candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
             category = resolve_category(candidates, config.category_map)
             if category is None:
@@ -156,6 +173,10 @@ async def _scrape_collection(
 
                 variant_id = variant.get("id")
                 product_url = f"{config.base_url}/products/{handle}?variant={variant_id}"
+
+                sku = variant.get("sku") or None
+                raw_grams = variant.get("grams")
+                weight_grams = int(raw_grams) if raw_grams else None
 
                 price_sale = parse_price(variant.get("price"))
                 price_original = parse_price(variant.get("compare_at_price"))
@@ -188,6 +209,12 @@ async def _scrape_collection(
                         image_url=image_url,
                         scraped_at=now,
                         last_seen_at=now,
+                        sku=sku,
+                        weight_grams=weight_grams,
+                        product_updated_at=product_updated_at,
+                        tags=tags if tags else None,
+                        frame_material=frame_material,
+                        drivetrain_groupset=drivetrain_groupset,
                     )
                     bikes.append(record)
                 except Exception as exc:

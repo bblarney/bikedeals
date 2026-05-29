@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import update
+from sqlalchemy import case, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -45,6 +45,25 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
                 "frame_size": stmt.excluded.frame_size,
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
+                "sku": stmt.excluded.sku,
+                "weight_grams": stmt.excluded.weight_grams,
+                "product_updated_at": stmt.excluded.product_updated_at,
+                "tags": stmt.excluded.tags,
+                "frame_material": stmt.excluded.frame_material,
+                "drivetrain_groupset": stmt.excluded.drivetrain_groupset,
+                # Set price_drop_at when sale price decreases; preserve existing otherwise.
+                "price_drop_at": case(
+                    (stmt.excluded.price_sale < Bike.price_sale, stmt.excluded.last_seen_at),
+                    else_=Bike.price_drop_at,
+                ),
+                # Set discount_started_at when a discount appears for the first time.
+                "discount_started_at": case(
+                    (
+                        (Bike.discount_percentage == 0) & (stmt.excluded.discount_percentage > 0),
+                        stmt.excluded.last_seen_at,
+                    ),
+                    else_=Bike.discount_started_at,
+                ),
             },
         )
         await session.execute(stmt)
