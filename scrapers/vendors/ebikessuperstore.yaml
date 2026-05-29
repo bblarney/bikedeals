@@ -1,0 +1,24 @@
+vendor_name: "eBikes Superstore"
+city: "Adelaide"
+max_pages: 10
+base_url: "https://www.ebikessuperstore.com.au"
+pipeline: "shopify"
+# E-bike specialist. No collection filter needed — all products are e-bikes.
+# product_type values: "Step Though" (sic), "Commuting", "Road".
+# All road/commuting/step-through items on this store are e-bikes, so all map to E-Bike.
+category_map:
+  step though: E-Bike
+  step through: E-Bike
+  commuting: E-Bike
+  commuter: E-Bike
+  road: E-Bike
+  electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  mountain: E-Bike
+  mtb: E-Bike
+  hybrid: E-Bike
+  city: E-Bike
+  urban: E-Bike
+  cargo: E-Bike
+  folding: E-Bike

@@ -1,0 +1,30 @@
+vendor_name: "Bicycle Fix"
+city: "Adelaide Hills"
+collection: "bikes"
+max_pages: 10
+base_url: "https://bicyclefix.com.au"
+pipeline: "shopify"
+# MTB and road shop near Fox Creek Bike Park and Amy Gillett Bikeway. Trek dealer.
+# product_type observed: "Kids Bikes", "MTB sub $1000"
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  trail: Mountain
+  downhill: Mountain
+  gravel: Gravel
+  cx: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter

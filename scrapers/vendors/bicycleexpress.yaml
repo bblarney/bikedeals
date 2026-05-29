@@ -1,0 +1,50 @@
+vendor_name: "Bicycle Express"
+city: "Adelaide"
+collection: "bikes"
+max_pages: 15
+base_url: "https://www.bicycleexpress.com.au"
+pipeline: "shopify"
+# 3 locations (City, Norwood, Mitcham); single Shopify store.
+# product_type values: "ROAD", "Bicycle", "Bicycles" — too generic for category resolution.
+# Category resolved from model name and tags.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  xplr: Gravel
+  grx: Gravel
+  road: Road
+  tarmac: Road
+  roubaix: Road
+  synapse: Road
+  supersix: Road
+  emonda: Road
+  domane: Road
+  madone: Road
+  defy: Road
+  tcr: Road
+  scultura: Road
+  reacto: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  cargo: Commuter
+  folding: Commuter
+  cruiser: Commuter

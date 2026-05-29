@@ -1,0 +1,41 @@
+vendor_name: "Mackay Cycles"
+city: "Mackay"
+collection: "bikes"
+max_pages: 15
+base_url: "https://www.mackaycycles.com.au"
+pipeline: "shopify"
+# Specialized and Trek dealer in Mackay, QLD. Ships nationally.
+# product_type observed: "KIDS BIKE", "BMX BIKE" — adult bikes likely use "MOUNTAIN", "ROAD" etc.
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  kenevo: E-Bike
+  creo: E-Bike
+  mountain bike: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  road bike: Road
+  road: Road
+  tarmac: Road
+  roubaix: Road
+  allez: Road
+  domane: Road
+  emonda: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids bike: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx bike: Commuter
+  bmx: Commuter

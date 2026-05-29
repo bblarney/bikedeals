@@ -1,0 +1,40 @@
+vendor_name: "My Ride"
+# No city — My Ride is a national network of 20+ independently owned stores on one Shopify domain.
+# product_type = store name (e.g., "Sheppard" = Shepparton) — not useful for category.
+# Category resolved from hierarchical tags: "categoryTree:Bikes - Mtb - Hardtail", etc.
+# Stores: Melbourne (Collingwood, Brunswick), Geelong, Shepparton, Ballarat, Wollongong,
+#         Hobart, Launceston, Cairns, Mackay, Rockhampton, Perth (Osborne Park, Cannington),
+#         Adelaide (Semaphore, Salisbury), Canberra, Alice Springs
+collection: "bikes"
+max_pages: 40
+base_url: "https://www.myride.com.au"
+pipeline: "shopify"
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  dh: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  xplr: Gravel
+  grx: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  cargo: Commuter
+  folding: Commuter

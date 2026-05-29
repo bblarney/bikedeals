@@ -226,7 +226,7 @@ async def get_filters(
     # needs separate sessions from the pool; that's a larger refactor.
     in_stock_clause = Bike.in_stock == True  # noqa: E712
     categories_r    = await db.execute(facet_query(Bike.category,    "category"))
-    cities_r        = await db.execute(facet_query(Bike.city,        "city"))
+    cities_r        = await db.execute(facet_query(Bike.city,        "city").where(Bike.city.isnot(None)))
     sizes_r         = await db.execute(facet_query(Bike.frame_size,  "size"))
     vendors_r       = await db.execute(facet_query(Bike.vendor_name, "vendor"))
     brands_r        = await db.execute(facet_query(Bike.brand,       "brand"))

@@ -1,0 +1,46 @@
+vendor_name: "Drift Bikes"
+city: "Newcastle"
+collections:
+  - mountain-bikes-newcastle
+  - electric-mountain-bikes
+  - electric-cruiser-bikes
+  - gravel-adventure-bikes
+  - active-bikes
+  - urban-transport
+  - kids-bikes
+max_pages: 10
+base_url: "https://driftbikes.com.au"
+pipeline: "shopify"
+# Specialized, Trek, Santa Cruz, Pivot, Yeti dealer in Newcastle.
+# product_type pattern: "BIKES - E-BIKES - MTB - TRAIL", "BIKES - ELECTRIC", etc.
+# No single "bikes" collection — uses per-category collection slugs.
+# e-bikes key matched before mountain so "BIKES - E-BIKES - MTB" → E-Bike, not Mountain.
+category_map:
+  e-bikes: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  adventure: Gravel
+  cx: Gravel
+  road: Road
+  active: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  transport: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  cargo: Commuter
+  folding: Commuter

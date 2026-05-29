@@ -1,0 +1,39 @@
+vendor_name: "Jet Cycles"
+city: "Sydney"
+collection: "bikes"
+max_pages: 10
+base_url: "https://jetcycles.com.au"
+pipeline: "shopify"
+# Central Sydney Specialized dealer. product_type: "MOUNTAIN", and likely "ROAD", "GRAVEL", "E-BIKE".
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  kenevo: E-Bike
+  creo: E-Bike
+  vado: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  status: Mountain
+  stumpjumper: Mountain
+  epic: Mountain
+  gravel: Gravel
+  diverge: Gravel
+  road: Road
+  tarmac: Road
+  allez: Road
+  roubaix: Road
+  aethos: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  bmx: Commuter
