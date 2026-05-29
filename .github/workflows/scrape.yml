@@ -76,9 +76,9 @@ jobs:
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
+          server_address: mail.ventraip.email
+          server_port: 587
+          secure: false
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: ${{ steps.format.outputs.subject }}
