@@ -38,6 +38,7 @@ class FiltersResponse(BaseModel):
     vendors: list[str]
     brands: list[str]
     discount_range: dict
+    price_range: dict
     total_bikes: int
     last_scraped_at: datetime | None
 

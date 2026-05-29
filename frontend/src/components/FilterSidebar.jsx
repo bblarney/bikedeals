@@ -3,7 +3,7 @@ import MultiSelectDropdown from './MultiSelectDropdown'
 import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
-  const { category, city, size, vendor, brand, min_discount, q, added_since } = params
+  const { category, city, size, vendor, brand, min_discount, min_price, max_price, q, added_since } = params
 
   const activeRegion = useMemo(
     () => REGIONS.find((r) => r.cities.some((c) => city.includes(c))),
@@ -180,6 +180,34 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           </FilterSection>
         )}
 
+        <FilterSection label="Price">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">$</span>
+              <input
+                type="text" inputMode="numeric"
+                min={0}
+                placeholder={filters?.price_range?.min ? Math.floor(filters.price_range.min) : 'Min'}
+                value={min_price}
+                onChange={(e) => onUpdate({ min_price: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+            <span className="text-slate-400 text-sm flex-shrink-0">–</span>
+            <div className="relative flex-1">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">$</span>
+              <input
+                type="text" inputMode="numeric"
+                min={0}
+                placeholder={filters?.price_range?.max ? Math.ceil(filters.price_range.max) : 'Max'}
+                value={max_price}
+                onChange={(e) => onUpdate({ max_price: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+          </div>
+        </FilterSection>
+
         <FilterSection label={`Min discount — ${min_discount}%`}>
           <input
             type="range"
@@ -212,6 +240,6 @@ function FilterSection({ label, children }) {
   )
 }
 
-function hasActiveFilters({ category, city, size, vendor, brand, min_discount, q, added_since }) {
-  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || q || added_since
+function hasActiveFilters({ category, city, size, vendor, brand, min_discount, min_price, max_price, q, added_since }) {
+  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || min_price || max_price || q || added_since
 }
