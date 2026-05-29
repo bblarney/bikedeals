@@ -1,0 +1,19 @@
+vendor_name: "Canyon"
+base_url: "https://www.canyon.com"
+pipeline: "canyon"
+# Online-only — no physical store, no city.
+# Prices are in AUD (canyon.com/en-au).
+shop_paths:
+  - en-au/road-bikes
+  - en-au/mountain-bikes
+  - en-au/gravel-bikes
+  - en-au/outlet-bikes
+category_map:
+  road-bikes: Road
+  road: Road
+  mountain-bikes: Mountain
+  mountain: Mountain
+  trail: Mountain
+  gravel-bikes: Gravel
+  gravel: Gravel
+  adventure: Gravel
