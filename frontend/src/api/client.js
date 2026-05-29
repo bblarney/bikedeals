@@ -20,4 +20,14 @@ export const api = {
     fetch(`${BASE}/api/v1/bikes/${id}/click`, { method: 'POST' }).catch((err) =>
       console.warn('click record failed', err),
     ),
+  subscribe: (email) =>
+    fetch(`${BASE}/api/v1/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).then((r) => { if (!r.ok) throw new Error(r.status) }),
+  unsubscribe: (token) =>
+    fetch(`${BASE}/api/v1/unsubscribe/${encodeURIComponent(token)}`).then(
+      (r) => { if (!r.ok) throw new Error(r.status) },
+    ),
 }

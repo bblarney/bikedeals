@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class BikeResponse(BaseModel):
@@ -47,3 +47,7 @@ class StatsResponse(BaseModel):
     shops_tracked: int
     biggest_discount: int
     avg_discount: int
+
+
+class SubscribeRequest(BaseModel):
+    email: EmailStr

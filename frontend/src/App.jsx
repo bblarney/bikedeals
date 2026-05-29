@@ -16,6 +16,7 @@ import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
+import UnsubscribePage from './pages/UnsubscribePage'
 import LandingPage from './pages/LandingPage'
 
 function MainLayout() {
@@ -128,6 +129,7 @@ export default function App() {
           <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />
           <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
           <Route path="/privacy" element={<StaticLayout><PrivacyPage /></StaticLayout>} />
+          <Route path="/unsubscribe" element={<StaticLayout><UnsubscribePage /></StaticLayout>} />
         </Routes>
       </ErrorBoundary>
       <Footer />
