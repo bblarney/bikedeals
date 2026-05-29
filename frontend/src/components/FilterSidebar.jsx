@@ -1,8 +1,6 @@
 import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
-import { DEFAULT_FILTERS, REGIONS } from '../constants'
-
-const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
   const { category, city, size, vendor, brand, min_discount, q, added_since } = params
