@@ -24,6 +24,8 @@ class BikeResponse(BaseModel):
     discount_started_at: datetime | None = None
     frame_material: str | None = None
     drivetrain_groupset: str | None = None
+    sku: str | None = None
+    sku_vendor_count: int = 0
 
     model_config = {"from_attributes": True}
 

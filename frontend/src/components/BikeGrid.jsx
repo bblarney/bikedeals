@@ -8,7 +8,7 @@ const SORT_LABELS = {
   clicks_desc: 'most popular',
 }
 
-export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate, pinnedBikes = [], pinnedIds = new Set(), onTogglePin = () => {}, onClearPins = () => {} }) {
+export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate, onSkuFilter = () => {}, pinnedBikes = [], pinnedIds = new Set(), onTogglePin = () => {}, onClearPins = () => {} }) {
   const { offset, limit, sort } = params
   const page = Math.floor(offset / limit) + 1
   const totalPages = total ? Math.ceil(total / limit) : 1
@@ -107,10 +107,10 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
             {pinnedBikes.map(bike => (
-              <BikeCard key={`pin-${bike.id}`} bike={bike} isPinned={true} onTogglePin={onTogglePin} />
+              <BikeCard key={`pin-${bike.id}`} bike={bike} isPinned={true} onTogglePin={onTogglePin} onSkuFilter={onSkuFilter} />
             ))}
             {mainBikes.map(bike => (
-              <BikeCard key={bike.id} bike={bike} isPinned={false} onTogglePin={onTogglePin} />
+              <BikeCard key={bike.id} bike={bike} isPinned={false} onTogglePin={onTogglePin} onSkuFilter={onSkuFilter} />
             ))}
           </div>
         )}
