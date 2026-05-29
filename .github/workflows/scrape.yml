@@ -66,9 +66,10 @@ jobs:
               )
 
           subject = clean(subject)
-          pathlib.Path("email_body.txt").write_text(body)
+          delimiter = "EMAILBODY_EOF"
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write(f"subject={subject}\n")
+              out.write(f"body<<{delimiter}\n{body}\n{delimiter}\n")
           PYEOF
 
       - name: Send email
@@ -83,4 +84,4 @@ jobs:
           subject: ${{ steps.format.outputs.subject }}
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: Bikedeals Scraper <${{ secrets.SMTP_USER }}>
-          body_path: email_body.txt
+          body: ${{ steps.format.outputs.body }}
