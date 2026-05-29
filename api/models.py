@@ -6,6 +6,7 @@ from sqlalchemy import (
     Float,
     Index,
     Integer,
+    JSON,
     Text,
 )
 from sqlalchemy.orm import DeclarativeBase
@@ -34,6 +35,14 @@ class Bike(Base):
     scraped_at = Column(DateTime(timezone=True), nullable=False)
     last_seen_at = Column(DateTime(timezone=True), nullable=False)
     click_count = Column(Integer, nullable=False, default=0, server_default="0")
+    sku = Column(Text, nullable=True)
+    weight_grams = Column(Integer, nullable=True)
+    product_updated_at = Column(DateTime(timezone=True), nullable=True)
+    tags = Column(JSON, nullable=True)
+    frame_material = Column(Text, nullable=True)
+    drivetrain_groupset = Column(Text, nullable=True)
+    price_drop_at = Column(DateTime(timezone=True), nullable=True)
+    discount_started_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint(

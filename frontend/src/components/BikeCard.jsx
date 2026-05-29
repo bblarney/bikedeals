@@ -18,11 +18,16 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     product_url,
     image_url,
     scraped_at,
+    price_drop_at,
+    discount_started_at,
   } = bike
 
   const saving = price_original ? Math.round(price_original - price_sale) : null
   const bigDeal = discount_percentage >= 30
-  const isNew = scraped_at && new Date(scraped_at).getTime() > Date.now() - SEVEN_DAYS_MS
+  const cutoff = Date.now() - SEVEN_DAYS_MS
+  const isNew = scraped_at && new Date(scraped_at).getTime() > cutoff
+  const isPriceDrop = price_drop_at && new Date(price_drop_at).getTime() > cutoff
+  const isNewDiscount = discount_started_at && new Date(discount_started_at).getTime() > cutoff
   const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
     ? model_name.slice(brand.length).trim()
     : model_name
@@ -48,10 +53,24 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
             {discount_percentage}% off
           </span>
         )}
-        {isNew && (
-          <span className="absolute top-2 right-2 z-10 inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
-            New
-          </span>
+        {(isNew || isPriceDrop || isNewDiscount) && (
+          <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+            {isPriceDrop && (
+              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white">
+                ↓ Price drop
+              </span>
+            )}
+            {isNewDiscount && !isPriceDrop && (
+              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
+                New sale
+              </span>
+            )}
+            {isNew && !isPriceDrop && !isNewDiscount && (
+              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                New
+              </span>
+            )}
+          </div>
         )}
         {isPinned && (
           <span className="absolute bottom-2 right-2 z-10 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">

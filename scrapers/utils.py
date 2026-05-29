@@ -3,6 +3,41 @@ import re
 from urllib import robotparser
 from urllib.parse import urljoin
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+_FRAME_MATERIAL_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\bcarbon(?:\s+fi(?:bre|er))?\b", re.IGNORECASE), "Carbon"),
+    (re.compile(r"\btitanium\b|\bti\s+frame\b", re.IGNORECASE), "Titanium"),
+    (re.compile(r"\bsteel\b|\bchromoly\b|\bcr[- ]mo\b|\bcro[- ]mo\b", re.IGNORECASE), "Steel"),
+    (re.compile(r"\balumini?um\b|\balloy\b", re.IGNORECASE), "Aluminium"),
+]
+
+_GROUPSET_RE = re.compile(
+    r"(Shimano\s+(?:Dura[\s\-]?Ace|Ultegra|105|Tiagra|Sora|Claris|XTR|Deore\s+XT|XT|SLX|Deore|Alivio|Acera|Altus|GRX|CUES)(?:\s+Di2)?"
+    r"|SRAM\s+(?:Red|Force|Rival|Apex|XX1?|X01|GX|NX|SX)(?:\s+(?:Eagle|AXS|XPLR|eTap))?"
+    r"|Campagnolo\s+(?:Super\s+Record|Record|Chorus|Potenza|Centaur))",
+    re.IGNORECASE,
+)
+
+
+def parse_frame_material(body_html: str | None) -> str | None:
+    if not body_html:
+        return None
+    text = _HTML_TAG_RE.sub(" ", body_html)
+    for pattern, label in _FRAME_MATERIAL_PATTERNS:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def parse_drivetrain_groupset(body_html: str | None) -> str | None:
+    if not body_html:
+        return None
+    text = _HTML_TAG_RE.sub(" ", body_html)
+    m = _GROUPSET_RE.search(text)
+    return m.group(1) if m else None
+
+
 _SIZE_WORD_RE = re.compile(
     r"^(XXS|XS|S|M|L|XL|XXL|XXXL|3XL|4XL"
     r"|X-?Small|Small|Medium|Large|X-?Large|XX-?Large|Extra\s*Large"

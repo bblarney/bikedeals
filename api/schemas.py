@@ -20,6 +20,8 @@ class BikeResponse(BaseModel):
     scraped_at: datetime
     last_seen_at: datetime
     click_count: int
+    price_drop_at: datetime | None = None
+    discount_started_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
