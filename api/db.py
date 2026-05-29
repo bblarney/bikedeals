@@ -15,6 +15,11 @@ def _get_session_factory():
     return _SessionLocal
 
 
+def get_engine():
+    _get_session_factory()
+    return _engine
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     factory = _get_session_factory()
     async with factory() as session:

@@ -66,3 +66,12 @@ class ScrapeLog(Base):
     status = Column(Text, nullable=False)  # 'ok' | 'quarantined' | 'skipped'
     error_msg = Column(Text, nullable=True)
     bikes_upserted = Column(Integer, default=0)
+
+
+class Subscriber(Base):
+    __tablename__ = "subscribers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(Text, nullable=False, unique=True)
+    token = Column(Text, nullable=False, unique=True)
+    subscribed_at = Column(DateTime(timezone=True), nullable=False)

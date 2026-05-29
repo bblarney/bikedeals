@@ -1,4 +1,6 @@
 import os
+import secrets
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -11,13 +13,23 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.db import get_db
-from api.models import Bike, ScrapeLog
-from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes, StatsResponse
+from api.db import get_db, get_engine
+from api.models import Base, Bike, ScrapeLog, Subscriber
+from api.schemas import BikeResponse, FiltersResponse, PaginatedBikes, StatsResponse, SubscribeRequest
 
-app = FastAPI(title="BikeGrid API", version="1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="BikeGrid API", version="1.0", lifespan=lifespan)
 
 _default_origins = "https://bikegrid.com.au,https://www.bikegrid.com.au"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
@@ -206,6 +218,39 @@ async def get_filters(
         total_bikes=total_r.scalar_one(),
         last_scraped_at=last_scraped_r.scalar_one(),
     )
+
+
+@app.post("/api/v1/subscribe", status_code=201)
+@limiter.limit("5/minute")
+async def subscribe(
+    request: Request,
+    body: SubscribeRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    subscriber = Subscriber(
+        email=body.email,
+        token=secrets.token_urlsafe(32),
+        subscribed_at=datetime.now(timezone.utc),
+    )
+    db.add(subscriber)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Already subscribed")
+
+
+@app.get("/api/v1/unsubscribe/{token}", status_code=200)
+async def unsubscribe(
+    token: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(select(Subscriber).where(Subscriber.token == token))
+    subscriber = result.scalar_one_or_none()
+    if subscriber is None:
+        raise HTTPException(status_code=404, detail="Token not found")
+    await db.delete(subscriber)
+    await db.commit()
 
 
 @app.get("/api/v1/meta/stats", response_model=StatsResponse)
