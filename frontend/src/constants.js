@@ -18,6 +18,8 @@ export const DEFAULT_FILTERS = {
   vendor: [],
   brand: [],
   min_discount: 0,
+  min_price: '',
+  max_price: '',
   q: '',
   added_since: '',
 }

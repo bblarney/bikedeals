@@ -77,6 +77,8 @@ def _apply_filters(
     min_discount: int,
     q: str | None,
     added_since: str | None,
+    min_price: float | None = None,
+    max_price: float | None = None,
 ):
     if city:
         query = query.where(func.lower(Bike.city).in_([c.lower() for c in city]))
@@ -90,6 +92,10 @@ def _apply_filters(
         query = query.where(Bike.brand.in_(brand))
     if min_discount > 0:
         query = query.where(Bike.discount_percentage >= min_discount)
+    if min_price is not None:
+        query = query.where(Bike.price_sale >= min_price)
+    if max_price is not None:
+        query = query.where(Bike.price_sale <= max_price)
     if q:
         pattern = f"%{q.lower()}%"
         query = query.where(
@@ -116,6 +122,8 @@ async def get_bikes(
     vendor: list[str] = Query(default=[]),
     brand: list[str] = Query(default=[]),
     min_discount: int = Query(default=0, ge=0, le=100),
+    min_price: float | None = Query(default=None, ge=0),
+    max_price: float | None = Query(default=None, ge=0),
     in_stock: bool = True,
     q: str | None = None,
     sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
@@ -127,7 +135,8 @@ async def get_bikes(
     base = _apply_filters(
         base,
         city=city, category=category, size=size, vendor=vendor, brand=brand,
-        min_discount=min_discount, q=q, added_since=added_since,
+        min_discount=min_discount, min_price=min_price, max_price=max_price,
+        q=q, added_since=added_since,
     )
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
@@ -175,6 +184,8 @@ async def get_filters(
     vendor: list[str] = Query(default=[]),
     brand: list[str] = Query(default=[]),
     min_discount: int = Query(default=0, ge=0, le=100),
+    min_price: float | None = Query(default=None, ge=0),
+    max_price: float | None = Query(default=None, ge=0),
     q: str | None = None,
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
 ):
@@ -183,13 +194,19 @@ async def get_filters(
     # without trapping the user in a single-option facet.
     f = dict(
         city=city, category=category, size=size, vendor=vendor, brand=brand,
-        min_discount=min_discount, q=q, added_since=added_since,
+        min_discount=min_discount, min_price=min_price, max_price=max_price,
+        q=q, added_since=added_since,
     )
 
     def facet_query(col, ignored: str):
         base = select(col).distinct().where(Bike.in_stock == True).order_by(col)  # noqa: E712
         overrides = f.copy()
         overrides[ignored] = [] if isinstance(f[ignored], list) else (0 if ignored == "min_discount" else None)
+        # Range filters don't narrow discrete facet options — an out-of-range
+        # price shouldn't wipe out the category/brand/size lists.
+        overrides["min_price"] = None
+        overrides["max_price"] = None
+        overrides["min_discount"] = 0
         return _apply_filters(base, **overrides)
 
     # NOTE: SQLAlchemy's async session serializes within a single connection,
@@ -202,9 +219,16 @@ async def get_filters(
     vendors_r       = await db.execute(facet_query(Bike.vendor_name, "vendor"))
     brands_r        = await db.execute(facet_query(Bike.brand,       "brand"))
     discount_r      = await db.execute(select(func.min(Bike.discount_percentage), func.max(Bike.discount_percentage)).where(in_stock_clause))
+    # Price range computed with all non-price filters applied
+    price_base = _apply_filters(
+        select(func.min(Bike.price_sale), func.max(Bike.price_sale)).where(in_stock_clause),
+        **{**f, "min_price": None, "max_price": None},
+    )
+    price_r         = await db.execute(price_base)
     total_r         = await db.execute(select(func.count()).where(in_stock_clause))
     last_scraped_r  = await db.execute(select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok"))
     discount_row = discount_r.one()
+    price_row = price_r.one()
 
     response.headers["Cache-Control"] = CACHE_FILTERS
 
@@ -215,6 +239,7 @@ async def get_filters(
         vendors=[r[0] for r in vendors_r.all()],
         brands=[r[0] for r in brands_r.all()],
         discount_range={"min": discount_row[0] or 0, "max": discount_row[1] or 0},
+        price_range={"min": float(price_row[0] or 0), "max": float(price_row[1] or 0)},
         total_bikes=total_r.scalar_one(),
         last_scraped_at=last_scraped_r.scalar_one(),
     )

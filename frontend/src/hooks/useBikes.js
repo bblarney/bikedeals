@@ -30,6 +30,8 @@ export function useBikeParams() {
     vendor: getAll('vendor'),
     brand: getAll('brand'),
     min_discount: getInt('min_discount', 0),
+    min_price: get('min_price'),
+    max_price: get('max_price'),
     q: get('q'),
     added_since: get('added_since'),
     sort: get('sort', 'discount_desc'),
