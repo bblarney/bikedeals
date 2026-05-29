@@ -32,14 +32,18 @@ jobs:
           python - <<'PYEOF'
           import json, os, pathlib
 
+          def clean(value):
+              # Collapse any newlines/control chars: they would break the
+              # single-line GITHUB_OUTPUT format and the email subject.
+              return " ".join(str(value).split())
+
           p = pathlib.Path("scrape_summary.json")
-          if not p.exists():
-              subject = "Bikedeals scrape — FAILED (no summary written)"
-              body = "The scraper crashed before writing a summary. Check the workflow logs."
-          else:
+          try:
+              if not p.exists():
+                  raise FileNotFoundError("scrape_summary.json was not written")
               s = json.loads(p.read_text())
               status = "OK" if s["vendors_failed"] == 0 else f"FAILED ({s['vendors_failed']} vendor(s))"
-              subject = f"Bikedeals scrape — {status} — {s['run_at'][:10]}"
+              subject = f"Bikedeals scrape — {status} — {clean(s['run_at'])[:10]}"
               lines = [
                   f"Run:            {s['run_at']}",
                   f"Duration:       {s['duration_seconds']}s",
@@ -51,9 +55,17 @@ jobs:
               if s["failures"]:
                   lines += ["", "Failures:"]
                   for f in s["failures"]:
-                      lines.append(f"  - {f['vendor']}: {f['error']}")
+                      lines.append(f"  - {clean(f['vendor'])}: {clean(f['error'])}")
               body = "\n".join(lines)
+          except Exception as exc:
+              # Never fail silently: a corrupt/missing summary still emails the operator.
+              subject = "Bikedeals scrape — FAILED (summary unreadable)"
+              body = (
+                  "The scraper did not produce a readable summary "
+                  f"({type(exc).__name__}: {exc}). Check the workflow logs."
+              )
 
+          subject = clean(subject)
           pathlib.Path("email_body.txt").write_text(body)
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write(f"subject={subject}\n")

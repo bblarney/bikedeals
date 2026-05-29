@@ -63,6 +63,10 @@ class Bike(Base):
         Index("idx_bikes_in_stock", "in_stock"),
         Index("idx_bikes_click_count", "click_count"),
         Index("idx_bikes_scraped_at", "scraped_at"),
+        # Composite indexes for the common multi-filter feed query
+        # (CLAUDE.md: filter by category/size/vendor, sort by discount desc).
+        Index("idx_bikes_cat_size_vendor", "category", "frame_size", "vendor_name"),
+        Index("idx_bikes_instock_discount", "in_stock", "discount_percentage"),
     )
 
 

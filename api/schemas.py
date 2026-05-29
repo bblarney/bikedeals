@@ -60,3 +60,11 @@ class StatsResponse(BaseModel):
 
 class SubscribeRequest(BaseModel):
     email: EmailStr
+
+
+class UnsubscribeRequest(BaseModel):
+    token: str
+
+
+class MessageResponse(BaseModel):
+    message: str

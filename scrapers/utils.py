@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import random
 import re
 from urllib import robotparser
 from urllib.parse import urljoin
@@ -102,6 +104,46 @@ _PATHS_TO_CHECK = ("/", "/products.json", "/products")
 _OUR_AGENT = "bikegrid-scraper"
 
 
+# HTTP statuses worth retrying: rate-limit + transient server errors.
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+async def get_with_retry(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    headers: dict | None = None,
+    retries: int = 3,
+    base_delay: float = 1.0,
+) -> httpx.Response:
+    """GET with exponential backoff on transient failures (5xx/429/network).
+
+    A single transient blip from a vendor shouldn't drop their whole dataset for
+    the day. Non-retryable responses (e.g. 404) are returned as-is so the caller
+    can decide; the last exception is re-raised if every attempt fails.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            resp = await client.get(url, headers=headers, follow_redirects=True)
+            if resp.status_code in _RETRYABLE_STATUS:
+                raise httpx.HTTPStatusError(
+                    f"retryable status {resp.status_code}", request=resp.request, response=resp
+                )
+            return resp
+        except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                logger.warning(
+                    "GET %s failed (attempt %d/%d): %s; retrying in %.1fs",
+                    url, attempt + 1, retries, exc, delay,
+                )
+                await asyncio.sleep(delay)
+    assert last_exc is not None
+    raise last_exc
+
+
 async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
     """Return True if we're allowed to scrape this host.
 
@@ -110,7 +152,9 @@ async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
     the previous hand-rolled regex got wrong.
     """
     try:
-        resp = await client.get(urljoin(base_url, "/robots.txt"), follow_redirects=True)
+        # Short timeout: a slow/unresponsive host shouldn't cost the full 30s
+        # client timeout just to check robots.txt.
+        resp = await client.get(urljoin(base_url, "/robots.txt"), follow_redirects=True, timeout=5.0)
         # Missing/unavailable robots.txt is treated as permissive (RFC 9309).
         if resp.status_code != 200:
             return True

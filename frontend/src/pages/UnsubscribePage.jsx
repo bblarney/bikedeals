@@ -15,7 +15,7 @@ export default function UnsubscribePage() {
     }
     api.unsubscribe(token)
       .then(() => setStatus('success'))
-      .catch((err) => setStatus(err.message === '404' ? 'notfound' : 'error'))
+      .catch((err) => setStatus(err.status === 404 ? 'notfound' : 'error'))
   }, [token])
 
   return (

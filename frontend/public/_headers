@@ -1,0 +1,9 @@
+# Cloudflare Pages security headers.
+# NOTE: keep `connect-src` in sync with VITE_API_BASE_URL — it must list the
+# API origin the SPA calls, or fetches will be blocked by CSP.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://api.bikegrid.com.au; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
