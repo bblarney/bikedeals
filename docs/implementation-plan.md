@@ -785,33 +785,27 @@ Compose all components in `App.jsx`. Verify the following scenarios manually in 
 
 ---
 
-### Task 4.1 — GitHub Actions scraper workflow (`.github/workflows/scraper.yml`)
+### Task 4.1 — GitHub Actions scraper workflow (`.github/workflows/scrape.yml`)
 
-```yaml
-name: Daily Scraper
+Workflow is implemented at `.github/workflows/scrape.yml`. It runs at 8 AM UTC daily (or manually via `workflow_dispatch`). After the scraper finishes it emails a summary using `dawidd6/action-send-mail@v3`. The email step uses `if: always()` so it fires even when the scraper crashes.
 
-on:
-  schedule:
-    - cron: '0 2 * * *'   # 2am UTC daily
-  workflow_dispatch:        # allow manual trigger
+**Email subject format:**
+- Success: `Bikedeals scrape — OK — 2026-05-29`
+- Failure: `Bikedeals scrape — FAILED (2 vendor(s)) — 2026-05-29`
+- Hard crash (no summary file written): `Bikedeals scrape — FAILED (no summary written)`
 
-jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: python -m scrapers.run
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-```
+**Email body includes:** run timestamp, duration, vendors ok/total, vendors failed, bikes upserted, and a list of failed vendor names with their error messages.
 
-If the scraper process exits non-zero, GHA marks the job failed and GitHub sends an email to the repo owner. This is the primary alert mechanism.
+**Required GitHub Actions secrets** (Settings → Secrets and variables → Actions):
 
-Set `DATABASE_URL` as a GitHub Actions secret pointing to Supabase PostgreSQL.
+| Secret | Value |
+|---|---|
+| `DATABASE_URL` | Supabase connection string (`postgresql+asyncpg://...`) |
+| `SMTP_USER` | Gmail address used to send the email |
+| `SMTP_PASSWORD` | Gmail **app password** — generate at myaccount.google.com → Security → 2-Step Verification → App passwords (not your login password) |
+| `NOTIFY_EMAIL` | Destination email address (can be same as `SMTP_USER`) |
+
+The scraper writes `scrape_summary.json` to the workspace root on every run. The workflow reads that file to build the email body.
 
 ---
 
