@@ -153,6 +153,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
               options={sizes}
               selected={size}
               onChange={(next) => onUpdate({ size: next })}
+              searchable
             />
           </FilterSection>
         )}

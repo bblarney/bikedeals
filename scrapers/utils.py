@@ -3,6 +3,18 @@ import re
 from urllib import robotparser
 from urllib.parse import urljoin
 
+_SIZE_WORD_RE = re.compile(
+    r"^(XXS|XS|S|M|L|XL|XXL|XXXL|3XL|4XL"
+    r"|X-?Small|Small|Medium|Large|X-?Large|XX-?Large|Extra\s*Large"
+    r"|[SMLX][0-9]|[0-9][SMLX]"
+    r")$",
+    re.IGNORECASE,
+)
+_SIZE_MEAS_RE = re.compile(
+    r'^[0-9]{2,3}(?:\.[05])?(?:"|cm)?$',
+    re.IGNORECASE,
+)
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -40,6 +52,28 @@ async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
     except Exception as exc:
         logger.warning("[%s] robots.txt check failed (%s); proceeding", base_url, exc)
         return True
+
+
+def _looks_like_size(segment: str) -> bool:
+    if re.match(r"^(One\s*Size|N/?A)$", segment, re.IGNORECASE):
+        return True
+    words = segment.split()
+    return bool(words) and all(
+        _SIZE_WORD_RE.match(w) or _SIZE_MEAS_RE.match(w) for w in words
+    )
+
+
+def extract_frame_size(raw: str) -> str:
+    """Return just the size token from a variant title that may contain colour info.
+
+    Splits on '/' and returns the first segment whose every word is a size word
+    or a measurement (e.g. 'Small 27.5"', '39" small', 'L', '54cm').
+    Falls back to the original string if no segment qualifies.
+    """
+    for part in [p.strip() for p in raw.split("/")]:
+        if _looks_like_size(part):
+            return part
+    return raw
 
 
 def parse_price(value: str | None) -> float | None:
