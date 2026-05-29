@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import func, select, update
+from sqlalchemy import distinct, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -81,6 +81,7 @@ def _apply_filters(
     added_since: str | None,
     min_price: float | None = None,
     max_price: float | None = None,
+    sku: str | None = None,
 ):
     if city:
         query = query.where(func.lower(Bike.city).in_([c.lower() for c in city]))
@@ -110,6 +111,8 @@ def _apply_filters(
         )
     if added_since:
         query = query.where(Bike.scraped_at >= _added_since_cutoff(added_since))
+    if sku:
+        query = query.where(Bike.sku == sku)
     return query
 
 
@@ -136,16 +139,29 @@ async def get_bikes(
     q: str | None = None,
     sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
+    sku: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
+    # Single GROUP BY: count distinct (vendor_name, city) pairs per SKU.
+    # vendor_name alone is not unique — chain stores (e.g. Giant) share a name across cities.
+    _shop_key = Bike.vendor_name + "|||" + func.coalesce(Bike.city, "")
+    sku_counts_q = (
+        select(Bike.sku, func.count(distinct(_shop_key)).label("cnt"))
+        .where(Bike.sku.isnot(None), Bike.sku != "", Bike.in_stock == True)  # noqa: E712
+        .group_by(Bike.sku)
+        .having(func.count(distinct(_shop_key)) >= 2)
+    )
+    sku_counts_r = await db.execute(sku_counts_q)
+    sku_vendor_counts: dict[str, int] = {row.sku: row.cnt for row in sku_counts_r.all()}
+
     base = select(Bike)
     base = _apply_filters(
         base,
         city=city, category=category, size=size, vendor=vendor, brand=brand,
         frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
         min_discount=min_discount, min_price=min_price, max_price=max_price,
-        q=q, added_since=added_since,
+        q=q, added_since=added_since, sku=sku,
     )
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
@@ -157,13 +173,15 @@ async def get_bikes(
     rows = await db.execute(base.order_by(order_col).limit(limit).offset(offset))
     bikes = rows.scalars().all()
 
+    results = []
+    for bike_obj in bikes:
+        br = BikeResponse.model_validate(bike_obj)
+        br.sku = bike_obj.sku
+        br.sku_vendor_count = sku_vendor_counts.get(bike_obj.sku, 0) if bike_obj.sku else 0
+        results.append(br)
+
     response.headers["Cache-Control"] = CACHE_BIKES
-    return PaginatedBikes(
-        total=total,
-        limit=limit,
-        offset=offset,
-        results=[BikeResponse.model_validate(b) for b in bikes],
-    )
+    return PaginatedBikes(total=total, limit=limit, offset=offset, results=results)
 
 
 @app.post("/api/v1/bikes/{bike_id}/click", status_code=204)

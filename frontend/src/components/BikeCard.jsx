@@ -4,7 +4,7 @@ import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
-const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {} }) {
+const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {}, onSkuFilter = () => {} }) {
   const {
     brand,
     model_name,
@@ -22,6 +22,8 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     discount_started_at,
     frame_material,
     drivetrain_groupset,
+    sku,
+    sku_vendor_count,
   } = bike
 
   const saving = price_original ? Math.round(price_original - price_sale) : null
@@ -153,6 +155,14 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
               <path d="M2.5 6h7M6.5 3l3 3-3 3" />
             </svg>
           </a>
+          {sku && sku_vendor_count >= 2 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSkuFilter(sku) }}
+              className="flex items-center justify-center w-full mt-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
+            >
+              Show at {sku_vendor_count} shop{sku_vendor_count !== 1 ? 's' : ''}
+            </button>
+          )}
         </div>
       </div>
     </div>

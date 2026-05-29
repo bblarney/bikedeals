@@ -98,6 +98,7 @@ function MainLayout() {
             total={bikesData?.total}
             params={params}
             onUpdate={params.update}
+            onSkuFilter={params.filterBySku}
             pinnedBikes={pinnedBikes}
             pinnedIds={pinnedIds}
             onTogglePin={togglePin}

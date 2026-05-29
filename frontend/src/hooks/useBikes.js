@@ -23,6 +23,10 @@ export function useBikeParams() {
     })
   }
 
+  function filterBySku(sku) {
+    setParams(new URLSearchParams({ sku }))
+  }
+
   return {
     category: getAll('category'),
     city: getAll('city'),
@@ -39,12 +43,14 @@ export function useBikeParams() {
     sort: get('sort', 'discount_desc'),
     offset: getInt('offset', 0),
     limit: 48,
+    sku: get('sku'),
     update,
+    filterBySku,
   }
 }
 
 export function useBikes(bikeParams) {
-  const { update: _update, ...queryParams } = bikeParams
+  const { update: _update, filterBySku: _filterBySku, ...queryParams } = bikeParams
   return useQuery({
     queryKey: ['bikes', queryParams],
     queryFn: () => api.getBikes(queryParams),
