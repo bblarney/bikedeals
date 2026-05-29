@@ -1,0 +1,41 @@
+vendor_name: "Reid Cycles"
+cities:
+  - Melbourne
+  - Brisbane
+collection: "bikes"
+max_pages: 20
+base_url: "https://www.reidcycles.com.au"
+pipeline: "shopify"
+# Own-brand and Aventon e-bikes. 5 Melbourne stores + 1 Brisbane (Woolloongabba).
+# product_type: "1 - Bikes" or "Bikes" for all products — category resolved from model name.
+# Range: vintage/cruiser commuters, MTB, gravel, road, e-bikes (Aventon, Let's Moto, Polygon).
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  aventon: E-Bike
+  moto: E-Bike
+  mountain bike: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  trail: Mountain
+  gravel: Gravel
+  adventure: Gravel
+  cx: Gravel
+  road bike: Road
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city bike: Commuter
+  city: Commuter
+  urban: Commuter
+  vintage: Commuter
+  classic: Commuter
+  cruiser: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  folding: Commuter

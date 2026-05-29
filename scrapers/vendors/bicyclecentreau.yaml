@@ -1,0 +1,51 @@
+vendor_name: "Bicycle Centre Australia"
+cities:
+  - Melbourne
+  - Geelong
+  - Warrnambool
+  - Bendigo
+  - Shepparton
+  - Armidale
+  - Newcastle
+  - Townsville
+  - Adelaide
+  - Burnie
+  - Alice Springs
+collection: "bikes"
+max_pages: 20
+base_url: "https://bicycle-centre.com.au"
+pipeline: "shopify"
+# 14+ independently owned stores under one Shopify domain. Merida, Norco, DK BMX.
+# product_type pattern: "Bikes : Regular Bikes : MTB Hardtail : HT - Recreational",
+#   "Bikes : Kids Bikes : Kids - 12inch : 12\" - Boys",
+#   "Bikes : Regular Bikes : Flat Bar : Flat Bar", "Bikes : Regular Bikes : BMX : Freestyle"
+# Hierarchical colon-separated format — "mtb hardtail" is the longest unique key.
+category_map:
+  mtb hardtail: Mountain
+  mtb trail: Mountain
+  mtb enduro: Mountain
+  full suspension: Mountain
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  road: Road
+  flat bar: Commuter
+  hybrid: Commuter
+  commuter: Commuter
+  city: Commuter
+  urban: Commuter
+  kids bikes: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
+  cargo: Commuter
+  folding: Commuter

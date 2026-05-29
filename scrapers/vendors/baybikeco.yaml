@@ -1,0 +1,32 @@
+vendor_name: "Bay Bike Co"
+city: "Newcastle"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.baybikeco.com.au"
+pipeline: "shopify"
+# 50+ years in Warners Bay / Lake Macquarie. Stocks Scott, GT, Velectrix e-bikes.
+# product_type pattern: "BIKES - DUAL SUSPENSION", "BIKES - ELECTRIC"
+category_map:
+  bikes - electric: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  bikes - dual suspension: Mountain
+  dual suspension: Mountain
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter

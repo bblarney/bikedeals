@@ -13,6 +13,9 @@ category_map:
   cargo: Commuter
   city: Commuter
   commuter: Commuter
+  commuting: Commuter
+  folding: Commuter
+  touring: Gravel
   mountain: Mountain
   road: Road
   electric: E-Bike

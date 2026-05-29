@@ -1,0 +1,58 @@
+vendor_name: "De Grandi Cycle Works"
+city: "Geelong"
+collections:
+  - road-bikes
+  - mountain-bikes
+  - e-bikes
+  - gravel-bikes
+max_pages: 10
+base_url: "https://degrandi.com.au"
+pipeline: "shopify"
+# Est. 1929; premium road, gravel, MTB and e-bike specialist in Geelong.
+# product_type is empty on all products; category resolved from model name.
+# Products with no category keywords in the title will be skipped — accepted limitation.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  kenevo: E-Bike
+  creo: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  xplr: Gravel
+  grx: Gravel
+  aspero: Gravel
+  search: Gravel
+  road: Road
+  tarmac: Road
+  roubaix: Road
+  synapse: Road
+  supersix: Road
+  emonda: Road
+  domane: Road
+  madone: Road
+  defy: Road
+  tcr: Road
+  scultura: Road
+  reacto: Road
+  addict: Road
+  dogma: Road
+  pinarello: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  cargo: Commuter
+  cruiser: Commuter

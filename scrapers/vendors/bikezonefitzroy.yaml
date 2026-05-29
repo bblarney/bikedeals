@@ -1,0 +1,50 @@
+vendor_name: "Bike Zone Fitzroy"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 10
+base_url: "https://www.bikezonefitzroy.com.au"
+pipeline: "shopify"
+# Premium road, gravel and MTB shop at 271 Smith St, Fitzroy. Also listed as Bicycle Centre Fitzroy.
+# product_type is empty on all products — category resolved entirely from model name.
+# Stocks Norco, Cannondale, FELT, Kona, Cervelo.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  levo: E-Bike
+  kenevo: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  cyclocross: Gravel
+  xplr: Gravel
+  grx: Gravel
+  aspero: Gravel
+  search: Gravel
+  breed: Gravel
+  road: Road
+  tarmac: Road
+  roubaix: Road
+  synapse: Road
+  supersix: Road
+  emonda: Road
+  domane: Road
+  madone: Road
+  defy: Road
+  tcr: Road
+  scultura: Road
+  addict: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  bmx: Commuter

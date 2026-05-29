@@ -1,0 +1,33 @@
+vendor_name: "McBain Cycles"
+city: "Hobart"
+max_pages: 10
+base_url: "https://mcbaincycles.com.au"
+pipeline: "shopify"
+# Giant dealer in Hobart. product_type observed: "BIKES - ROAD"
+# "bikes" collection is empty — using /products.json.
+# Giant Revolt is filed as ROAD here; gravel key handles the model name if needed.
+category_map:
+  bikes - electric: E-Bike
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  bikes - mountain: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  full suspension: Mountain
+  enduro: Mountain
+  trail: Mountain
+  bikes - gravel: Gravel
+  gravel: Gravel
+  revolt: Gravel
+  bikes - road: Road
+  road: Road
+  defy: Road
+  tcr: Road
+  propel: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter

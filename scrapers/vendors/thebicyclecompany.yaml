@@ -1,0 +1,45 @@
+vendor_name: "The Bicycle Company"
+city: "Melbourne"
+collection: "bikes"
+max_pages: 10
+base_url: "https://thebicyclecompany.com.au"
+pipeline: "shopify"
+# Giant and Radius dealer in Dandenong (Melbourne south-east). product_type: "Bike" (flat, generic).
+# Category resolved from model name — Giant model names are well-known.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  trance e: E-Bike
+  stance e: E-Bike
+  explore e: E-Bike
+  fastroad e: E-Bike
+  contend e: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  trance: Mountain
+  reign: Mountain
+  fathom: Mountain
+  talon: Mountain
+  xtc: Mountain
+  gravel: Gravel
+  revolt: Gravel
+  cx: Gravel
+  road: Road
+  tcr: Road
+  defy: Road
+  propel: Road
+  contend: Road
+  commuter: Commuter
+  fastroad: Commuter
+  escape: Commuter
+  hybrid: Commuter
+  city: Commuter
+  kids: Commuter
+  animator: Commuter
+  junior: Commuter
+  bmx: Commuter

@@ -1,0 +1,34 @@
+vendor_name: "Wollongong Bike Hub"
+city: "Wollongong"
+collection: "bikes"
+max_pages: 10
+base_url: "https://wollongongbikehub.com.au"
+pipeline: "shopify"
+# GT, Norco, Merida dealer in Wollongong. product_type: "BIKES" (flat, no sub-type).
+# Category resolved entirely from model name.
+category_map:
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  aggressor: Mountain
+  gravel: Gravel
+  cx: Gravel
+  xplr: Gravel
+  grx: Gravel
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  scene: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter

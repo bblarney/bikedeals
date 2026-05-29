@@ -1,0 +1,35 @@
+vendor_name: "Supreme Cycles"
+city: "Sunshine Coast"
+collection: "bikes"
+max_pages: 10
+base_url: "https://supremecycles.com.au"
+pipeline: "shopify"
+# Locally owned shop on the Sunshine Coast. Ampd Bros e-bikes confirmed.
+# product_type: "Bikes | E-bike" (pipe-separated format).
+category_map:
+  bikes | e-bike: E-Bike
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  bikes | mountain: Mountain
+  bikes | mtb: Mountain
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  bikes | gravel: Gravel
+  gravel: Gravel
+  cx: Gravel
+  bikes | road: Road
+  road: Road
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  bmx: Commuter

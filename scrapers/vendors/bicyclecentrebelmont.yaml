@@ -1,0 +1,33 @@
+vendor_name: "Bicycle Centre Belmont"
+city: "Geelong"
+max_pages: 10
+base_url: "https://bicyclecentrebelmont.com.au"
+pipeline: "shopify"
+# Part of the Bicycle Centre Australia network, Belmont (Geelong suburb).
+# Merida dealer. product_type pattern: "E Recreation", likely also "Mountain", "Road", etc.
+# Using /products.json (no collection) since "bikes" collection is empty on this domain.
+category_map:
+  e recreation: E-Bike
+  e-mtb: E-Bike
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  turbo: E-Bike
+  full suspension: Mountain
+  mountain: Mountain
+  mtb: Mountain
+  hardtail: Mountain
+  enduro: Mountain
+  downhill: Mountain
+  trail: Mountain
+  gravel: Gravel
+  cx: Gravel
+  road: Road
+  recreation: Commuter
+  commuter: Commuter
+  hybrid: Commuter
+  city: Commuter
+  urban: Commuter
+  kids: Commuter
+  junior: Commuter
+  bmx: Commuter
