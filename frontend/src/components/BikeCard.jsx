@@ -20,6 +20,8 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     scraped_at,
     price_drop_at,
     discount_started_at,
+    frame_material,
+    drivetrain_groupset,
   } = bike
 
   const saving = price_original ? Math.round(price_original - price_sale) : null
@@ -112,6 +114,11 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
         <p className="text-xs text-slate-500 mt-0.5">
           {category} · Size {frame_size}
         </p>
+        {(frame_material || drivetrain_groupset) && (
+          <p className="text-xs text-slate-400 mt-0.5 truncate">
+            {[frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
+          </p>
+        )}
         <div className="flex items-center gap-1 mt-0.5">
           <LogoImg
             src={VENDOR_LOGOS[vendor_name]}

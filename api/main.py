@@ -74,6 +74,8 @@ def _apply_filters(
     size: list[str],
     vendor: list[str],
     brand: list[str],
+    frame_material: list[str],
+    drivetrain_groupset: list[str],
     min_discount: int,
     q: str | None,
     added_since: str | None,
@@ -90,6 +92,10 @@ def _apply_filters(
         query = query.where(Bike.vendor_name.in_(vendor))
     if brand:
         query = query.where(Bike.brand.in_(brand))
+    if frame_material:
+        query = query.where(Bike.frame_material.in_(frame_material))
+    if drivetrain_groupset:
+        query = query.where(Bike.drivetrain_groupset.in_(drivetrain_groupset))
     if min_discount > 0:
         query = query.where(Bike.discount_percentage >= min_discount)
     if min_price is not None:
@@ -121,6 +127,8 @@ async def get_bikes(
     size: list[str] = Query(default=[]),
     vendor: list[str] = Query(default=[]),
     brand: list[str] = Query(default=[]),
+    frame_material: list[str] = Query(default=[]),
+    drivetrain_groupset: list[str] = Query(default=[]),
     min_discount: int = Query(default=0, ge=0, le=100),
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
@@ -135,6 +143,7 @@ async def get_bikes(
     base = _apply_filters(
         base,
         city=city, category=category, size=size, vendor=vendor, brand=brand,
+        frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
         min_discount=min_discount, min_price=min_price, max_price=max_price,
         q=q, added_since=added_since,
     )
@@ -183,6 +192,8 @@ async def get_filters(
     size: list[str] = Query(default=[]),
     vendor: list[str] = Query(default=[]),
     brand: list[str] = Query(default=[]),
+    frame_material: list[str] = Query(default=[]),
+    drivetrain_groupset: list[str] = Query(default=[]),
     min_discount: int = Query(default=0, ge=0, le=100),
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
@@ -194,6 +205,7 @@ async def get_filters(
     # without trapping the user in a single-option facet.
     f = dict(
         city=city, category=category, size=size, vendor=vendor, brand=brand,
+        frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
         min_discount=min_discount, min_price=min_price, max_price=max_price,
         q=q, added_since=added_since,
     )
@@ -218,6 +230,12 @@ async def get_filters(
     sizes_r         = await db.execute(facet_query(Bike.frame_size,  "size"))
     vendors_r       = await db.execute(facet_query(Bike.vendor_name, "vendor"))
     brands_r        = await db.execute(facet_query(Bike.brand,       "brand"))
+    materials_r     = await db.execute(
+        facet_query(Bike.frame_material, "frame_material").where(Bike.frame_material.isnot(None))
+    )
+    groupsets_r     = await db.execute(
+        facet_query(Bike.drivetrain_groupset, "drivetrain_groupset").where(Bike.drivetrain_groupset.isnot(None))
+    )
     discount_r      = await db.execute(select(func.min(Bike.discount_percentage), func.max(Bike.discount_percentage)).where(in_stock_clause))
     # Price range computed with all non-price filters applied
     price_base = _apply_filters(
@@ -238,6 +256,8 @@ async def get_filters(
         sizes=[r[0] for r in sizes_r.all()],
         vendors=[r[0] for r in vendors_r.all()],
         brands=[r[0] for r in brands_r.all()],
+        frame_materials=[r[0] for r in materials_r.all()],
+        drivetrain_groupsets=[r[0] for r in groupsets_r.all()],
         discount_range={"min": discount_row[0] or 0, "max": discount_row[1] or 0},
         price_range={"min": float(price_row[0] or 0), "max": float(price_row[1] or 0)},
         total_bikes=total_r.scalar_one(),

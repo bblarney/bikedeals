@@ -17,6 +17,8 @@ export const DEFAULT_FILTERS = {
   size: [],
   vendor: [],
   brand: [],
+  frame_material: [],
+  drivetrain_groupset: [],
   min_discount: 0,
   min_price: '',
   max_price: '',

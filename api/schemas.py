@@ -22,6 +22,8 @@ class BikeResponse(BaseModel):
     click_count: int
     price_drop_at: datetime | None = None
     discount_started_at: datetime | None = None
+    frame_material: str | None = None
+    drivetrain_groupset: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -39,6 +41,8 @@ class FiltersResponse(BaseModel):
     sizes: list[str]
     vendors: list[str]
     brands: list[str]
+    frame_materials: list[str]
+    drivetrain_groupsets: list[str]
     discount_range: dict
     price_range: dict
     total_bikes: int

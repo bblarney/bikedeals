@@ -3,7 +3,7 @@ import MultiSelectDropdown from './MultiSelectDropdown'
 import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
-  const { category, city, size, vendor, brand, min_discount, min_price, max_price, q, added_since } = params
+  const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since } = params
 
   const activeRegion = useMemo(
     () => REGIONS.find((r) => r.cities.some((c) => city.includes(c))),
@@ -180,6 +180,28 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           </FilterSection>
         )}
 
+        {filters?.frame_materials?.length > 0 && (
+          <FilterSection label="Frame material">
+            <MultiSelectDropdown
+              label="Materials"
+              options={filters.frame_materials}
+              selected={frame_material}
+              onChange={(next) => onUpdate({ frame_material: next })}
+            />
+          </FilterSection>
+        )}
+
+        {filters?.drivetrain_groupsets?.length > 0 && (
+          <FilterSection label="Groupset">
+            <MultiSelectDropdown
+              label="Groupsets"
+              options={filters.drivetrain_groupsets}
+              selected={drivetrain_groupset}
+              onChange={(next) => onUpdate({ drivetrain_groupset: next })}
+            />
+          </FilterSection>
+        )}
+
         <FilterSection label="Price">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -240,6 +262,6 @@ function FilterSection({ label, children }) {
   )
 }
 
-function hasActiveFilters({ category, city, size, vendor, brand, min_discount, min_price, max_price, q, added_since }) {
-  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || min_discount > 0 || min_price || max_price || q || added_since
+function hasActiveFilters({ category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since }) {
+  return category.length > 0 || city.length > 0 || size.length > 0 || vendor.length > 0 || brand.length > 0 || frame_material.length > 0 || drivetrain_groupset.length > 0 || min_discount > 0 || min_price || max_price || q || added_since
 }
