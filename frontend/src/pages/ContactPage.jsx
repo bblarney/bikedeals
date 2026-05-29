@@ -15,7 +15,7 @@ export default function ContactPage() {
           <p className="text-slate-600 text-sm mb-3">
             Questions about the site, missing deals, or anything else.
           </p>
-          <p className="text-slate-500 text-sm italic">Contact details coming soon.</p>
+          <a href="mailto:info@bikegrid.com.au" className="text-blue-600 hover:underline text-sm">info@bikegrid.com.au</a>
         </div>
 
         <div className="border-t border-slate-100 pt-6">
@@ -41,7 +41,7 @@ export default function ContactPage() {
             please contact us with your shop name, the relevant listing URLs, and the reason for
             your request. We will review and action all valid requests promptly.
           </p>
-          <p className="text-slate-500 text-sm italic">Contact details coming soon.</p>
+          <a href="mailto:info@bikegrid.com.au" className="text-blue-600 hover:underline text-sm">info@bikegrid.com.au</a>
         </div>
       </div>
     </div>

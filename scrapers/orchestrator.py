@@ -5,6 +5,7 @@ import httpx
 
 from scrapers.models import ScrapeResult, VendorConfig
 from scrapers.pipelines.bigcommerce import scrape_bigcommerce
+from scrapers.pipelines.canyon import scrape_canyon
 from scrapers.pipelines.giant import scrape_giant
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
@@ -25,6 +26,8 @@ async def scrape_vendor(
                 bikes, invalid_count = await scrape_bigcommerce(config, client)
             elif config.pipeline == "giant":
                 bikes, invalid_count = await scrape_giant(config, client)
+            elif config.pipeline == "canyon":
+                bikes, invalid_count = await scrape_canyon(config, client)
             else:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
             return ScrapeResult(
