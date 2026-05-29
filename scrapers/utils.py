@@ -19,6 +19,44 @@ _GROUPSET_RE = re.compile(
     re.IGNORECASE,
 )
 
+_GROUPSET_BRAND_CASE = {
+    "shimano": "Shimano",
+    "sram": "SRAM",
+    "campagnolo": "Campagnolo",
+}
+_GROUPSET_WORD_CASE = {
+    # Shimano
+    "di2": "Di2",
+    "xtr": "XTR",
+    "xt": "XT",
+    "slx": "SLX",
+    "grx": "GRX",
+    "cues": "CUES",
+    "dura-ace": "Dura-Ace",
+    # SRAM
+    "axs": "AXS",
+    "xplr": "XPLR",
+    "xx1": "XX1",
+    "xx": "XX",
+    "x01": "X01",
+    "gx": "GX",
+    "nx": "NX",
+    "sx": "SX",
+    "etap": "eTap",
+}
+
+
+def _normalise_groupset(raw: str) -> str:
+    words = raw.split()
+    result = []
+    for i, w in enumerate(words):
+        key = w.lower()
+        if i == 0:
+            result.append(_GROUPSET_BRAND_CASE.get(key, w.title()))
+        else:
+            result.append(_GROUPSET_WORD_CASE.get(key, w.title()))
+    return " ".join(result)
+
 
 def parse_frame_material(body_html: str | None) -> str | None:
     if not body_html:
@@ -35,7 +73,7 @@ def parse_drivetrain_groupset(body_html: str | None) -> str | None:
         return None
     text = _HTML_TAG_RE.sub(" ", body_html)
     m = _GROUPSET_RE.search(text)
-    return m.group(1) if m else None
+    return _normalise_groupset(m.group(1)) if m else None
 
 
 _SIZE_WORD_RE = re.compile(

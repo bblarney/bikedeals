@@ -29,6 +29,8 @@ export function useBikeParams() {
     size: getAll('size'),
     vendor: getAll('vendor'),
     brand: getAll('brand'),
+    frame_material: getAll('frame_material'),
+    drivetrain_groupset: getAll('drivetrain_groupset'),
     min_discount: getInt('min_discount', 0),
     min_price: get('min_price'),
     max_price: get('max_price'),
