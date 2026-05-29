@@ -1,7 +1,10 @@
 import asyncio
+import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
@@ -33,6 +36,8 @@ async def main() -> None:
     logging.info("Loaded %d vendor(s)", len(vendors))
 
     run_start = datetime.now(timezone.utc)
+    run_start_mono = time.monotonic()
+    failures: list[dict] = []
 
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -56,6 +61,7 @@ async def main() -> None:
 
             if result.error:
                 logging.error("Vendor %r failed: %s", result.vendor_name, result.error)
+                failures.append({"vendor": result.vendor_name, "error": result.error})
                 failed += 1
                 if SessionLocal:
                     async with SessionLocal() as session:
@@ -76,6 +82,7 @@ async def main() -> None:
                     f"({invalid_ratio:.1%} > {QUARANTINE_INVALID_RATIO:.0%}) — quarantining"
                 )
                 logging.error("[%s] %s", result.vendor_name, msg)
+                failures.append({"vendor": result.vendor_name, "error": msg})
                 failed += 1
                 if SessionLocal:
                     async with SessionLocal() as session:
@@ -107,6 +114,18 @@ async def main() -> None:
         await engine.dispose()
 
     logging.info("Done: %d vendor(s) ok, %d failed, %d total bikes upserted", ok, failed, total_bikes)
+
+    summary = {
+        "run_at": run_start.isoformat(),
+        "duration_seconds": round(time.monotonic() - run_start_mono, 1),
+        "vendors_total": len(vendors),
+        "vendors_ok": ok,
+        "vendors_failed": failed,
+        "total_bikes_upserted": total_bikes,
+        "failures": failures,
+    }
+    Path("scrape_summary.json").write_text(json.dumps(summary, indent=2))
+    logging.info("Summary written to scrape_summary.json")
 
 
 if __name__ == "__main__":

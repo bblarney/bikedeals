@@ -1,0 +1,74 @@
+name: Daily Scrape
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # 8 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scrapers
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scrapers.run
+
+      - name: Format email
+        if: always()
+        id: format
+        run: |
+          python - <<'PYEOF'
+          import json, os, pathlib
+
+          p = pathlib.Path("scrape_summary.json")
+          if not p.exists():
+              subject = "Bikedeals scrape — FAILED (no summary written)"
+              body = "The scraper crashed before writing a summary. Check the workflow logs."
+          else:
+              s = json.loads(p.read_text())
+              status = "OK" if s["vendors_failed"] == 0 else f"FAILED ({s['vendors_failed']} vendor(s))"
+              subject = f"Bikedeals scrape — {status} — {s['run_at'][:10]}"
+              lines = [
+                  f"Run:            {s['run_at']}",
+                  f"Duration:       {s['duration_seconds']}s",
+                  "",
+                  f"Vendors OK:     {s['vendors_ok']} / {s['vendors_total']}",
+                  f"Vendors failed: {s['vendors_failed']}",
+                  f"Bikes upserted: {s['total_bikes_upserted']}",
+              ]
+              if s["failures"]:
+                  lines += ["", "Failures:"]
+                  for f in s["failures"]:
+                      lines.append(f"  - {f['vendor']}: {f['error']}")
+              body = "\n".join(lines)
+
+          pathlib.Path("email_body.txt").write_text(body)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"subject={subject}\n")
+          PYEOF
+
+      - name: Send email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: ${{ steps.format.outputs.subject }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: Bikedeals Scraper <${{ secrets.SMTP_USER }}>
+          body_path: email_body.txt
