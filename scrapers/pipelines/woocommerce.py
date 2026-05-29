@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
-from scrapers.utils import check_robots, parse_price, resolve_category
+from scrapers.utils import check_robots, extract_frame_size, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +86,7 @@ async def _scrape_woocommerce_path(
                 image_url = None
 
             frame_size = _sel(item, sel["frame_size"]) if sel.get("frame_size") else "One Size"
-            if not frame_size:
-                frame_size = "One Size"
+            frame_size = extract_frame_size(frame_size or "One Size")
 
             cat_tags = [
                 cls.replace("product_cat-", "")

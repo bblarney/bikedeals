@@ -8,7 +8,7 @@ import httpx
 
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT, SHOPIFY_PAGE_SIZE
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
-from scrapers.utils import check_robots, parse_price, resolve_category
+from scrapers.utils import check_robots, extract_frame_size, parse_price, resolve_category
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ async def _scrape_collection(
                 continue
 
             for variant in product.get("variants", []):
-                frame_size = variant.get("title", "")
+                frame_size = extract_frame_size(variant.get("title", ""))
                 if frame_size.lower().strip() == "default title":
                     frame_size = "N/A"
                 elif not _is_size_variant(frame_size):
