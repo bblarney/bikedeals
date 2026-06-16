@@ -10,7 +10,7 @@ import StatsBanner from './components/StatsBanner'
 import { useBikes, useBikeParams } from './hooks/useBikes'
 import { usePins } from './hooks/usePins'
 import { useFilters } from './hooks/useFilters'
-import { canonicalFor } from './seo'
+import { canonicalFor, buildPageMeta } from './seo'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
@@ -49,11 +49,12 @@ function MainLayout() {
     window.location.assign('/')
   }
 
+  const meta = buildPageMeta(params)
   return (
     <>
-      <title>BikeGrid — Daily Bike Deals from Australian Shops</title>
-      <meta name="description" content="Browse hundreds of discounted bikes from local Australian bike shops. Updated daily. Filter by category, size, and brand." />
-      <link rel="canonical" href={canonicalFor('/')} />
+      <title>{meta.title}</title>
+      <meta name="description" content={meta.description} />
+      <link rel="canonical" href={meta.canonical} />
       <StatsBanner />
       <Header
         total={filtersData?.total_bikes}
