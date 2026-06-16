@@ -4,6 +4,7 @@ import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
@@ -35,6 +36,21 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s: %(message)s",
 )
 logger = logging.getLogger("bikegrid.api")
+
+_AFFILIATE_URLS: dict[str, str] = {
+    k: v
+    for k, v in {
+        "Bikes Online": os.getenv("IMPACT_BIKESONLINE_URL", ""),
+    }.items()
+    if v
+}
+
+
+def _apply_affiliate_url(vendor_name: str, product_url: str) -> str:
+    base = _AFFILIATE_URLS.get(vendor_name)
+    if base:
+        return f"{base}?u={quote(product_url, safe='')}"
+    return product_url
 
 
 @asynccontextmanager
@@ -214,6 +230,7 @@ async def get_bikes(
         br = BikeResponse.model_validate(bike_obj)
         br.sku = bike_obj.sku
         br.sku_vendor_count = sku_vendor_counts.get(bike_obj.sku, 0) if bike_obj.sku else 0
+        br.product_url = _apply_affiliate_url(bike_obj.vendor_name, br.product_url)
         results.append(br)
 
     response.headers["Cache-Control"] = CACHE_BIKES
