@@ -5,6 +5,8 @@ import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
   const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since } = params
 
+  const isLoading = filters == null
+
   const activeRegion = useMemo(
     () => REGIONS.find((r) => r.cities.some((c) => city.includes(c))),
     [city],
@@ -124,81 +126,87 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           />
         </FilterSection>
 
-        {cityOptions.length > 0 && (
+        {(isLoading || cityOptions.length > 0) && (
           <FilterSection label="City">
-            <MultiSelectDropdown
-              label="Cities"
-              options={cityOptions}
-              selected={city}
-              onChange={(next) => onUpdate({ city: next })}
-            />
+            {isLoading
+              ? <Skeleton />
+              : <MultiSelectDropdown
+                  label="Cities"
+                  options={cityOptions}
+                  selected={city}
+                  onChange={(next) => onUpdate({ city: next })}
+                />}
           </FilterSection>
         )}
 
-        {filters?.categories?.length > 0 && (
-          <FilterSection label="Category">
-            <MultiSelectDropdown
-              label="Categories"
-              options={filters.categories}
-              selected={category}
-              onChange={(next) => onUpdate({ category: next })}
-            />
-          </FilterSection>
-        )}
+        <FilterSection label="Category">
+          {isLoading
+            ? <Skeleton />
+            : filters.categories?.length > 0 && <MultiSelectDropdown
+                label="Categories"
+                options={filters.categories}
+                selected={category}
+                onChange={(next) => onUpdate({ category: next })}
+              />}
+        </FilterSection>
 
-        {sizes.length > 0 && (
-          <FilterSection label="Size">
-            <MultiSelectDropdown
-              label="Sizes"
-              options={sizes}
-              selected={size}
-              onChange={(next) => onUpdate({ size: next })}
-              searchable
-            />
-          </FilterSection>
-        )}
+        <FilterSection label="Size">
+          {isLoading
+            ? <Skeleton />
+            : sizes.length > 0 && <MultiSelectDropdown
+                label="Sizes"
+                options={sizes}
+                selected={size}
+                onChange={(next) => onUpdate({ size: next })}
+                searchable
+              />}
+        </FilterSection>
 
-        {filters?.vendors?.length > 0 && (
-          <FilterSection label="Shop">
-            <MultiSelectDropdown
-              label="Shops"
-              options={filters.vendors}
-              selected={vendor}
-              onChange={(next) => onUpdate({ vendor: next })}
-            />
-          </FilterSection>
-        )}
+        <FilterSection label="Shop">
+          {isLoading
+            ? <Skeleton />
+            : filters.vendors?.length > 0 && <MultiSelectDropdown
+                label="Shops"
+                options={filters.vendors}
+                selected={vendor}
+                onChange={(next) => onUpdate({ vendor: next })}
+              />}
+        </FilterSection>
 
-        {filters?.brands?.length > 0 && (
-          <FilterSection label="Brand">
-            <MultiSelectDropdown
-              label="Brands"
-              options={filters.brands}
-              selected={brand}
-              onChange={(next) => onUpdate({ brand: next })}
-            />
-          </FilterSection>
-        )}
+        <FilterSection label="Brand">
+          {isLoading
+            ? <Skeleton />
+            : filters.brands?.length > 0 && <MultiSelectDropdown
+                label="Brands"
+                options={filters.brands}
+                selected={brand}
+                onChange={(next) => onUpdate({ brand: next })}
+              />}
+        </FilterSection>
 
-        {filters?.frame_materials?.length > 0 && (
+        {(isLoading || filters?.frame_materials?.length > 0) && (
           <FilterSection label="Frame material">
-            <MultiSelectDropdown
-              label="Materials"
-              options={filters.frame_materials}
-              selected={frame_material}
-              onChange={(next) => onUpdate({ frame_material: next })}
-            />
+            {isLoading
+              ? <Skeleton />
+              : <MultiSelectDropdown
+                  label="Materials"
+                  options={filters.frame_materials}
+                  selected={frame_material}
+                  onChange={(next) => onUpdate({ frame_material: next })}
+                />}
           </FilterSection>
         )}
 
-        {filters?.drivetrain_groupsets?.length > 0 && (
+        {(isLoading || filters?.drivetrain_groupsets?.length > 0) && (
           <FilterSection label="Groupset">
-            <MultiSelectDropdown
-              label="Groupsets"
-              options={filters.drivetrain_groupsets}
-              selected={drivetrain_groupset}
-              onChange={(next) => onUpdate({ drivetrain_groupset: next })}
-            />
+            {isLoading
+              ? <Skeleton />
+              : <MultiSelectDropdown
+                  label="Groupsets"
+                  options={filters.drivetrain_groupsets}
+                  selected={drivetrain_groupset}
+                  onChange={(next) => onUpdate({ drivetrain_groupset: next })}
+                />}
           </FilterSection>
         )}
 
@@ -260,6 +268,10 @@ function FilterSection({ label, children }) {
       {children}
     </div>
   )
+}
+
+function Skeleton() {
+  return <div className="h-9 rounded-lg bg-slate-100 animate-pulse" />
 }
 
 function hasActiveFilters({ category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since }) {
