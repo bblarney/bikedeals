@@ -18,6 +18,39 @@
     <meta name="twitter:image" content="https://bikegrid.com.au/logos/bikegrid/bikegrid.png" />
     <meta name='impact-site-verification' value='0d2bd277-294c-4903-867c-9683445cf204' />
     <meta name="commission-factory-verification" content="e39dfbb9e03144b191b246ec9add3899" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://bikegrid.com.au/#organization",
+          "name": "BikeGrid",
+          "url": "https://bikegrid.com.au/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://bikegrid.com.au/logos/bikegrid/bikegrid.png"
+          },
+          "description": "BikeGrid aggregates daily bike deals from local Australian bike shops."
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://bikegrid.com.au/#website",
+          "url": "https://bikegrid.com.au/",
+          "name": "BikeGrid",
+          "publisher": { "@id": "https://bikegrid.com.au/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://bikegrid.com.au/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
