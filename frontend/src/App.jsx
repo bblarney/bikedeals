@@ -6,10 +6,10 @@ import BackToTop from './components/BackToTop'
 import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
 import ErrorBoundary from './components/ErrorBoundary'
-import StatsBanner from './components/StatsBanner'
 import { useBikes, useBikeParams } from './hooks/useBikes'
 import { usePins } from './hooks/usePins'
 import { useFilters } from './hooks/useFilters'
+import { useStats } from './hooks/useStats'
 import { canonicalFor, buildPageMeta } from './seo'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
@@ -28,6 +28,7 @@ function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
+  const { data: statsData } = useStats()
   const { pinnedBikes, pinnedIds, togglePin, clearPins } = usePins()
 
   const showLanding = !regionSetThisSession && params.city.length === 0
@@ -55,7 +56,6 @@ function MainLayout() {
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
       <link rel="canonical" href={meta.canonical} />
-      <StatsBanner />
       <Header
         total={filtersData?.total_bikes}
         lastScrapedAt={filtersData?.last_scraped_at}
@@ -97,6 +97,7 @@ function MainLayout() {
             isFetching={isFetching}
             isError={isError}
             total={bikesData?.total}
+            newToday={statsData?.new_today}
             params={params}
             onUpdate={params.update}
             onSkuFilter={params.filterBySku}

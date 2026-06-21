@@ -3,7 +3,7 @@ import { REGIONS, SIZE_ORDER } from '../constants'
 import { useFilters } from '../hooks/useFilters'
 
 const selectClass =
-  'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition cursor-pointer'
+  'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition cursor-pointer'
 
 export default function LandingPage({ onUpdate }) {
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -82,7 +82,7 @@ export default function LandingPage({ onUpdate }) {
 
         <button
           onClick={handleSearch}
-          className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="mt-6 w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
         >
           Search
         </button>
@@ -101,13 +101,13 @@ export default function LandingPage({ onUpdate }) {
           <button
             key={region.name}
             onClick={() => pickRegion(region)}
-            className="group bg-white border border-slate-200 rounded-2xl p-6 text-left hover:border-blue-400 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="group bg-white border border-slate-200 rounded-2xl p-6 text-left hover:border-orange-400 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+              <span className="text-2xl font-bold text-slate-900 group-hover:text-orange-600 transition-colors">
                 {region.abbr}
               </span>
-              <svg className="text-slate-300 group-hover:text-blue-400 transition-colors" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="text-slate-300 group-hover:text-orange-400 transition-colors" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 10h12M10 4l6 6-6 6" />
               </svg>
             </div>
@@ -119,7 +119,7 @@ export default function LandingPage({ onUpdate }) {
 
       <button
         onClick={pickAll}
-        className="mt-8 text-sm text-slate-400 hover:text-blue-600 transition-colors"
+        className="mt-8 text-sm text-slate-400 hover:text-orange-600 transition-colors"
       >
         Show all of Australia →
       </button>

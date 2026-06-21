@@ -69,9 +69,9 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left transition ${
           open
-            ? 'border-blue-500 ring-2 ring-blue-500/20'
+            ? 'border-orange-500 ring-2 ring-orange-500/20'
             : 'border-slate-200 hover:border-slate-300'
-        } ${hasSelection ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium' : 'bg-white text-slate-700'}`}
+        } ${hasSelection ? 'bg-orange-50 border-orange-300 text-orange-700 font-medium' : 'bg-white text-slate-700'}`}
       >
         <span className="truncate">{summary}</span>
         <svg
@@ -92,7 +92,7 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={`Search ${label.toLowerCase()}…`}
-                className="w-full border border-slate-200 rounded-md px-2.5 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-slate-200 rounded-md px-2.5 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           )}
@@ -107,7 +107,7 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
                     type="checkbox"
                     checked={allVisibleSelected}
                     onChange={toggleAll}
-                    className="accent-blue-600 w-3.5 h-3.5"
+                    className="accent-orange-600 w-3.5 h-3.5"
                   />
                   <span>Select all{query ? ' matches' : ''}</span>
                 </label>
@@ -117,14 +117,14 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
                     <label
                       key={opt}
                       className={`flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer transition-colors ${
-                        checked ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'
+                        checked ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggle(opt)}
-                        className="accent-blue-600 w-3.5 h-3.5"
+                        className="accent-orange-600 w-3.5 h-3.5"
                       />
                       <span className={checked ? 'font-medium' : ''}>{opt}</span>
                     </label>

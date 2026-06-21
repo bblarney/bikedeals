@@ -8,7 +8,7 @@ const SORT_LABELS = {
   clicks_desc: 'most popular',
 }
 
-export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, params, onUpdate, onSkuFilter = () => {}, pinnedBikes = [], pinnedIds = new Set(), onTogglePin = () => {}, onClearPins = () => {} }) {
+export default function BikeGrid({ bikes, isLoading, isFetching, isError, total, newToday, params, onUpdate, onSkuFilter = () => {}, pinnedBikes = [], pinnedIds = new Set(), onTogglePin = () => {}, onClearPins = () => {} }) {
   const { offset, limit, sort } = params
   const page = Math.floor(offset / limit) + 1
   const totalPages = total ? Math.ceil(total / limit) : 1
@@ -35,7 +35,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
         <p className="font-medium text-slate-700">No deals match your filters</p>
         <button
           onClick={() => onUpdate(DEFAULT_FILTERS)}
-          className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+          className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium"
         >
           Clear all filters
         </button>
@@ -58,6 +58,11 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
               <span className="text-slate-400">Loading…</span>
             )}
           </p>
+          {newToday > 0 && (
+            <span className="text-xs font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full">
+              {newToday} new today
+            </span>
+          )}
           {total > limit && (
             <>
               <button
@@ -80,9 +85,9 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
           {pinnedBikes.length > 0 && (
             <button
               onClick={onClearPins}
-              className="px-2.5 py-1 text-xs font-medium text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors"
+              className="px-2.5 py-1 text-xs font-medium text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors"
             >
-              Clear pins ({pinnedBikes.length})
+              Clear saved ({pinnedBikes.length})
             </button>
           )}
         </div>
@@ -91,7 +96,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
           <select
             value={sort}
             onChange={(e) => onUpdate({ sort: e.target.value })}
-            className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none cursor-pointer"
+            className="text-xs text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition appearance-none cursor-pointer"
           >
             {Object.entries(SORT_LABELS).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -144,7 +149,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
 
 function Spinner() {
   return (
-    <svg className="animate-spin text-blue-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <svg className="animate-spin text-orange-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
       <path d="M12 2a10 10 0 0 1 10 10" />
     </svg>
   )

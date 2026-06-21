@@ -4,8 +4,8 @@ import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
-// Image URLs come from scraped third-party data. Only render http(s) sources
-// (defence-in-depth against javascript:/data: and other unexpected schemes).
+// Image and product URLs come from scraped third-party data. Only trust http(s)
+// sources (defence-in-depth against javascript:/data: and other schemes).
 function isHttpUrl(value) {
   if (!value) return false
   try {
@@ -39,6 +39,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
   } = bike
 
   const safeImageUrl = isHttpUrl(image_url) ? image_url : null
+  const safeProductUrl = isHttpUrl(product_url) ? product_url : null
   const saving = price_original ? Math.round(price_original - price_sale) : null
   const bigDeal = discount_percentage >= 30
   const cutoff = Date.now() - SEVEN_DAYS_MS
@@ -49,53 +50,73 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     ? model_name.slice(brand.length).trim()
     : model_name
 
+  function openDeal() {
+    if (!safeProductUrl) return
+    api.recordClick(bike.id)
+    window.open(safeProductUrl, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onTogglePin(bike)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTogglePin(bike) }}
-      className={`bg-white rounded-xl border overflow-hidden transition-all duration-150 flex flex-col cursor-pointer ${
+      onClick={openDeal}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDeal() } }}
+      className={`group bg-white rounded-xl border overflow-hidden transition-all duration-150 flex flex-col cursor-pointer ${
         isPinned
-          ? 'pin-glow'
+          ? 'saved-glow'
           : 'border-slate-100 hover:shadow-md hover:border-slate-200'
       }`}
     >
       {/* Image */}
       <div className="relative aspect-square bg-slate-50 flex items-center justify-center p-3">
+        {/* Discount ribbon — colour encodes magnitude */}
         {discount_percentage > 0 && (
-          <span className={`absolute top-2 left-2 z-10 inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${
-            bigDeal ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700'
+          <span className={`absolute top-0 left-0 z-10 inline-flex items-center text-xs font-bold pl-2 pr-2.5 py-1 rounded-br-xl ${
+            bigDeal ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-700'
           }`}>
-            {discount_percentage}% off
+            −{discount_percentage}%
           </span>
         )}
-        {(isNew || isPriceDrop || isNewDiscount) && (
-          <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+
+        {/* Save / pin */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onTogglePin(bike) }}
+          aria-label={isPinned ? 'Remove from saved' : 'Save deal'}
+          aria-pressed={isPinned}
+          className={`absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full border transition-colors ${
+            isPinned
+              ? 'bg-orange-50 border-orange-300 text-orange-600'
+              : 'bg-white/90 border-slate-200 text-slate-400 hover:text-orange-500 hover:border-orange-200'
+          }`}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
+
+        {/* Recency badges — distinct from the discount/save signals */}
+        {(isPriceDrop || isNewDiscount || isNew) && (
+          <div className="absolute bottom-2 left-2 z-10 flex flex-col items-start gap-1">
             {isPriceDrop && (
-              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white">
+              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white">
                 ↓ Price drop
               </span>
             )}
             {isNewDiscount && !isPriceDrop && (
-              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
+              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
                 New sale
               </span>
             )}
             {isNew && !isPriceDrop && !isNewDiscount && (
-              <span className="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
                 New
               </span>
             )}
           </div>
         )}
-        {isPinned && (
-          <span className="absolute bottom-2 right-2 z-10 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
-          </span>
-        )}
+
         {safeImageUrl ? (
           <img
             src={safeImageUrl}
@@ -126,43 +147,40 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           {brand} {displayModel}
         </p>
 
-        {/* Meta */}
-        <p className="text-xs text-slate-500 mt-0.5">
-          {category} · Size {frame_size}
-        </p>
-        {(frame_material || drivetrain_groupset) && (
-          <p className="text-xs text-slate-400 mt-0.5 truncate">
-            {[frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
-          </p>
-        )}
-        <div className="flex items-center gap-1 mt-0.5">
-          <LogoImg
-            src={VENDOR_LOGOS[vendor_name]}
-            alt={vendor_name}
-            className="h-3 w-auto max-w-[32px] object-contain flex-shrink-0"
-          />
-          <p className="text-xs text-slate-400 truncate">
-            {vendor_name}{city ? ` · ${city}` : ''}
-          </p>
+        {/* Price — the hero */}
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-xl font-bold text-slate-900 tracking-tight">${price_sale.toFixed(0)}</span>
+          {price_original && price_original > price_sale && (
+            <span className="text-xs text-slate-400 line-through">${price_original.toFixed(0)}</span>
+          )}
         </div>
+        {saving > 0 && (
+          <span className="mt-1.5 inline-block self-start text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            save ${saving.toLocaleString()}
+          </span>
+        )}
 
-        {/* Price + CTA pinned to bottom */}
+        {/* Shop + spec line */}
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 min-w-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+          </svg>
+          <span className="truncate">
+            {vendor_name}{city ? ` · ${city}` : ''}
+          </span>
+        </div>
+        <p className="text-xs text-slate-400 mt-0.5 truncate">
+          {[category, frame_size && `Size ${frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
+        </p>
+
+        {/* CTA pinned to bottom */}
         <div className="mt-auto pt-3">
-          <div className="flex items-baseline gap-1.5 mb-2">
-            <span className="text-base font-bold text-slate-900">${price_sale.toFixed(0)}</span>
-            {price_original && price_original > price_sale && (
-              <span className="text-xs text-slate-400 line-through">${price_original.toFixed(0)}</span>
-            )}
-            {saving && (
-              <span className="text-xs text-slate-400 ml-auto">save ${saving}</span>
-            )}
-          </div>
           <a
-            href={product_url}
+            href={safeProductUrl ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => { e.stopPropagation(); api.recordClick(bike.id) }}
-            className="flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+            onClick={(e) => { e.stopPropagation(); if (!safeProductUrl) { e.preventDefault(); return } api.recordClick(bike.id) }}
+            className="flex items-center justify-center gap-1.5 w-full bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
           >
             View deal
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

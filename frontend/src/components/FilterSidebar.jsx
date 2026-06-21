@@ -3,7 +3,7 @@ import MultiSelectDropdown from './MultiSelectDropdown'
 import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
-  const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since } = params
+  const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, added_since } = params
 
   const isLoading = filters == null
 
@@ -50,7 +50,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           {active && (
             <button
               onClick={() => onUpdate(DEFAULT_FILTERS)}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+              className="text-xs text-orange-600 hover:text-orange-700 font-medium"
             >
               Clear all
             </button>
@@ -83,7 +83,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
                 }}
                 className={`py-1.5 rounded-lg border text-xs font-medium transition-colors text-center ${
                   activeRegion?.abbr === r.abbr
-                    ? 'bg-blue-50 border-blue-300 text-blue-700'
+                    ? 'bg-orange-50 border-orange-300 text-orange-700'
                     : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
@@ -114,16 +114,6 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
               </button>
             ))}
           </div>
-        </FilterSection>
-
-        <FilterSection label="Search">
-          <input
-            type="search"
-            placeholder="Brand or model…"
-            value={q}
-            onChange={(e) => onUpdate({ q: e.target.value })}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-          />
         </FilterSection>
 
         {(isLoading || cityOptions.length > 0) && (
@@ -220,7 +210,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
                 placeholder={filters?.price_range?.min ? Math.floor(filters.price_range.min) : 'Min'}
                 value={min_price}
                 onChange={(e) => onUpdate({ min_price: e.target.value })}
-                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               />
             </div>
             <span className="text-slate-400 text-sm flex-shrink-0">–</span>
@@ -232,7 +222,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
                 placeholder={filters?.price_range?.max ? Math.ceil(filters.price_range.max) : 'Max'}
                 value={max_price}
                 onChange={(e) => onUpdate({ max_price: e.target.value })}
-                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full border border-slate-200 rounded-lg pl-6 pr-2 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
               />
             </div>
           </div>
@@ -246,7 +236,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
             step={5}
             value={min_discount}
             onChange={(e) => onUpdate({ min_discount: parseInt(e.target.value, 10) })}
-            className="w-full accent-blue-600 mt-1"
+            className="w-full accent-orange-600 mt-1"
           />
           <div className="flex justify-between text-xs text-slate-400 mt-1">
             <span>0%</span>
