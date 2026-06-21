@@ -36,7 +36,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-slate-900 mt-auto">
+    <footer className="bg-navy-900 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -100,12 +100,12 @@ export default function Footer() {
                   onChange={(e) => { setEmail(e.target.value); setStatus('idle') }}
                   disabled={status === 'loading'}
                   required
-                  className="w-full border border-slate-700 bg-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:opacity-50"
+                  className="w-full border border-navy-700 bg-navy-800 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-navy-900 disabled:opacity-50"
                 >
                   {status === 'loading' ? 'Subscribing…' : 'Subscribe'}
                 </button>
@@ -119,7 +119,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-slate-800 mt-8 pt-6 text-center">
+        <div className="border-t border-navy-800 mt-8 pt-6 text-center">
           <p className="text-slate-500 text-xs">
             © {new Date().getFullYear()} BikeGrid. All rights reserved.
           </p>

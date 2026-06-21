@@ -21,7 +21,7 @@ export default function SitemapPage() {
             <li>
               <Link
                 to="/"
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                className="text-orange-600 hover:text-orange-700 text-sm font-medium"
               >
                 All deals
               </Link>
@@ -30,7 +30,7 @@ export default function SitemapPage() {
               <li key={cat}>
                 <Link
                   to={`/?category=${encodeURIComponent(cat)}`}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  className="text-orange-600 hover:text-orange-700 text-sm"
                 >
                   {cat} bikes
                 </Link>
@@ -52,7 +52,7 @@ export default function SitemapPage() {
               { to: '/sitemap', label: 'Sitemap' },
             ].map(({ to, label }) => (
               <li key={to}>
-                <Link to={to} className="text-blue-600 hover:text-blue-700 text-sm">
+                <Link to={to} className="text-orange-600 hover:text-orange-700 text-sm">
                   {label}
                 </Link>
               </li>

@@ -25,7 +25,7 @@ export default function AboutPage() {
       <section>
         <h2 className="text-base font-semibold text-slate-800 mb-3">Contact</h2>
         <p className="text-slate-600 leading-relaxed">
-          <a href="mailto:info@bikegrid.com.au" className="text-blue-600 hover:underline">info@bikegrid.com.au</a>
+          <a href="mailto:info@bikegrid.com.au" className="text-orange-600 hover:underline">info@bikegrid.com.au</a>
         </p>
       </section>
     </div>

@@ -34,7 +34,7 @@ export default function UnsubscribePage() {
           <p className="text-slate-700 leading-relaxed mb-4">
             You've been unsubscribed. You won't receive any further emails from BikeGrid.
           </p>
-          <Link to="/" className="text-blue-600 hover:underline text-sm">Back to BikeGrid</Link>
+          <Link to="/" className="text-orange-600 hover:underline text-sm">Back to BikeGrid</Link>
         </>
       )}
 

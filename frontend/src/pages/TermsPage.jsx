@@ -101,7 +101,7 @@ export default function TermsPage() {
           <p>
             If you are a retailer or rights holder and believe that content displayed on BikeGrid
             infringes your rights or you wish to have your listings removed, please{' '}
-            <Link to="/contact" className="text-blue-600 hover:underline">contact us</Link> with
+            <Link to="/contact" className="text-orange-600 hover:underline">contact us</Link> with
             your shop name, the relevant listing URLs, and the reason for your request. We will
             review and action all valid takedown requests promptly.
           </p>
@@ -119,7 +119,7 @@ export default function TermsPage() {
           <h2 className="text-base font-semibold text-slate-800 mb-2">12. Contact</h2>
           <p>
             Questions about these terms?{' '}
-            <Link to="/contact" className="text-blue-600 hover:underline">Get in touch</Link>.
+            <Link to="/contact" className="text-orange-600 hover:underline">Get in touch</Link>.
           </p>
         </section>
       </div>

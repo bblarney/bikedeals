@@ -96,7 +96,7 @@ export default function PrivacyPage() {
           <p>
             You may request access to, correction of, or deletion of any personal data we hold about
             you by{' '}
-            <Link to="/contact" className="text-blue-600 hover:underline">contacting us</Link>.
+            <Link to="/contact" className="text-orange-600 hover:underline">contacting us</Link>.
             We will respond to all valid requests promptly.
           </p>
         </section>
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
           <h2 className="text-base font-semibold text-slate-800 mb-2">9. Contact</h2>
           <p>
             Questions about this policy?{' '}
-            <Link to="/contact" className="text-blue-600 hover:underline">Get in touch</Link>.
+            <Link to="/contact" className="text-orange-600 hover:underline">Get in touch</Link>.
           </p>
         </section>
       </div>
