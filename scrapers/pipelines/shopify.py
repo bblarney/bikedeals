@@ -131,6 +131,13 @@ async def _scrape_collection(
         if not products:
             break
 
+        # Some collections return a full page yet keep serving products we've
+        # already seen (since_id cursoring can loop when products aren't id-ordered).
+        # If a page adds nothing new, stop — there's no more data to gather.
+        if all(p.get("handle", "") in seen_handles for p in products):
+            logger.debug("[%s] Page %d added no new products; stopping", config.vendor_name, page)
+            break
+
         for product in products:
             handle = product.get("handle", "")
             if handle in seen_handles:

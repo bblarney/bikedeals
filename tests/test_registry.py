@@ -47,6 +47,7 @@ class _Resp:
 
 def _product(product_type):
     return {
+        "id": 100,
         "handle": "p1",
         "vendor": "Trek",
         "title": "Some Bike",
@@ -85,6 +86,33 @@ async def test_collection_category_map_overrides_product_type(_patch_shopify, mo
     bikes, _ = await scrape_shopify(config, client=None)
     assert len(bikes) == 1
     assert bikes[0].category == "E-Bike"
+
+
+async def test_pagination_stops_when_page_adds_no_new_products(_patch_shopify, monkeypatch):
+    # Simulate a collection whose since_id cursor loops: every page returns the
+    # same full page of products. The scraper must stop instead of looping.
+    monkeypatch.setattr(shopify_pipeline, "SHOPIFY_PAGE_SIZE", 2)
+    page = {"products": [
+        {**_product("Road Bikes"), "handle": "a"},
+        {**_product("Road Bikes"), "handle": "b"},
+    ]}
+    calls = 0
+
+    async def _fake_get(client, url, headers=None):
+        nonlocal calls
+        calls += 1
+        return _Resp(page)
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road bikes": "Road"}, collection="loopy",
+    )
+    bikes, _ = await scrape_shopify(config, client=None)
+    # Page 1 ingests a + b (full page → continues); page 2 is all-seen → stop.
+    assert calls == 2
+    assert {b.product_url.split("/products/")[1].split("?")[0] for b in bikes} == {"a", "b"}
 
 
 async def test_category_map_still_used_without_collection_override(_patch_shopify, monkeypatch):
