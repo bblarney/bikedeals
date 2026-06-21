@@ -28,6 +28,11 @@ class VendorConfig(BaseModel):
     selectors: dict[str, str] | None = None
     collection: str | None = None
     collections: list[str] | None = None   # multi-collection Shopify stores
+    # Maps a Shopify collection handle -> our category. For collection-targeted
+    # stores whose product_type/tags are too generic to categorise (e.g. every
+    # product is product_type "Bikes"), the curated collection a product was
+    # found in decides its category. Takes precedence over category_map.
+    collection_category_map: dict[str, str] | None = None
     max_pages: int | None = None
     shop_path: str = "shop"
     shop_paths: list[str] | None = None    # multi-path WooCommerce/BigCommerce/Giant stores

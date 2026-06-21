@@ -15,7 +15,7 @@ Vendors are grouped into:
 
 ## 1. Scraped
 
-66 vendors live in the registry. `pipeline` matches the loader in
+68 vendors live in the registry. `pipeline` matches the loader in
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
@@ -40,6 +40,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Bike Zone Fitzroy | Melbourne | bikezonefitzroy.com.au | shopify |
 | Canyon | National (D2C) | canyon.com | canyon |
 | Cranks | Sydney | cranks.com.au | woocommerce |
+| Crooze | Brisbane | crooze.com.au | shopify |
 | Currumbin Cycles | Gold Coast | currumbincycles.com.au | shopify |
 | Cycle Co-op | Canberra | cycleco-op.au | shopify |
 | Cyclespot | Sydney | cyclespot.com.au | shopify |
@@ -59,6 +60,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Giant Wollongong | Wollongong | giantwollongong.com.au | shopify |
 | Glowworm Bicycles | Sydney | glowwormbicycles.com.au | shopify |
 | Happy Wheels | Sydney | happywheels.com.au | woocommerce |
+| Hendry's | Geelong | hendrys.com.au | shopify |
 | Ivanhoe Cycles | Melbourne | ivanhoecycles.com.au | shopify |
 | Jet Cycles | Sydney | jetcycles.com.au | shopify |
 | Just Ride Nerang | Gold Coast | justridenerang.com.au | shopify |
@@ -92,36 +94,13 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
 ## 2. Needs implementation
 
-Confirmed scrapable but no YAML written yet. Discovered via web search on
-2026-06-21. Each entry notes the platform and the work required.
+Confirmed scrapable but not yet building cleanly with existing pipelines.
 
-### Hendry's — Geelong & Ocean Grove (`hendrys.com.au`)
-
-- **Platform:** Shopify. `/products.json` returns HTTP 200 with a real catalog.
-- **Brands:** Specialized, BMC, Trek, Kalkhoff (e-bikes).
-- **How to scrape:** Use the `shopify` pipeline, collection-targeted (the full
-  feed is ~95% accessories, so list bike collections explicitly — same model as
-  [`driftbikes.yaml`](../scrapers/vendors/driftbikes.yaml)).
-- **Bike collections** (`/collections/<handle>/products.json`):
-  `road-bikes`, `endurance-road-bikes`, `race-road-bikes`, `gravel-bikes`,
-  `race-gravel-bikes`, `endurance-gravel-bikes`, `mountain-bikes`,
-  `hardtail-mountain-bikes`, `dual-suspension-mountain-bikes`,
-  `cross-country-mountain-bikes`, `trail-mountain-bikes`,
-  `downhill-mountain-bikes`, `e-bikes`, `e-mtb`, `road-electric-bikes`,
-  `gravel-electric-bikes`, `hybrid-electric-bikes`, `kids-bikes`,
-  `kids-electric-bikes`, `balance-bikes`, `hybrid-recreational-bikes`,
-  `lifestyle-recreational-bikes`.
-
-### Crooze — online retailer (`crooze.com.au`)
-
-- **Platform:** Shopify. `/products.json` returns HTTP 200; the `all-bikes`
-  collection has a full bike catalog.
-- **Brands:** XDS, Rocky Mountain, Jamis, BYK, Haro, Progear, Icon, Early Rider.
-- **How to scrape:** `shopify` pipeline, collection-targeted. Catalog is heavy
-  on parts/accessories and also carries scooters — target bike collections only.
-- **Bike collections:** `all-bikes`, `30-off-bikes`, `balance-bikes` (plus
-  per-brand collections). Map/exclude scooter collections
-  (`aztek-scooters`, `alternative-electric-rides`) so non-bikes don't leak in.
+> **Implemented 2026-06-21:** Hendry's (Geelong) and Crooze (Brisbane) — both
+> Shopify — have moved to [Scraped](#1-scraped). Hendry's uses generic
+> `product_type: "Bikes"`, so a new `collection_category_map` field
+> (collection handle → category, takes precedence over `category_map`) was
+> added to the Shopify pipeline to categorise its bikes by curated collection.
 
 ### Cycle Zone Darwin — Darwin (`cyclezonedarwin.shop`)
 

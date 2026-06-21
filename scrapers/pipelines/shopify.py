@@ -157,8 +157,14 @@ async def _scrape_collection(
             except (ValueError, TypeError):
                 product_updated_at = None
 
-            candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
-            category = resolve_category(candidates, config.category_map)
+            # A curated collection handle is a more reliable category signal than
+            # substring-matching generic product_type/tags, so it takes precedence.
+            category = None
+            if config.collection_category_map and collection_handle in config.collection_category_map:
+                category = config.collection_category_map[collection_handle]
+            if category is None:
+                candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
+                category = resolve_category(candidates, config.category_map)
             if category is None:
                 category_skipped += 1
                 logger.debug(
