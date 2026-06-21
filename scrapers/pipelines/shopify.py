@@ -131,6 +131,13 @@ async def _scrape_collection(
         if not products:
             break
 
+        # Some collections return a full page yet keep serving products we've
+        # already seen (since_id cursoring can loop when products aren't id-ordered).
+        # If a page adds nothing new, stop — there's no more data to gather.
+        if all(p.get("handle", "") in seen_handles for p in products):
+            logger.debug("[%s] Page %d added no new products; stopping", config.vendor_name, page)
+            break
+
         for product in products:
             handle = product.get("handle", "")
             if handle in seen_handles:
@@ -157,8 +164,14 @@ async def _scrape_collection(
             except (ValueError, TypeError):
                 product_updated_at = None
 
-            candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
-            category = resolve_category(candidates, config.category_map)
+            # A curated collection handle is a more reliable category signal than
+            # substring-matching generic product_type/tags, so it takes precedence.
+            category = None
+            if config.collection_category_map and collection_handle in config.collection_category_map:
+                category = config.collection_category_map[collection_handle]
+            if category is None:
+                candidates = [product_type.lower(), model_name.lower()] + [t.lower() for t in tags]
+                category = resolve_category(candidates, config.category_map)
             if category is None:
                 category_skipped += 1
                 logger.debug(

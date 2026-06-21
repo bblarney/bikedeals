@@ -1,0 +1,70 @@
+vendor_name: "Hendry's"
+city: "Geelong"
+max_pages: 10
+base_url: "https://hendrys.com.au"
+pipeline: "shopify"
+# Cycling since 1975; stores in Geelong & Ocean Grove.
+# Brands: Specialized, BMC, Trek, Kalkhoff (e-bikes).
+# Every bike has product_type "Bikes" and uninformative tags, so product fields
+# can't categorise. The store's collections ARE cleanly category-named, so we
+# scrape per-collection and let collection_category_map assign the category
+# (it takes precedence over category_map).
+# Order matters: e-bike collections come first so an e-MTB that also appears in
+# mountain-bikes is captured as E-Bike (dedup keeps the first-seen handle).
+collections:
+  - e-bikes
+  - e-mtb
+  - road-electric-bikes
+  - gravel-electric-bikes
+  - hybrid-electric-bikes
+  - kids-electric-bikes
+  - race-road-bikes
+  - endurance-road-bikes
+  - road-bikes
+  - race-gravel-bikes
+  - endurance-gravel-bikes
+  - gravel-bikes
+  - cross-country-mountain-bikes
+  - hardtail-mountain-bikes
+  - dual-suspension-mountain-bikes
+  - trail-mountain-bikes
+  - downhill-mountain-bikes
+  - mountain-bikes
+  - hybrid-recreational-bikes
+  - lifestyle-recreational-bikes
+  - kids-bikes
+  - balance-bikes
+collection_category_map:
+  e-bikes: E-Bike
+  e-mtb: E-Bike
+  road-electric-bikes: E-Bike
+  gravel-electric-bikes: E-Bike
+  hybrid-electric-bikes: E-Bike
+  kids-electric-bikes: E-Bike
+  race-road-bikes: Road
+  endurance-road-bikes: Road
+  road-bikes: Road
+  race-gravel-bikes: Gravel
+  endurance-gravel-bikes: Gravel
+  gravel-bikes: Gravel
+  cross-country-mountain-bikes: Mountain
+  hardtail-mountain-bikes: Mountain
+  dual-suspension-mountain-bikes: Mountain
+  trail-mountain-bikes: Mountain
+  downhill-mountain-bikes: Mountain
+  mountain-bikes: Mountain
+  hybrid-recreational-bikes: Commuter
+  lifestyle-recreational-bikes: Commuter
+  kids-bikes: Commuter
+  balance-bikes: Commuter
+# Fallback for any product/collection not covered above.
+category_map:
+  e-bike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  road: Road
+  hybrid: Commuter
+  commuter: Commuter
+  kids: Commuter

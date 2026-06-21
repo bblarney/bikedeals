@@ -1,0 +1,36 @@
+vendor_name: "Crooze"
+city: "Brisbane"
+collection: all-bikes
+max_pages: 10
+base_url: "https://crooze.com.au"
+pipeline: "shopify"
+# Australian-owned online retailer (Brisbane/Darra warehouse, Gold Coast store).
+# Single curated "all-bikes" collection; product_type is descriptive
+# ("Bikes - Mountain Bikes", "Bikes - Electric Bikes", etc.) so the standard
+# category_map handles it. Brands: XDS, Rocky Mountain, Jamis, BYK, Haro, Icon,
+# Progear, Early Rider. Also sells scooters/parts — excluded by accessory filter
+# and by only scraping the all-bikes collection.
+# Longer keys win (resolve_category sorts longest-first), so
+# "electric mountain bikes" beats "mountain bikes" -> E-Bike.
+category_map:
+  electric mountain bikes: E-Bike
+  electric bikes: E-Bike
+  electric: E-Bike
+  kids bikes: Commuter
+  mountain bikes: Mountain
+  trail bikes: Mountain
+  mountain: Mountain
+  road bikes: Road
+  road: Road
+  gravel bikes: Gravel
+  gravel: Gravel
+  city bikes: Commuter
+  cruisers: Commuter
+  cruiser: Commuter
+  fitness bikes: Commuter
+  fitness: Commuter
+  hybrid: Commuter
+  bmx: Commuter
+  kids: Commuter
+  balance: Commuter
+  city: Commuter
