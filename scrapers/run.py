@@ -2,7 +2,9 @@ import asyncio
 import json
 import logging
 import os
+import random
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,7 +25,16 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-MAX_CONCURRENT_VENDORS = 5
+logger = logging.getLogger(__name__)
+
+# Keep concurrency modest: bursts of parallel requests from one IP trip
+# Cloudflare's bot mitigation, which then challenges (429) the rest of the run.
+# Overridable so it can be tuned without a code change.
+MAX_CONCURRENT_VENDORS = int(os.environ.get("MAX_CONCURRENT_VENDORS", "3"))
+
+# After acquiring a concurrency slot, each vendor waits a random delay in this
+# range before its first request, so the workers don't fire in lockstep.
+VENDOR_STARTUP_JITTER = (0.5, 1.5)
 
 # Quarantine threshold: if >5% of products fail validation we treat the run as
 # corrupt (vendor schema likely changed) and skip the upsert + mark_stale so we
@@ -31,8 +42,45 @@ MAX_CONCURRENT_VENDORS = 5
 QUARANTINE_INVALID_RATIO = 0.05
 
 
+class _LogCollector(logging.Handler):
+    """Captures WARNING+ log records during a run.
+
+    The daily email previously listed only per-vendor *failures*. This lets the
+    summary surface every warning and error that came up (retries, robots.txt
+    skips, category-map misses, validation issues, …) so problems that don't
+    fail a whole vendor are still visible.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self.records: list[tuple[str, str]] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self.records.append((record.levelname, record.getMessage()))
+        except Exception:
+            pass
+
+    def grouped(self) -> list[dict]:
+        """Identical (level, message) lines collapsed to one entry with a count,
+        most frequent first."""
+        counts = Counter(self.records)
+        return [
+            {"level": level, "message": message, "count": n}
+            for (level, message), n in sorted(
+                counts.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1])
+            )
+        ]
+
+
 async def main() -> None:
+    log_collector = _LogCollector()
+    logging.getLogger().addHandler(log_collector)
+
     vendors = load_registry()
+    # Randomise order so the same vendors aren't always the ones scraped first
+    # (and so no vendor is permanently starved if we get throttled mid-run).
+    random.shuffle(vendors)
     logging.info("Loaded %d vendor(s)", len(vendors))
 
     run_start = datetime.now(timezone.utc)
@@ -54,7 +102,12 @@ async def main() -> None:
     ok = failed = total_bikes = 0
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        tasks = {asyncio.ensure_future(scrape_vendor(v, client, sem)): v for v in vendors}
+        tasks = {
+            asyncio.ensure_future(
+                scrape_vendor(v, client, sem, startup_jitter=VENDOR_STARTUP_JITTER)
+            ): v
+            for v in vendors
+        }
 
         for coro in asyncio.as_completed(tasks):
             result = await coro
@@ -95,6 +148,27 @@ async def main() -> None:
                         )
                 continue
 
+            # A scrape that returns zero bikes is never trusted: we can't tell a
+            # genuinely empty shop from a blocked/broken fetch, and running
+            # mark_stale here would flag the vendor's *entire* existing inventory
+            # out-of-stock on a transient failure. Treat it as failed and leave
+            # yesterday's data untouched.
+            if not result.bikes:
+                msg = "scrape returned 0 bikes — treating as failed; existing data kept (mark_stale skipped)"
+                logging.error("[%s] %s", result.vendor_name, msg)
+                failures.append({"vendor": result.vendor_name, "error": msg})
+                failed += 1
+                if SessionLocal:
+                    async with SessionLocal() as session:
+                        await write_scrape_log(
+                            session,
+                            vendor_name=result.vendor_name,
+                            run_at=run_start,
+                            status="empty",
+                            error_msg=msg,
+                        )
+                continue
+
             ok += 1
             if SessionLocal:
                 async with SessionLocal() as session:
@@ -115,6 +189,9 @@ async def main() -> None:
 
     logging.info("Done: %d vendor(s) ok, %d failed, %d total bikes upserted", ok, failed, total_bikes)
 
+    warnings = log_collector.grouped()
+    logging.getLogger().removeHandler(log_collector)
+
     summary = {
         "run_at": run_start.isoformat(),
         "duration_seconds": round(time.monotonic() - run_start_mono, 1),
@@ -123,6 +200,7 @@ async def main() -> None:
         "vendors_failed": failed,
         "total_bikes_upserted": total_bikes,
         "failures": failures,
+        "warnings": warnings,
     }
     Path("scrape_summary.json").write_text(json.dumps(summary, indent=2))
     logging.info("Summary written to scrape_summary.json")

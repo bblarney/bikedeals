@@ -9,6 +9,7 @@ import httpx
 from scrapers.config import SCRAPER_DELAY_RANGE, SCRAPER_USER_AGENT, SHOPIFY_PAGE_SIZE
 from scrapers.models import BikeRecord, VendorConfig, compute_discount, make_bike_id
 from scrapers.utils import (
+    CloudflareChallenge,
     check_robots,
     extract_frame_size,
     get_with_retry,
@@ -122,6 +123,11 @@ async def _scrape_collection(
             resp = await get_with_retry(client, next_url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
+        except CloudflareChallenge:
+            # Not transient and host-wide: abort the whole vendor rather than
+            # hammer the remaining collections. Propagates to scrape_vendor,
+            # which records it as a failure (so the vendor's data is preserved).
+            raise
         except Exception as exc:
             logger.error("[%s] Failed to fetch page %d: %s", config.vendor_name, page, exc)
             break

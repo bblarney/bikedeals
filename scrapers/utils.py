@@ -108,6 +108,37 @@ _OUR_AGENT = "bikegrid-scraper"
 _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
+class CloudflareChallenge(Exception):
+    """Raised when a response is a Cloudflare bot challenge (``cf-mitigated``).
+
+    These come back as 429/403 with a JavaScript "Verifying your connection…"
+    interstitial that an httpx client can't solve. Retrying is pointless and
+    actively harmful: every extra request further degrades our IP reputation,
+    making Cloudflare challenge *more* of our vendors. So we fail fast and let
+    the caller treat the whole vendor as failed (without wiping its data).
+    """
+
+    def __init__(self, url: str, response: httpx.Response):
+        self.url = url
+        self.response = response
+        mitigation = response.headers.get("cf-mitigated", "challenge")
+        super().__init__(
+            f"Cloudflare bot challenge ({mitigation}, HTTP {response.status_code}) for {url} — "
+            "cannot be solved by the scraper; needs a challenge-solving egress (residential "
+            "proxy or scraping API)"
+        )
+
+
+def _is_cloudflare_challenge(resp: httpx.Response) -> bool:
+    """True if the response is a Cloudflare managed/JS challenge, not real data.
+
+    Cloudflare sets the ``cf-mitigated`` response header (value ``challenge`` for
+    a managed challenge) when it interdicts a request. This is the documented,
+    body-free signal, so we don't need to read/parse the HTML interstitial.
+    """
+    return bool(resp.headers.get("cf-mitigated"))
+
+
 async def get_with_retry(
     client: httpx.AsyncClient,
     url: str,
@@ -121,11 +152,16 @@ async def get_with_retry(
     A single transient blip from a vendor shouldn't drop their whole dataset for
     the day. Non-retryable responses (e.g. 404) are returned as-is so the caller
     can decide; the last exception is re-raised if every attempt fails.
+
+    A Cloudflare bot challenge is the exception: it is *not* transient, so we
+    raise :class:`CloudflareChallenge` immediately rather than burning retries.
     """
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
             resp = await client.get(url, headers=headers, follow_redirects=True)
+            if _is_cloudflare_challenge(resp):
+                raise CloudflareChallenge(url, resp)
             if resp.status_code in _RETRYABLE_STATUS:
                 raise httpx.HTTPStatusError(
                     f"retryable status {resp.status_code}", request=resp.request, response=resp

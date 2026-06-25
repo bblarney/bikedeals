@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 
 import httpx
 
@@ -14,9 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 async def scrape_vendor(
-    config: VendorConfig, client: httpx.AsyncClient, sem: asyncio.Semaphore
+    config: VendorConfig,
+    client: httpx.AsyncClient,
+    sem: asyncio.Semaphore,
+    *,
+    startup_jitter: tuple[float, float] = (0.0, 0.0),
 ) -> ScrapeResult:
     async with sem:
+        # Spread vendor start times so the concurrent workers don't fire their
+        # first requests in a synchronised burst, which trips Cloudflare's
+        # per-IP bot mitigation. Off by default so the single-vendor tester
+        # (scrape_check) stays instant.
+        if startup_jitter[1] > 0:
+            await asyncio.sleep(random.uniform(*startup_jitter))
         try:
             if config.pipeline == "shopify":
                 bikes, invalid_count = await scrape_shopify(config, client)

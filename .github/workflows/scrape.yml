@@ -56,6 +56,16 @@ jobs:
                   lines += ["", "Failures:"]
                   for f in s["failures"]:
                       lines.append(f"  - {clean(f['vendor'])}: {clean(f['error'])}")
+
+              # Every warning/error logged during the run, not just the failures
+              # above — so issues that don't sink a whole vendor stay visible.
+              warnings = s.get("warnings", [])
+              if warnings:
+                  lines += ["", f"Warnings & errors ({len(warnings)}):"]
+                  for w in warnings:
+                      count = w.get("count", 1)
+                      suffix = f" (x{count})" if count > 1 else ""
+                      lines.append(f"  - [{clean(w['level'])}] {clean(w['message'])}{suffix}")
               body = "\n".join(lines)
           except Exception as exc:
               # Never fail silently: a corrupt/missing summary still emails the operator.
