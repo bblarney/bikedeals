@@ -4,6 +4,7 @@ import pytest
 
 from scrapers.models import BikeRecord, compute_discount, make_bike_id
 from scrapers.utils import (
+    CloudflareChallenge,
     extract_frame_size,
     get_with_retry,
     parse_drivetrain_groupset,
@@ -124,9 +125,10 @@ def test_bikerecord_rejects_bad_category():
 # --- get_with_retry -----------------------------------------------------------
 
 class _FakeResp:
-    def __init__(self, status_code=200):
+    def __init__(self, status_code=200, headers=None):
         self.status_code = status_code
         self.request = None  # get_with_retry references resp.request on retryable status
+        self.headers = headers or {}
 
 
 class _FlakyClient:
@@ -176,3 +178,19 @@ async def test_get_with_retry_retries_on_5xx_status():
     resp = await get_with_retry(client, "https://x", retries=3)
     assert resp.status_code == 200
     assert client.calls == 3
+
+
+async def test_get_with_retry_fails_fast_on_cloudflare_challenge():
+    """A Cloudflare bot challenge isn't transient: raise immediately, no retries."""
+    class _ChallengeClient:
+        def __init__(self):
+            self.calls = 0
+
+        async def get(self, url, headers=None, follow_redirects=True):
+            self.calls += 1
+            return _FakeResp(429, headers={"cf-mitigated": "challenge"})
+
+    client = _ChallengeClient()
+    with pytest.raises(CloudflareChallenge):
+        await get_with_retry(client, "https://x", retries=3)
+    assert client.calls == 1  # not retried
