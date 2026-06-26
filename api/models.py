@@ -8,6 +8,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -73,12 +74,15 @@ class Bike(Base):
 class ScrapeLog(Base):
     __tablename__ = "scrape_log"
 
+    __table_args__ = (UniqueConstraint("vendor_name", name="uq_scrape_log_vendor"),)
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     vendor_name = Column(Text, nullable=False)
     run_at = Column(DateTime(timezone=True), nullable=False)
-    status = Column(Text, nullable=False)  # 'ok' | 'quarantined' | 'skipped'
+    status = Column(Text, nullable=False)  # 'ok' | 'quarantined' | 'skipped' | 'empty'
     error_msg = Column(Text, nullable=True)
     bikes_upserted = Column(Integer, default=0)
+    last_success_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class Subscriber(Base):

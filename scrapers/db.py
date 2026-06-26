@@ -90,12 +90,27 @@ async def write_scrape_log(
     bikes_upserted: int = 0,
     error_msg: str | None = None,
 ) -> None:
-    log = ScrapeLog(
+    stmt = pg_insert(ScrapeLog).values(
         vendor_name=vendor_name,
         run_at=run_at,
         status=status,
         bikes_upserted=bikes_upserted,
         error_msg=error_msg,
+        last_success_at=run_at if status == "ok" else None,
     )
-    session.add(log)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["vendor_name"],
+        set_={
+            "run_at": stmt.excluded.run_at,
+            "status": stmt.excluded.status,
+            "bikes_upserted": stmt.excluded.bikes_upserted,
+            "error_msg": stmt.excluded.error_msg,
+            # Advance only on success; otherwise preserve prior success time.
+            "last_success_at": case(
+                (stmt.excluded.status == "ok", stmt.excluded.run_at),
+                else_=ScrapeLog.last_success_at,
+            ),
+        },
+    )
+    await session.execute(stmt)
     await session.commit()
