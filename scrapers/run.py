@@ -95,7 +95,13 @@ async def main() -> None:
     SessionLocal = None
     if database_url:
         engine = await get_engine(database_url)
-        await init_db(engine)
+        # On Postgres (prod) Alembic owns the schema — `alembic upgrade head`
+        # runs before this. Calling create_all here is what silently drifts the
+        # DB out of Alembic's tracking: it adds new *tables* but never altered
+        # columns/constraints, so the next model change desyncs prod. Restrict
+        # create_all to SQLite, where it stays a zero-setup dev convenience.
+        if engine.url.get_backend_name() == "sqlite":
+            await init_db(engine)
         SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
     sem = asyncio.Semaphore(MAX_CONCURRENT_VENDORS)
