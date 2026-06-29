@@ -34,6 +34,7 @@ async function post(path, body) {
 
 export const api = {
   getBikes: (params) => request('/api/v1/bikes', params),
+  getBike: (id) => request(`/api/v1/bikes/${encodeURIComponent(id)}`),
   getFilters: (params) => request('/api/v1/meta/filters', params),
   getStats: () => request('/api/v1/meta/stats'),
   recordClick: (id) =>

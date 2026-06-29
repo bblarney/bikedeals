@@ -37,6 +37,40 @@ class PaginatedBikes(BaseModel):
     results: list[BikeResponse]
 
 
+class OfferResponse(BaseModel):
+    bike_id: str
+    vendor_name: str
+    city: str | None
+    frame_size: str
+    price_original: float | None
+    price_sale: float
+    discount_percentage: int
+    in_stock: bool
+    product_url: str
+    last_seen_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class VariantResponse(BaseModel):
+    bike_id: str
+    frame_size: str
+    price_sale: float
+    in_stock: bool
+
+    model_config = {"from_attributes": True}
+
+
+class BikeDetailResponse(BikeResponse):
+    # The same bike, plus one offer per shop that carries the same SKU
+    # (cheapest in-stock variant per shop), sorted cheapest first.
+    offers: list[OfferResponse] = []
+    lowest_price: float | None = None
+    shop_count: int = 0
+    # Other frame sizes of the same model (cheapest listing per size).
+    variants: list[VariantResponse] = []
+
+
 class FiltersResponse(BaseModel):
     categories: list[str]
     cities: list[str]

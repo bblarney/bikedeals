@@ -107,3 +107,73 @@ def test_click_increments_and_404s_for_unknown(client, seed):
     seed(make_bike(id="clickme"))
     assert client.post("/api/v1/bikes/clickme/click").status_code == 204
     assert client.post("/api/v1/bikes/nope/click").status_code == 404
+
+
+def test_bike_detail_404_for_unknown(client):
+    assert client.get("/api/v1/bikes/nope").status_code == 404
+
+
+def test_bike_detail_no_sku_returns_self_offer(client, seed):
+    seed(make_bike(id="solo"))
+    body = client.get("/api/v1/bikes/solo").json()
+    assert body["id"] == "solo"
+    assert body["shop_count"] == 1
+    assert body["lowest_price"] == 1500.0
+    assert len(body["offers"]) == 1
+    assert body["offers"][0]["bike_id"] == "solo"
+
+
+def test_bike_detail_compares_shops_cheapest_first(client, seed):
+    # Same SKU at two shops + a second (pricier) size at the cheaper shop.
+    seed(
+        make_bike(id="a-m", sku="SKU1", vendor_name="Shop A", city="Sydney",
+                  frame_size="M", price_sale=1500.0, product_url="https://x/am"),
+        make_bike(id="a-l", sku="SKU1", vendor_name="Shop A", city="Sydney",
+                  frame_size="L", price_sale=1600.0, product_url="https://x/al"),
+        make_bike(id="b-m", sku="SKU1", vendor_name="Shop B", city="Perth",
+                  frame_size="M", price_sale=1400.0, product_url="https://x/bm"),
+    )
+    body = client.get("/api/v1/bikes/a-m").json()
+    # One row per shop (cheapest variant), sorted cheapest first.
+    assert body["shop_count"] == 2
+    assert body["lowest_price"] == 1400.0
+    assert [o["vendor_name"] for o in body["offers"]] == ["Shop B", "Shop A"]
+    assert [o["price_sale"] for o in body["offers"]] == [1400.0, 1500.0]
+    assert body["sku_vendor_count"] == 2
+
+
+def test_bike_detail_excludes_out_of_stock_offers(client, seed):
+    seed(
+        make_bike(id="in", sku="SKU2", vendor_name="Shop A", city="Sydney",
+                  price_sale=1500.0, product_url="https://x/in"),
+        make_bike(id="out", sku="SKU2", vendor_name="Shop B", city="Perth",
+                  price_sale=1000.0, in_stock=False, product_url="https://x/out"),
+    )
+    body = client.get("/api/v1/bikes/in").json()
+    assert body["shop_count"] == 1
+    assert [o["vendor_name"] for o in body["offers"]] == ["Shop A"]
+
+
+def test_bike_detail_lists_size_variants(client, seed):
+    # Same model in two sizes (+ a pricier duplicate of M at another shop).
+    seed(
+        make_bike(id="m1", model_name="Domane SL5", frame_size="M",
+                  price_sale=1500.0, product_url="https://x/m1"),
+        make_bike(id="l1", model_name="Domane SL5", frame_size="L",
+                  price_sale=1600.0, product_url="https://x/l1"),
+        make_bike(id="m2", model_name="Domane SL5", frame_size="M",
+                  vendor_name="Other Cycles", price_sale=1550.0, product_url="https://x/m2"),
+    )
+    body = client.get("/api/v1/bikes/m1").json()
+    # One entry per size (cheapest), current size included.
+    assert [(v["frame_size"], v["bike_id"]) for v in body["variants"]] == [
+        ("L", "l1"), ("M", "m1"),
+    ]
+
+
+def test_sitemap_lists_bike_urls(client, seed):
+    seed(make_bike(id="mapme"))
+    r = client.get("/sitemap.xml")
+    assert r.status_code == 200
+    assert "application/xml" in r.headers["content-type"]
+    assert "/bikes/mapme" in r.text

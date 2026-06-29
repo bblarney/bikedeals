@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from urllib.parse import quote
+from xml.sax.saxutils import escape as xml_escape
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
@@ -22,13 +23,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db import get_db, get_engine
 from api.models import Base, Bike, ScrapeLog, Subscriber
 from api.schemas import (
+    BikeDetailResponse,
     BikeResponse,
     FiltersResponse,
     MessageResponse,
+    OfferResponse,
     PaginatedBikes,
     StatsResponse,
     SubscribeRequest,
     UnsubscribeRequest,
+    VariantResponse,
 )
 
 logging.basicConfig(
@@ -53,6 +57,13 @@ def _apply_affiliate_url(vendor_name: str, product_url: str) -> str:
     return product_url
 
 
+# A shop is a (vendor_name, city) pair: vendor_name alone is not unique because
+# chain stores (e.g. Giant) share a name across cities. Used for both the
+# per-SKU shop count and the cross-shop offers list.
+def _shop_key():
+    return Bike.vendor_name + "|||" + func.coalesce(Bike.city, "")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # create_all is an idempotent dev/bootstrap convenience. Schema *changes* in
@@ -67,6 +78,9 @@ app = FastAPI(title="BikeGrid API", version="1.0", lifespan=lifespan)
 
 _default_origins = "https://bikegrid.com.au,https://www.bikegrid.com.au"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
+
+# Public site origin (the frontend), used to build absolute sitemap URLs.
+SITE_URL = os.getenv("SITE_URL", "https://bikegrid.com.au").rstrip("/")
 
 app.add_middleware(
     CORSMiddleware,
@@ -196,13 +210,12 @@ async def get_bikes(
     offset: int = Query(default=0, ge=0),
 ):
     # Single GROUP BY: count distinct (vendor_name, city) pairs per SKU.
-    # vendor_name alone is not unique — chain stores (e.g. Giant) share a name across cities.
-    _shop_key = Bike.vendor_name + "|||" + func.coalesce(Bike.city, "")
+    shop_key = _shop_key()
     sku_counts_q = (
-        select(Bike.sku, func.count(distinct(_shop_key)).label("cnt"))
+        select(Bike.sku, func.count(distinct(shop_key)).label("cnt"))
         .where(Bike.sku.isnot(None), Bike.sku != "", Bike.in_stock == True)  # noqa: E712
         .group_by(Bike.sku)
-        .having(func.count(distinct(_shop_key)) >= 2)
+        .having(func.count(distinct(shop_key)) >= 2)
     )
     sku_counts_r = await db.execute(sku_counts_q)
     sku_vendor_counts: dict[str, int] = {row.sku: row.cnt for row in sku_counts_r.all()}
@@ -235,6 +248,90 @@ async def get_bikes(
 
     response.headers["Cache-Control"] = CACHE_BIKES
     return PaginatedBikes(total=total, limit=limit, offset=offset, results=results)
+
+
+@app.get("/api/v1/bikes/{bike_id}", response_model=BikeDetailResponse)
+@limiter.limit("120/minute")
+async def get_bike(
+    request: Request,
+    response: Response,
+    bike_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    primary = await db.get(Bike, bike_id)
+    if primary is None:
+        raise HTTPException(status_code=404, detail="Bike not found")
+
+    # Cross-shop offers: every in-stock listing of the same SKU, collapsed to the
+    # cheapest variant per shop. No SKU → the bike stands alone.
+    if primary.sku:
+        rows = await db.execute(
+            select(Bike)
+            .where(Bike.sku == primary.sku, Bike.in_stock == True)  # noqa: E712
+            .order_by(Bike.price_sale.asc())
+        )
+        candidates = rows.scalars().all()
+    else:
+        candidates = [primary] if primary.in_stock else []
+
+    # Rows arrive price-ascending, so the first row seen per shop is its cheapest.
+    cheapest_per_shop: dict[tuple[str, str], Bike] = {}
+    for b in candidates:
+        key = (b.vendor_name, b.city or "")
+        if key not in cheapest_per_shop:
+            cheapest_per_shop[key] = b
+
+    offers = [
+        OfferResponse(
+            bike_id=b.id,
+            vendor_name=b.vendor_name,
+            city=b.city,
+            frame_size=b.frame_size,
+            price_original=b.price_original,
+            price_sale=b.price_sale,
+            discount_percentage=b.discount_percentage,
+            in_stock=b.in_stock,
+            product_url=_apply_affiliate_url(b.vendor_name, b.product_url),
+            last_seen_at=b.last_seen_at,
+        )
+        for b in sorted(cheapest_per_shop.values(), key=lambda x: x.price_sale)
+    ]
+
+    # Other frame sizes of the same model, cheapest listing per size.
+    var_rows = await db.execute(
+        select(Bike)
+        .where(
+            Bike.brand == primary.brand,
+            Bike.model_name == primary.model_name,
+            Bike.in_stock == True,  # noqa: E712
+        )
+        .order_by(Bike.price_sale.asc())
+    )
+    cheapest_per_size: dict[str, Bike] = {}
+    for b in var_rows.scalars().all():
+        if b.frame_size not in cheapest_per_size:
+            cheapest_per_size[b.frame_size] = b
+    variants = [
+        VariantResponse(
+            bike_id=b.id,
+            frame_size=b.frame_size,
+            price_sale=b.price_sale,
+            in_stock=b.in_stock,
+        )
+        for b in sorted(cheapest_per_size.values(), key=lambda x: x.frame_size or "")
+    ]
+
+    detail = BikeDetailResponse.model_validate(primary)
+    detail.sku = primary.sku
+    detail.product_url = _apply_affiliate_url(primary.vendor_name, primary.product_url)
+    detail.offers = offers
+    detail.shop_count = len(offers)
+    detail.lowest_price = offers[0].price_sale if offers else primary.price_sale
+    detail.sku_vendor_count = len(offers) if len(offers) >= 2 else 0
+    detail.variants = variants
+
+    response.headers["Cache-Control"] = CACHE_BIKES
+    return detail
 
 
 @app.post("/api/v1/bikes/{bike_id}/click", status_code=204)
@@ -400,4 +497,44 @@ async def get_stats(
         shops_tracked=shops_r.scalar_one() or 0,
         biggest_discount=biggest_discount_r.scalar_one() or 0,
         avg_discount=int(avg_discount_r.scalar_one() or 0),
+    )
+
+
+@app.get("/sitemap.xml")
+@limiter.limit("30/minute")
+async def sitemap(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    # One <url> per in-stock bike detail page so Google can discover them, plus
+    # the core landing pages. Without this the detail pages never get crawled.
+    rows = await db.execute(
+        select(Bike.id, Bike.last_seen_at)
+        .where(Bike.in_stock == True)  # noqa: E712
+        .order_by(Bike.last_seen_at.desc())
+    )
+
+    def url_entry(loc: str, lastmod: datetime | None = None) -> str:
+        parts = [f"<loc>{xml_escape(loc)}</loc>"]
+        if lastmod is not None:
+            parts.append(f"<lastmod>{lastmod.date().isoformat()}</lastmod>")
+        return f"<url>{''.join(parts)}</url>"
+
+    entries = [url_entry(f"{SITE_URL}/")]
+    entries.extend(
+        url_entry(f"{SITE_URL}/bikes/{bike_id}", last_seen_at)
+        for bike_id, last_seen_at in rows.all()
+    )
+
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{''.join(entries)}"
+        "</urlset>"
+    )
+    return Response(
+        content=body,
+        media_type="application/xml",
+        headers={"Cache-Control": "max-age=3600"},
     )

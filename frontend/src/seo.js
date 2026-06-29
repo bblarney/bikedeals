@@ -47,3 +47,53 @@ export function buildPageMeta(params) {
     canonical: canonicalFor('/'),
   }
 }
+
+export function buildBikeMeta(bike) {
+  const name = `${bike.brand} ${bike.model_name}`.trim()
+  const size = bike.frame_size ? ` ${bike.frame_size}` : ''
+  const price = Math.round(bike.price_sale)
+  const where = [bike.vendor_name, bike.city].filter(Boolean).join(', ')
+  const off = bike.discount_percentage > 0 ? `${bike.discount_percentage}% off — ` : ''
+  return {
+    title: `${name}${size} — $${price} at ${bike.vendor_name} · BikeGrid`,
+    description: `${off}${name}${size} for $${price}${where ? ` at ${where}` : ''}. Compare prices across local Australian bike shops on BikeGrid.`,
+    canonical: canonicalFor(`/bikes/${bike.id}`),
+  }
+}
+
+// Schema.org Product + AggregateOffer for rich Google results. Built from the
+// detail endpoint's cross-shop `offers` list.
+export function buildBikeJsonLd(bike) {
+  const offers = bike.offers ?? []
+  const prices = offers.map((o) => o.price_sale)
+  const node = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    name: `${bike.brand} ${bike.model_name}`.trim(),
+    brand: { '@type': 'Brand', name: bike.brand },
+    category: bike.category,
+    url: canonicalFor(`/bikes/${bike.id}`),
+  }
+  if (bike.image_url) node.image = bike.image_url
+  if (offers.length >= 2) {
+    node.offers = {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'AUD',
+      lowPrice: Math.min(...prices),
+      highPrice: Math.max(...prices),
+      offerCount: offers.length,
+      availability: 'https://schema.org/InStock',
+    }
+  } else {
+    node.offers = {
+      '@type': 'Offer',
+      priceCurrency: 'AUD',
+      price: bike.price_sale,
+      availability: bike.in_stock
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      url: bike.product_url,
+    }
+  }
+  return node
+}

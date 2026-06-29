@@ -1,8 +1,8 @@
 import { memo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+import { recencyFlags } from '../lib/badges'
 
 // Image and product URLs come from scraped third-party data. Only trust http(s)
 // sources (defence-in-depth against javascript:/data: and other schemes).
@@ -16,7 +16,7 @@ function isHttpUrl(value) {
   }
 }
 
-const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {}, onSkuFilter = () => {} }) {
+const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {} }) {
   const {
     brand,
     model_name,
@@ -29,39 +29,35 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     city,
     product_url,
     image_url,
-    scraped_at,
-    price_drop_at,
-    discount_started_at,
     frame_material,
     drivetrain_groupset,
     sku,
     sku_vendor_count,
   } = bike
 
+  const navigate = useNavigate()
   const safeImageUrl = isHttpUrl(image_url) ? image_url : null
   const safeProductUrl = isHttpUrl(product_url) ? product_url : null
   const saving = price_original ? Math.round(price_original - price_sale) : null
   const bigDeal = discount_percentage >= 30
-  const cutoff = Date.now() - SEVEN_DAYS_MS
-  const isNew = scraped_at && new Date(scraped_at).getTime() > cutoff
-  const isPriceDrop = price_drop_at && new Date(price_drop_at).getTime() > cutoff
-  const isNewDiscount = discount_started_at && new Date(discount_started_at).getTime() > cutoff
+  const { isPriceDrop, isNewDiscount, isNew } = recencyFlags(bike)
   const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
     ? model_name.slice(brand.length).trim()
     : model_name
 
-  function openDeal() {
-    if (!safeProductUrl) return
-    api.recordClick(bike.id)
-    window.open(safeProductUrl, '_blank', 'noopener,noreferrer')
+  // The card body opens the detail / comparison page. Outbound shop links live
+  // on the explicit "View deal" button (and the detail page CTAs), which record
+  // the click; navigating to details is not an outbound click, so we don't.
+  function openDetails() {
+    navigate(`/bikes/${bike.id}`)
   }
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={openDeal}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDeal() } }}
+      onClick={openDetails}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails() } }}
       className={`group bg-white rounded-xl border overflow-hidden transition-all duration-150 flex flex-col cursor-pointer ${
         isPinned
           ? 'saved-glow'
@@ -104,12 +100,12 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
                 ↓ Price drop
               </span>
             )}
-            {isNewDiscount && !isPriceDrop && (
+            {isNewDiscount && (
               <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
                 New sale
               </span>
             )}
-            {isNew && !isPriceDrop && !isNewDiscount && (
+            {isNew && (
               <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
                 New
               </span>
@@ -142,10 +138,14 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           />
         </div>
 
-        {/* Name */}
-        <p className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug">
+        {/* Name — links to the detail / price-comparison page */}
+        <Link
+          to={`/bikes/${bike.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug hover:text-orange-600"
+        >
           {brand} {displayModel}
-        </p>
+        </Link>
 
         {/* Price — the hero */}
         <div className="mt-2 flex items-baseline gap-2">
@@ -188,12 +188,13 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
             </svg>
           </a>
           {sku && sku_vendor_count >= 2 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onSkuFilter(sku) }}
+            <Link
+              to={`/bikes/${bike.id}`}
+              onClick={(e) => e.stopPropagation()}
               className="flex items-center justify-center w-full mt-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
             >
-              Show at {sku_vendor_count} shop{sku_vendor_count !== 1 ? 's' : ''}
-            </button>
+              Compare {sku_vendor_count} shop{sku_vendor_count !== 1 ? 's' : ''}
+            </Link>
           )}
         </div>
       </div>
