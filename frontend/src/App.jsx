@@ -18,6 +18,7 @@ import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import UnsubscribePage from './pages/UnsubscribePage'
 import LandingPage from './pages/LandingPage'
+import BikeDetailPage from './pages/BikeDetailPage'
 
 function MainLayout() {
   const params = useBikeParams()
@@ -100,7 +101,6 @@ function MainLayout() {
             newToday={statsData?.new_today}
             params={params}
             onUpdate={params.update}
-            onSkuFilter={params.filterBySku}
             pinnedBikes={pinnedBikes}
             pinnedIds={pinnedIds}
             onTogglePin={togglePin}
@@ -127,6 +127,7 @@ export default function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<MainLayout />} />
+          <Route path="/bikes/:id" element={<StaticLayout><BikeDetailPage /></StaticLayout>} />
           <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
           <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
           <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />

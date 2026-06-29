@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { formatTimeAgo } from '../lib/time'
 
 export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) {
   const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
@@ -56,11 +57,4 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
       )}
     </header>
   )
-}
-
-function formatTimeAgo(date) {
-  const diff = (Date.now() - date.getTime()) / 1000
-  if (diff < 3600) return `${Math.round(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.round(diff / 3600)}h ago`
-  return `${Math.round(diff / 86400)}d ago`
 }
