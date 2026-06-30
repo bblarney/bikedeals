@@ -57,8 +57,9 @@ export default function PrivacyPage() {
               and performance.
             </li>
             <li>
-              We do not build individual user profiles, serve targeted advertising, or sell any
-              personal data.
+              We display ads through Google AdSense (see Third-party services below), which may use
+              cookies to serve relevant ads. We ourselves do not build individual user profiles or
+              sell any personal data.
             </li>
           </ul>
         </section>
@@ -75,10 +76,24 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-base font-semibold text-slate-800 mb-2">5. Third-party services</h2>
-          <p>
+          <p className="mb-3">
             BikeGrid may use third-party tools such as analytics platforms and hosting providers.
             These services may collect usage data in accordance with their own privacy policies.
             We select providers that meet reasonable data protection standards.
+          </p>
+          <p>
+            <strong>Advertising:</strong> BikeGrid uses Google AdSense to display ads. Google and its
+            partners may set and read cookies on your device to serve and measure ads, including ads
+            based on your prior visits to this and other websites. You can learn how Google uses this
+            data and manage your ad preferences at{' '}
+            <a
+              href="https://policies.google.com/technologies/ads"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-600 hover:underline"
+            >
+              policies.google.com/technologies/ads
+            </a>.
           </p>
         </section>
 
