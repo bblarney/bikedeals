@@ -21,7 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db import get_db, get_engine
-from api.models import Base, Bike, ScrapeLog, Subscriber
+from api.models import Base, Bike, PriceEvent, ScrapeLog, Subscriber
 from api.schemas import (
     BikeDetailResponse,
     BikeResponse,
@@ -29,6 +29,7 @@ from api.schemas import (
     MessageResponse,
     OfferResponse,
     PaginatedBikes,
+    PricePoint,
     StatsResponse,
     SubscribeRequest,
     UnsubscribeRequest,
@@ -332,6 +333,28 @@ async def get_bike(
 
     response.headers["Cache-Control"] = CACHE_BIKES
     return detail
+
+
+@app.get("/api/v1/bikes/{bike_id}/price-history", response_model=list[PricePoint])
+@limiter.limit("120/minute")
+async def get_price_history(
+    request: Request,
+    response: Response,
+    bike_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    # 404 on an unknown bike so the chart can distinguish "no such deal" from
+    # "deal with no recorded changes yet" (mirrors get_bike).
+    if await db.get(Bike, bike_id) is None:
+        raise HTTPException(status_code=404, detail="Bike not found")
+
+    rows = await db.execute(
+        select(PriceEvent)
+        .where(PriceEvent.bike_id == bike_id)
+        .order_by(PriceEvent.observed_at.asc())
+    )
+    response.headers["Cache-Control"] = CACHE_BIKES
+    return list(rows.scalars().all())
 
 
 @app.post("/api/v1/bikes/{bike_id}/click", status_code=204)

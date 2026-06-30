@@ -12,7 +12,14 @@ import httpx
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from scrapers.db import get_engine, init_db, mark_stale, upsert_bikes, write_scrape_log
+from scrapers.db import (
+    get_engine,
+    init_db,
+    mark_stale,
+    prune_price_events,
+    upsert_bikes,
+    write_scrape_log,
+)
 from scrapers.orchestrator import scrape_vendor
 from scrapers.registry import load_registry
 
@@ -40,6 +47,11 @@ VENDOR_STARTUP_JITTER = (0.5, 1.5)
 # corrupt (vendor schema likely changed) and skip the upsert + mark_stale so we
 # don't poison the DB. The vendor stays unchanged until someone fixes it.
 QUARANTINE_INVALID_RATIO = 0.05
+
+# Price history is stored as change-events (one row per first-seen / price
+# change). Old events are pruned daily so the table stays flat under the
+# free-tier storage cap. Overridable without a code change.
+PRICE_EVENT_RETENTION_DAYS = int(os.environ.get("PRICE_EVENT_RETENTION_DAYS", "365"))
 
 
 class _LogCollector(logging.Handler):
@@ -189,6 +201,16 @@ async def main() -> None:
                     )
                 total_bikes += count
                 logging.info("[%s] Upserted %d bikes", result.vendor_name, count)
+
+    if SessionLocal:
+        async with SessionLocal() as session:
+            removed = await prune_price_events(session, PRICE_EVENT_RETENTION_DAYS)
+        if removed:
+            logging.info(
+                "Pruned %d price event(s) older than %d days",
+                removed,
+                PRICE_EVENT_RETENTION_DAYS,
+            )
 
     if engine:
         await engine.dispose()

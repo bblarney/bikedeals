@@ -95,3 +95,26 @@ class Subscriber(Base):
     email = Column(Text, nullable=False, unique=True)
     token = Column(Text, nullable=False, unique=True)
     subscribed_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class PriceEvent(Base):
+    """Change-events for a listing's sale price.
+
+    One row is appended only when a bike is first seen or its sale price
+    changes (see ``scrapers/db.upsert_bikes``) — not a daily snapshot — so the
+    table stays small enough for the free-tier storage cap while still backing a
+    real price-history timeline on the detail page.
+    """
+
+    __tablename__ = "price_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    bike_id = Column(Text, nullable=False)  # references bikes.id (no hard FK, per existing style)
+    price_sale = Column(Float, nullable=False)
+    price_original = Column(Float, nullable=True)
+    observed_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        # Per-bike, time-ordered fetch for the price-history endpoint.
+        Index("idx_price_events_bike_observed", "bike_id", "observed_at"),
+    )

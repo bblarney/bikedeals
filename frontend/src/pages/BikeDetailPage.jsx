@@ -9,6 +9,7 @@ import { usePins } from '../hooks/usePins'
 import { useStats } from '../hooks/useStats'
 import { buildBikeMeta, buildBikeJsonLd } from '../seo'
 import RelatedBikes from '../components/RelatedBikes'
+import PriceHistoryChart from '../components/PriceHistoryChart'
 
 // Only trust http(s) URLs from scraped third-party data.
 function isHttpUrl(value) {
@@ -266,6 +267,9 @@ export default function BikeDetailPage() {
           <ShareRow url={meta.canonical} title={`${bike.brand} ${displayModel} — $${bike.price_sale.toFixed(0)}`} />
         </div>
       </div>
+
+      {/* Price history — change-events charted over time */}
+      <PriceHistoryChart id={bike.id} bike={bike} />
 
       {/* Cross-shop comparison — always shown for consistency, even at 1 shop */}
       {bike.offers && bike.offers.length >= 1 && (

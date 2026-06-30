@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import case, update
+from sqlalchemy import case, delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from api.models import Base, Bike, ScrapeLog
+from api.models import Base, Bike, PriceEvent, ScrapeLog
 from scrapers.models import BikeRecord
 
 
@@ -20,12 +20,44 @@ async def init_db(engine) -> None:
 _CHUNK_SIZE = 1000
 
 
+def price_event_rows(
+    records: list[BikeRecord], prior: dict[str, float]
+) -> list[dict]:
+    """Pick the records that warrant a new price change-event.
+
+    A record qualifies if it is new (``prior`` miss — a seed anchor point) or
+    its sale price moved. Prices are compared in whole cents so float wobble
+    never registers as a change.
+    """
+    return [
+        {
+            "bike_id": r.id,
+            "price_sale": r.price_sale,
+            "price_original": r.price_original,
+            "observed_at": r.last_seen_at,
+        }
+        for r in records
+        if r.id not in prior
+        or round(r.price_sale * 100) != round(prior[r.id] * 100)
+    ]
+
+
 async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
     if not records:
         return 0
     deduped = list({r.id: r for r in records}.values())
     for i in range(0, len(deduped), _CHUNK_SIZE):
         chunk = deduped[i : i + _CHUNK_SIZE]
+
+        # Capture stored sale prices *before* the upsert overwrites them, so we
+        # can tell which listings are new or have actually changed price.
+        prior_rows = await session.execute(
+            select(Bike.id, Bike.price_sale).where(
+                Bike.id.in_([r.id for r in chunk])
+            )
+        )
+        prior = dict(prior_rows.all())
+
         stmt = pg_insert(Bike).values([r.model_dump() for r in chunk])
         stmt = stmt.on_conflict_do_update(
             index_elements=["id"],
@@ -67,8 +99,28 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
             },
         )
         await session.execute(stmt)
+
+        # Append a price change-event for each new/changed listing. Only
+        # currently-scraped listings get events, so the table grows with real
+        # price activity rather than as a daily snapshot.
+        events = price_event_rows(chunk, prior)
+        if events:
+            await session.execute(pg_insert(PriceEvent).values(events))
     await session.commit()
     return len(deduped)
+
+
+async def prune_price_events(session: AsyncSession, max_age_days: int) -> int:
+    """Delete price events older than ``max_age_days`` to keep the table flat.
+
+    Returns the number of rows removed.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+    result = await session.execute(
+        delete(PriceEvent).where(PriceEvent.observed_at < cutoff)
+    )
+    await session.commit()
+    return result.rowcount or 0
 
 
 async def mark_stale(
