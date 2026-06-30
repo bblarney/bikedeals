@@ -22,6 +22,7 @@ dist/
 # Scraper output
 output.json
 *_sample.json
+scrape_summary.json
 
 # Vite cache
 frontend/.vite/
