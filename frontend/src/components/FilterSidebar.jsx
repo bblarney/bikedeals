@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
+import SidebarAd from './SidebarAd'
 import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
@@ -244,7 +245,9 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           </div>
         </FilterSection>
 
-
+        {/* Only mount the ad when the sidebar is actually shown — a responsive
+            unit pushed at 0 width (desktop-collapsed) stays permanently blank. */}
+        {!desktopCollapsed && <SidebarAd />}
       </div>
     </aside>
     </>
