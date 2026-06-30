@@ -28,7 +28,7 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
 
       {params && (
         <>
-          <div className="flex-1 flex items-center min-w-0">
+          <div className="flex-1 flex items-center justify-center min-w-0">
             <div className="relative w-full max-w-md">
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
