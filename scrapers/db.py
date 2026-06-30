@@ -20,26 +20,43 @@ async def init_db(engine) -> None:
 _CHUNK_SIZE = 1000
 
 
+def _cents(value: float | None) -> int | None:
+    """Whole-cent form of a price, or ``None`` when there's no price.
+
+    Comparing in whole cents stops float representation noise from registering
+    as a change; keeping ``None`` distinct means an RRP appearing or
+    disappearing also counts as a change.
+    """
+    return None if value is None else round(value * 100)
+
+
 def price_event_rows(
-    records: list[BikeRecord], prior: dict[str, float]
+    records: list[BikeRecord], prior: dict[str, tuple[float, float | None]]
 ) -> list[dict]:
     """Pick the records that warrant a new price change-event.
 
     A record qualifies if it is new (``prior`` miss — a seed anchor point) or
-    its sale price moved. Prices are compared in whole cents so float wobble
-    never registers as a change.
+    if either its sale price or its original/RRP price moved. The RRP matters
+    because the price-history chart draws it as its own line, so an RRP change
+    on an otherwise-steady sale price must still be recorded.
     """
-    return [
-        {
-            "bike_id": r.id,
-            "price_sale": r.price_sale,
-            "price_original": r.price_original,
-            "observed_at": r.last_seen_at,
-        }
-        for r in records
-        if r.id not in prior
-        or round(r.price_sale * 100) != round(prior[r.id] * 100)
-    ]
+    rows = []
+    for r in records:
+        if r.id in prior:
+            prior_sale, prior_original = prior[r.id]
+            if _cents(r.price_sale) == _cents(prior_sale) and _cents(
+                r.price_original
+            ) == _cents(prior_original):
+                continue
+        rows.append(
+            {
+                "bike_id": r.id,
+                "price_sale": r.price_sale,
+                "price_original": r.price_original,
+                "observed_at": r.last_seen_at,
+            }
+        )
+    return rows
 
 
 async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
@@ -49,14 +66,15 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
     for i in range(0, len(deduped), _CHUNK_SIZE):
         chunk = deduped[i : i + _CHUNK_SIZE]
 
-        # Capture stored sale prices *before* the upsert overwrites them, so we
-        # can tell which listings are new or have actually changed price.
+        # Capture stored prices *before* the upsert overwrites them, so we can
+        # tell which listings are new or have actually changed price (sale or
+        # RRP).
         prior_rows = await session.execute(
-            select(Bike.id, Bike.price_sale).where(
+            select(Bike.id, Bike.price_sale, Bike.price_original).where(
                 Bike.id.in_([r.id for r in chunk])
             )
         )
-        prior = dict(prior_rows.all())
+        prior = {row.id: (row.price_sale, row.price_original) for row in prior_rows}
 
         stmt = pg_insert(Bike).values([r.model_dump() for r in chunk])
         stmt = stmt.on_conflict_do_update(
