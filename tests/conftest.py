@@ -20,7 +20,7 @@ from sqlalchemy import create_engine, delete
 from sqlalchemy.orm import Session
 
 import api.main as main_module
-from api.models import Bike, ScrapeLog, Subscriber
+from api.models import Bike, PriceEvent, ScrapeLog, Subscriber
 
 _SYNC_URL = f"sqlite:///./{TEST_DB_FILE}"
 
@@ -56,7 +56,7 @@ def sync_engine(client):
 def clean_db(sync_engine):
     """Empty all tables before each test for isolation."""
     with Session(sync_engine) as s:
-        for model in (Bike, Subscriber, ScrapeLog):
+        for model in (Bike, Subscriber, ScrapeLog, PriceEvent):
             s.execute(delete(model))
         s.commit()
     yield

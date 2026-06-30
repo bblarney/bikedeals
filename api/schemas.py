@@ -71,6 +71,14 @@ class BikeDetailResponse(BikeResponse):
     variants: list[VariantResponse] = []
 
 
+class PricePoint(BaseModel):
+    observed_at: datetime
+    price_sale: float
+    price_original: float | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class FiltersResponse(BaseModel):
     categories: list[str]
     cities: list[str]

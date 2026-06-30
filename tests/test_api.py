@@ -1,8 +1,10 @@
 """Endpoint tests for the BikeGrid API (hardened contract)."""
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from api.models import Subscriber
+from api.models import PriceEvent, Subscriber
 from tests.conftest import make_bike
 
 
@@ -169,6 +171,34 @@ def test_bike_detail_lists_size_variants(client, seed):
     assert [(v["frame_size"], v["bike_id"]) for v in body["variants"]] == [
         ("L", "l1"), ("M", "m1"),
     ]
+
+
+def test_price_history_404_for_unknown(client):
+    assert client.get("/api/v1/bikes/nope/price-history").status_code == 404
+
+
+def test_price_history_empty_for_bike_without_events(client, seed):
+    seed(make_bike(id="noevents"))
+    r = client.get("/api/v1/bikes/noevents/price-history")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+def test_price_history_returns_points_ascending(client, seed, sync_engine):
+    seed(make_bike(id="tracked"))
+    now = datetime.now(timezone.utc)
+    with Session(sync_engine) as s:
+        # Insert out of chronological order to prove the endpoint sorts.
+        s.add_all([
+            PriceEvent(bike_id="tracked", price_sale=1400.0, price_original=2000.0,
+                       observed_at=now),
+            PriceEvent(bike_id="tracked", price_sale=2000.0, price_original=2000.0,
+                       observed_at=now - timedelta(days=10)),
+        ])
+        s.commit()
+    body = client.get("/api/v1/bikes/tracked/price-history").json()
+    assert [p["price_sale"] for p in body] == [2000.0, 1400.0]
+    assert body[0]["price_original"] == 2000.0
 
 
 def test_sitemap_lists_bike_urls(client, seed):
