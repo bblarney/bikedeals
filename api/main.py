@@ -67,11 +67,15 @@ def _shop_key():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # create_all is an idempotent dev/bootstrap convenience. Schema *changes* in
-    # production are managed by Alembic (`alembic upgrade head`); see migrations/.
+    # create_all is a zero-setup dev convenience only. On Postgres (prod) Alembic
+    # owns the schema (`alembic upgrade head`); calling create_all there silently
+    # creates new *tables* outside Alembic's tracking, so the next migration that
+    # tries to create the same table fails with DuplicateTableError. Restrict it
+    # to SQLite — mirrors scrapers/run.py. See migrations/.
     engine = get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if engine.url.get_backend_name() == "sqlite":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     yield
 
 
