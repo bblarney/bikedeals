@@ -43,6 +43,15 @@ MAX_CONCURRENT_VENDORS = int(os.environ.get("MAX_CONCURRENT_VENDORS", "3"))
 # range before its first request, so the workers don't fire in lockstep.
 VENDOR_STARTUP_JITTER = (0.5, 1.5)
 
+# When run as one shard of a matrix (see .github/workflows/scrape.yml), only
+# scrape every SHARD_COUNT-th vendor. Each shard is a separate GitHub Actions
+# job, so it draws its own runner IP — this spreads our request volume across
+# several IPs instead of exhausting one Cloudflare/Shopify-flagged IP's
+# reputation on all ~68 vendors in a single job. Defaults (0/1) mean "no
+# sharding, scrape everything", so local/dev runs are unaffected.
+SHARD_INDEX = int(os.environ.get("SHARD_INDEX", "0"))
+SHARD_COUNT = int(os.environ.get("SHARD_COUNT", "1"))
+
 # Quarantine threshold: if >5% of products fail validation we treat the run as
 # corrupt (vendor schema likely changed) and skip the upsert + mark_stale so we
 # don't poison the DB. The vendor stays unchanged until someone fixes it.
@@ -89,11 +98,22 @@ async def main() -> None:
     log_collector = _LogCollector()
     logging.getLogger().addHandler(log_collector)
 
-    vendors = load_registry()
+    all_vendors = load_registry()
+    vendors = (
+        [v for i, v in enumerate(all_vendors) if i % SHARD_COUNT == SHARD_INDEX]
+        if SHARD_COUNT > 1
+        else all_vendors
+    )
     # Randomise order so the same vendors aren't always the ones scraped first
     # (and so no vendor is permanently starved if we get throttled mid-run).
     random.shuffle(vendors)
-    logging.info("Loaded %d vendor(s)", len(vendors))
+    if SHARD_COUNT > 1:
+        logging.info(
+            "Loaded %d vendor(s) total; shard %d/%d assigned %d",
+            len(all_vendors), SHARD_INDEX, SHARD_COUNT, len(vendors),
+        )
+    else:
+        logging.info("Loaded %d vendor(s)", len(vendors))
 
     run_start = datetime.now(timezone.utc)
     run_start_mono = time.monotonic()
@@ -202,7 +222,9 @@ async def main() -> None:
                 total_bikes += count
                 logging.info("[%s] Upserted %d bikes", result.vendor_name, count)
 
-    if SessionLocal:
+    # Only one shard prunes — it's a table-wide sweep, not per-vendor, so every
+    # shard doing it would be redundant (idempotent, but needless DB load).
+    if SessionLocal and SHARD_INDEX == 0:
         async with SessionLocal() as session:
             removed = await prune_price_events(session, PRICE_EVENT_RETENTION_DAYS)
         if removed:

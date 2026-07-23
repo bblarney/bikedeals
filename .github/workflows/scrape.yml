@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  scrape:
+  migrate:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,28 +25,109 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: alembic upgrade head
 
-      - name: Run scrapers
+  scrape:
+    needs: migrate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Split vendors across independent jobs so each draws its own GitHub
+      # Actions runner IP instead of one job burning through all ~68 vendors
+      # from a single IP whose reputation degrades with Cloudflare/Shopify's
+      # bot mitigation partway through. Keep SHARD_COUNT below in sync with
+      # the length of this list.
+      matrix:
+        shard: [0, 1, 2, 3]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scrapers (shard ${{ matrix.shard }})
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_COUNT: 4
         run: python -m scrapers.run
 
-      - name: Format email
+      - name: Upload shard summary
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-summary-${{ matrix.shard }}
+          path: scrape_summary.json
+          retention-days: 1
+          if-no-files-found: warn
+
+  notify:
+    needs: scrape
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download shard summaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: scrape-summary-*
+          path: summaries
+
+      - name: Merge shard summaries + format email
         id: format
         run: |
           python - <<'PYEOF'
           import json, os, pathlib
+          from collections import Counter
 
           def clean(value):
               # Collapse any newlines/control chars: they would break the
               # single-line GITHUB_OUTPUT format and the email subject.
               return " ".join(str(value).split())
 
-          p = pathlib.Path("scrape_summary.json")
+          summary_files = sorted(pathlib.Path("summaries").glob("*/scrape_summary.json"))
           try:
-              if not p.exists():
-                  raise FileNotFoundError("scrape_summary.json was not written")
-              s = json.loads(p.read_text())
+              if not summary_files:
+                  raise FileNotFoundError("no shard summaries were found")
+
+              # Combine every shard's scrape_summary.json into one report, as if
+              # a single job had scraped all vendors.
+              merged = {
+                  "run_at": None,
+                  "duration_seconds": 0.0,
+                  "vendors_total": 0,
+                  "vendors_ok": 0,
+                  "vendors_failed": 0,
+                  "total_bikes_upserted": 0,
+                  "failures": [],
+              }
+              warning_counts: Counter = Counter()
+              for path in summary_files:
+                  s = json.loads(path.read_text())
+                  merged["run_at"] = merged["run_at"] or s["run_at"]
+                  # Shards run in parallel, so the run's wall-clock duration is
+                  # the slowest shard, not the sum of all of them.
+                  merged["duration_seconds"] = max(merged["duration_seconds"], s["duration_seconds"])
+                  merged["vendors_total"] += s["vendors_total"]
+                  merged["vendors_ok"] += s["vendors_ok"]
+                  merged["vendors_failed"] += s["vendors_failed"]
+                  merged["total_bikes_upserted"] += s["total_bikes_upserted"]
+                  merged["failures"].extend(s["failures"])
+                  for w in s.get("warnings", []):
+                      warning_counts[(w["level"], w["message"])] += w.get("count", 1)
+
+              merged["warnings"] = [
+                  {"level": level, "message": message, "count": n}
+                  for (level, message), n in sorted(
+                      warning_counts.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1])
+                  )
+              ]
+
+              s = merged
               status = "OK" if s["vendors_failed"] == 0 else f"FAILED ({s['vendors_failed']} vendor(s))"
               subject = f"Bikedeals scrape — {status} — {clean(s['run_at'])[:10]}"
               lines = [
