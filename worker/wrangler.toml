@@ -1,0 +1,7 @@
+name = "bikegrid-scraper-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# PROXY_TOKEN is NOT set here — it is a secret, set out-of-band with:
+#   npx wrangler secret put PROXY_TOKEN
+# See README.md for the full one-time deploy steps.

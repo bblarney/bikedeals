@@ -92,12 +92,36 @@ _SIZE_MEAS_RE = re.compile(
 
 import httpx
 
+from scrapers.config import SCRAPER_PROXY_TOKEN, SCRAPER_PROXY_URL
+
 logger = logging.getLogger(__name__)
 
 
 # Paths we might fetch from any vendor. If robots.txt disallows any of them
 # for our user agent, we skip the whole vendor.
 _PATHS_TO_CHECK = ("/", "/products.json", "/products")
+
+
+def _apply_proxy(url: str, headers: dict | None) -> tuple[str, dict | None]:
+    """Rewrite a request to go through the Cloudflare Worker proxy, if configured.
+
+    GitHub Actions egresses from a datacenter IP range that Cloudflare/Shopify
+    block as a class, so in CI every vendor request is tunnelled through a free
+    Worker (see worker/README.md) that re-issues it from a Cloudflare IP. The
+    target URL travels in ``X-Target-URL`` and the shared secret in
+    ``X-Proxy-Token``; the caller's other headers (notably our User-Agent) are
+    preserved and forwarded by the Worker.
+
+    When ``SCRAPER_PROXY_URL`` is unset (local dev, tests) this is a no-op, so
+    the direct-request behaviour and all existing tests are unchanged.
+    """
+    if not SCRAPER_PROXY_URL:
+        return url, headers
+    proxied = dict(headers or {})
+    proxied["X-Target-URL"] = url
+    if SCRAPER_PROXY_TOKEN:
+        proxied["X-Proxy-Token"] = SCRAPER_PROXY_TOKEN
+    return SCRAPER_PROXY_URL, proxied
 
 # Match the User-Agent header we send (case-insensitive token only, since
 # robotparser does case-insensitive prefix matching internally).
@@ -156,10 +180,11 @@ async def get_with_retry(
     A Cloudflare bot challenge is the exception: it is *not* transient, so we
     raise :class:`CloudflareChallenge` immediately rather than burning retries.
     """
+    request_url, request_headers = _apply_proxy(url, headers)
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
-            resp = await client.get(url, headers=headers, follow_redirects=True)
+            resp = await client.get(request_url, headers=request_headers, follow_redirects=True)
             if _is_cloudflare_challenge(resp):
                 raise CloudflareChallenge(url, resp)
             if resp.status_code in _RETRYABLE_STATUS:
@@ -190,7 +215,10 @@ async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
     try:
         # Short timeout: a slow/unresponsive host shouldn't cost the full 30s
         # client timeout just to check robots.txt.
-        resp = await client.get(urljoin(base_url, "/robots.txt"), follow_redirects=True, timeout=5.0)
+        request_url, request_headers = _apply_proxy(urljoin(base_url, "/robots.txt"), None)
+        resp = await client.get(
+            request_url, headers=request_headers, follow_redirects=True, timeout=5.0
+        )
         # Missing/unavailable robots.txt is treated as permissive (RFC 9309).
         if resp.status_code != 200:
             return True
