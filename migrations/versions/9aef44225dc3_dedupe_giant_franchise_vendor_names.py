@@ -67,6 +67,8 @@ def upgrade() -> None:
         sa.column("vendor_name", sa.Text),
     )
 
+    bike_updates = []
+    price_event_updates = []
     for city, new_vendor_name in _CITY_TO_VENDOR_NAME.items():
         rows = bind.execute(
             sa.select(bikes.c.id, bikes.c.product_url, bikes.c.frame_size)
@@ -78,16 +80,27 @@ def upgrade() -> None:
             # compute this same new id — inserts a fresh row instead of
             # updating this one, leaving this row orphaned under the old id.
             new_id = _make_bike_id(new_vendor_name, product_url, frame_size, city)
-            bind.execute(
-                price_events.update()
-                .where(price_events.c.bike_id == old_id)
-                .values(bike_id=new_id)
-            )
-            bind.execute(
-                bikes.update()
-                .where(bikes.c.id == old_id)
-                .values(id=new_id, vendor_name=new_vendor_name)
-            )
+            bike_updates.append({"old_id": old_id, "new_id": new_id, "new_vendor_name": new_vendor_name})
+            price_event_updates.append({"old_id": old_id, "new_id": new_id})
+
+    # Batched as a single executemany call per table instead of one Python
+    # round trip per row: an earlier version of this migration looped
+    # bind.execute() per row and took over an hour against production for a
+    # few thousand rows, almost entirely spent on network round-trip latency.
+    if price_event_updates:
+        bind.execute(
+            price_events.update()
+            .where(price_events.c.bike_id == sa.bindparam("old_id"))
+            .values(bike_id=sa.bindparam("new_id")),
+            price_event_updates,
+        )
+    if bike_updates:
+        bind.execute(
+            bikes.update()
+            .where(bikes.c.id == sa.bindparam("old_id"))
+            .values(id=sa.bindparam("new_id"), vendor_name=sa.bindparam("new_vendor_name")),
+            bike_updates,
+        )
 
     # scrape_log is unique on vendor_name and only ever held the *last* of the
     # 6 stores to finish under the shared "Giant" name — there's no per-store
