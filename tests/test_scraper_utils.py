@@ -5,6 +5,7 @@ import pytest
 from scrapers.models import BikeRecord, compute_discount, make_bike_id
 from scrapers.utils import (
     CloudflareChallenge,
+    _apply_proxy,
     extract_frame_size,
     get_with_retry,
     parse_drivetrain_groupset,
@@ -194,3 +195,51 @@ async def test_get_with_retry_fails_fast_on_cloudflare_challenge():
     with pytest.raises(CloudflareChallenge):
         await get_with_retry(client, "https://x", retries=3)
     assert client.calls == 1  # not retried
+
+
+# --- proxy routing ------------------------------------------------------------
+
+def test_apply_proxy_noop_when_unset(monkeypatch):
+    """With no proxy configured, the request is returned unchanged."""
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", None)
+    url, headers = _apply_proxy("https://shop.example/products.json", {"User-Agent": "UA"})
+    assert url == "https://shop.example/products.json"
+    assert headers == {"User-Agent": "UA"}
+
+
+def test_apply_proxy_rewrites_when_set(monkeypatch):
+    """With a proxy configured, the target moves to X-Target-URL, the token is
+    attached, and the caller's own headers (User-Agent) are preserved."""
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_TOKEN", "secret-token")
+    url, headers = _apply_proxy("https://shop.example/products.json", {"User-Agent": "UA"})
+    assert url == "https://proxy.workers.dev"
+    assert headers == {
+        "User-Agent": "UA",
+        "X-Target-URL": "https://shop.example/products.json",
+        "X-Proxy-Token": "secret-token",
+    }
+
+
+async def test_get_with_retry_routes_through_proxy(monkeypatch):
+    """get_with_retry issues the actual GET against the proxy URL, carrying the
+    real target in X-Target-URL, when a proxy is configured."""
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_TOKEN", "secret-token")
+
+    seen = {}
+
+    class _CapturingClient:
+        async def get(self, url, headers=None, follow_redirects=True):
+            seen["url"] = url
+            seen["headers"] = headers
+            return _FakeResp(200)
+
+    resp = await get_with_retry(
+        _CapturingClient(), "https://shop.example/products.json", headers={"User-Agent": "UA"}
+    )
+    assert resp.status_code == 200
+    assert seen["url"] == "https://proxy.workers.dev"
+    assert seen["headers"]["X-Target-URL"] == "https://shop.example/products.json"
+    assert seen["headers"]["X-Proxy-Token"] == "secret-token"
+    assert seen["headers"]["User-Agent"] == "UA"
