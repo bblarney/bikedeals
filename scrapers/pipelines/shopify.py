@@ -36,6 +36,15 @@ _ACCESSORY_WORDS = {
     "bottle", "cage", "rack", "mudguard", "fender",
     "bag", "backpack", "pannier", "trailer",
     "protection", "accessory", "accessories", "parts",
+    # E-bike spares, which shops file inside the e-bike collection itself
+    # ("Whiskey Thumb Throttle", $70, listed under /collections/e-bikes).
+    "throttle", "charger",
+    # A frameset is a frame + fork, not a rideable bike, but shops file it under
+    # the discipline collection/product_type of the bike it builds into
+    # ("Road Race Bikes"), so only the title distinguishes it. Scooters get the
+    # same treatment: shops shelve them in the kids-bike aisle and they have no
+    # frame size, but they are not bicycles and don't belong in the feed.
+    "frameset", "framesets", "scooter", "scooters",
 }
 
 # Canonical brand names — maps any known variant (different casing, store suffix)
@@ -50,6 +59,13 @@ _BRAND_ALIASES: dict[str, str] = {
     "Giant Sunshine Coast": "Giant",
     "Giant Wollongong": "Giant",
     "Giant Bikes Wollongong": "Giant",
+    "Giant Bicycles": "Giant",
+    "Giant Australia": "Giant",
+    "Giant Melbourne": "Giant",
+    "Giant Lygon St": "Giant",
+    "Giant South Yarra": "Giant",
+    # Full-company vendor strings used by multi-brand stores
+    "Specialized Bicycles": "Specialized",
     # Liv variants
     "LIV": "Liv",
     # Other common case variants
@@ -93,6 +109,48 @@ def _is_size_variant(title: str) -> bool:
     if words and words.issubset(_COLOUR_KEYWORDS):
         return False
     return True
+
+
+# "Size", "SIZE", "Frame Size" — the axis that actually carries the frame size.
+_FRAME_SIZE_OPTION_RE = re.compile(r"^(?:frame|bike|rider)?\s*size$", re.IGNORECASE)
+# Any other axis mentioning size ("SPEC/Size"), excluding the ones that measure
+# something that isn't the frame.
+_LOOSE_SIZE_OPTION_RE = re.compile(r"\bsize\b", re.IGNORECASE)
+_NOT_FRAME_SIZE_RE = re.compile(r"\b(?:wheel|tyre|tire|battery|screen)\b", re.IGNORECASE)
+
+
+def _size_option_key(product: dict) -> str | None:
+    """The variant field ("option1"/"option2"/"option3") holding the frame size.
+
+    Shopify names every variant axis in ``product.options``, so reading the size
+    axis directly is the only reliable way to tell a size from a colour. Parsing
+    the variant *title* instead cannot: "Forge Grey", "Banksia Orange" and
+    "DISRUPT Camo" share no word with any colour vocabulary, so they were being
+    recorded as frame sizes and polluting the size filter.
+
+    Returns None when the product exposes no frame-size axis — it is sold in one
+    size, or only by colour — which the caller records as "N/A". A "Wheel Size"
+    axis is explicitly not a frame size.
+    """
+    options = product.get("options") or []
+    fallback: str | None = None
+    for option in options:
+        if not isinstance(option, dict):
+            continue
+        name = str(option.get("name") or "")
+        position = option.get("position")
+        if not isinstance(position, int) or not 1 <= position <= 3:
+            continue
+        key = f"option{position}"
+        if _FRAME_SIZE_OPTION_RE.match(name.strip()):
+            return key
+        if (
+            fallback is None
+            and _LOOSE_SIZE_OPTION_RE.search(name)
+            and not _NOT_FRAME_SIZE_RE.search(name)
+        ):
+            fallback = key
+    return fallback
 
 
 async def _scrape_collection(
@@ -186,12 +244,25 @@ async def _scrape_collection(
                 )
                 continue
 
+            # Resolved once per product: every variant shares the same axes.
+            size_key = _size_option_key(product)
+            has_options = bool(product.get("options"))
+
             for variant in product.get("variants", []):
-                frame_size = extract_frame_size(variant.get("title", ""))
+                if has_options:
+                    # A product with no frame-size axis still gets a record per
+                    # variant — colourways can differ in price and stock — but
+                    # its size is honestly unknown rather than a colour name.
+                    raw_size = variant.get(size_key) if size_key else None
+                    frame_size = extract_frame_size(raw_size) if raw_size else "N/A"
+                else:
+                    # Defensive: every Shopify product observed carries options,
+                    # but fall back to the old title parsing if one doesn't.
+                    frame_size = extract_frame_size(variant.get("title", ""))
+                    if not _is_size_variant(frame_size):
+                        continue
                 if frame_size.lower().strip() == "default title":
                     frame_size = "N/A"
-                elif not _is_size_variant(frame_size):
-                    continue
 
                 variant_id = variant.get("id")
                 product_url = f"{config.base_url}/products/{handle}?variant={variant_id}"
@@ -257,6 +328,16 @@ async def _scrape_collection(
         next_match = re.search(r'<([^>]+)>;\s*rel="next"', link_header)
         if next_match:
             next_url = next_match.group(1)
+        elif collection_handle:
+            # /collections/<handle>/products.json does NOT support since_id — it
+            # silently ignores the parameter and re-serves page 1, which the
+            # "page added no new products" guard above then reads as the end of
+            # the collection. Any collection past 250 products was being cut off
+            # at 250. It does support ?page=N, so use that.
+            next_url = (
+                f"{config.base_url}{products_path}"
+                f"?limit={SHOPIFY_PAGE_SIZE}&page={page + 1}"
+            )
         else:
             since_id = products[-1]["id"]
             next_url = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}&since_id={since_id}"

@@ -1,0 +1,44 @@
+vendor_name: "Giant Lygon St"
+city: "Melbourne"
+max_pages: 5
+base_url: "https://giantlygonst.com.au"
+pipeline: "shopify"
+# Official Giant concept store, Brunswick East. Giant / Liv / Cadex only.
+#
+# Uses the discipline sub-collections rather than the "bikes" umbrella so that
+# "bikes-frames" (framesets, which carry a bike-shaped product_type like
+# "Bikes - Frames - Road Frame") is never fetched at all.
+#
+# Order matters: the pipeline dedupes by product handle across collections, so
+# whichever collection lists a product first assigns its category. The two
+# electric collections therefore lead — an e-MTB appears in both
+# "bikes-electric" and "bikes-mountain", and Giant files a handful of e-MTBs
+# only under the mountain tree, which is why that sub-collection is named
+# explicitly as well.
+collections:
+  - bikes-electric
+  - bikes-mountain-mountain-electric-dual-suspension
+  - bikes-mountain
+  - bikes-cyclocross-gravel
+  - bikes-road
+  - bikes-commuter
+  - bikes-kids
+collection_category_map:
+  bikes-electric: E-Bike
+  bikes-mountain-mountain-electric-dual-suspension: E-Bike
+  bikes-mountain: Mountain
+  bikes-cyclocross-gravel: Gravel
+  bikes-road: Road
+  bikes-commuter: Commuter
+  bikes-kids: Commuter
+# collection_category_map resolves every product above, so category_map is only
+# a safety net if a collection handle is renamed. Keyed off the store's
+# "Bikes - <discipline>" product_type values.
+category_map:
+  bikes - electric: E-Bike
+  mountain electric dual suspension: E-Bike
+  bikes - mountain: Mountain
+  bikes - cyclocross gravel: Gravel
+  bikes - road: Road
+  bikes - commuter: Commuter
+  bikes - kids: Commuter

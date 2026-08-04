@@ -1,0 +1,63 @@
+vendor_name: "Giant South Yarra"
+city: "Melbourne"
+max_pages: 5
+base_url: "https://giantsthyarra.com.au"
+pipeline: "shopify"
+# Official Giant concept store, South Yarra. Giant / Liv / Cadex only.
+#
+# product_type here is a flat "Bike" for all 222 whole-bike products, so it
+# carries no discipline at all and category_map can't be used — the curated
+# collection a product is found in is the only category signal, hence
+# collection_category_map.
+#
+# Order matters (the pipeline dedupes by product handle across collections, so
+# the first collection to list a product assigns its category): "electric-bikes"
+# is the umbrella over the electric-mountain/road/city/kids sub-collections and
+# leads, so an e-MTB is never claimed by "mountain-bikes".
+collections:
+  - electric-bikes
+  - electric-mountain-bikes
+  - electric-road-bikes
+  - electric-city-bikes
+  - electric-kids-bikes
+  - mountain-bikes
+  - cross-gravel-bikes
+  - gravel
+  - road
+  - triathlon-time-trial-bikes
+  - city-hybrid
+  - fastroad
+  - kids-bikes
+collection_category_map:
+  electric-bikes: E-Bike
+  electric-mountain-bikes: E-Bike
+  electric-road-bikes: E-Bike
+  electric-city-bikes: E-Bike
+  electric-kids-bikes: E-Bike
+  mountain-bikes: Mountain
+  cross-gravel-bikes: Gravel
+  gravel: Gravel
+  road: Road
+  # Time-trial/triathlon bikes are drop-bar road bikes; the schema has no
+  # separate category for them.
+  triathlon-time-trial-bikes: Road
+  city-hybrid: Commuter
+  fastroad: Commuter
+  kids-bikes: Commuter
+# Never reached while the handles above resolve; keyed off model names so it
+# still classifies something if a collection is renamed.
+category_map:
+  e+: E-Bike
+  electric: E-Bike
+  trance: Mountain
+  fathom: Mountain
+  talon: Mountain
+  reign: Mountain
+  anthem: Mountain
+  revolt: Gravel
+  tcr: Road
+  propel: Road
+  defy: Road
+  contend: Road
+  escape: Commuter
+  roam: Commuter

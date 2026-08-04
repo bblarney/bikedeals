@@ -1,0 +1,32 @@
+vendor_name: "Canberra Cyclery"
+city: "Canberra"
+max_pages: 5
+base_url: "https://canberracyclery.com.au"
+pipeline: "woocommerce_api"
+# Specialized / Cannondale / Bianchi / XDS dealer, Fyshwick. Small catalogue
+# (~21 listings in the bikes category, several of which are price-on-application
+# and get dropped for having no price), but it is one of only two Canberra shops
+# in the registry, so it matters for regional coverage more than for volume.
+#
+# The Store API is used rather than the listing HTML for the per-size frame-size
+# terms and the real brands field.
+collections:
+  - bikes
+category_map:
+  # Electric slugs are sorted first by the pipeline, so these decide before the
+  # discipline slug a product shares with them (a Turbo Levo carries both
+  # "electric-mountain-bike" and "mountain-bikes").
+  electric-bikes: E-Bike
+  electric-mountain-bike: E-Bike
+  mountain-bikes: Mountain
+  mtb: Mountain
+  gravel-adventure-bikes: Gravel
+  road-bikes: Road
+  road: Road
+  fitness-commuter-bikes: Commuter
+  commuter: Commuter
+  cargo: Commuter
+# NOTE: "bikes" is deliberately unmapped — it is on every product and would
+# flatten the catalogue into one category. "frameset" is likewise unmapped, but
+# framesets also carry their discipline slug, so the one on the shop is picked
+# up as a Road bike; not worth special-casing for a single listing.

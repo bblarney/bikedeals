@@ -1,0 +1,47 @@
+vendor_name: "CCACHE"
+city: "Sydney"
+max_pages: 5
+base_url: "https://ccache.cc"
+pipeline: "shopify"
+# Alexandria performance store — Giant, Liv, Cannondale, Factor, Colnago, plus
+# a "CCACHE Preloved" second-hand marketplace.
+#
+# Only the "bikes" collection is walked. The store has 700+ collections and the
+# obvious-looking alternatives are traps: "complete-bikes" is 131 products of
+# which most are framesets and preloved components all typed "Road Race", and
+# "bikes-frames-wheelsets" is exactly what its name says. "bikes" is ~395
+# products, all whole bikes bar a few framesets, and each carries a clean
+# discipline product_type.
+#
+# The framesets that do slip in ("Safi Works Form R32.1 Road Frameset") are
+# typed as bikes and are only distinguishable by title; the pipeline's
+# accessory filter drops them on the "frameset" title word.
+collections:
+  - bikes
+category_map:
+  # E-bike keys are matched exactly, before any discipline key can be reached
+  # by substring — "MTB E-Bikes" must not resolve through "mtb".
+  mtb e-bikes: E-Bike
+  road e-bikes: E-Bike
+  gravel e-bikes: E-Bike
+  urban & commuter e-bikes: E-Bike
+  e-bikes: E-Bike
+  xc bikes: Mountain
+  trail bikes: Mountain
+  all-mountain bikes: Mountain
+  enduro bikes: Mountain
+  downhill bikes: Mountain
+  mtbs: Mountain
+  gravel race bikes: Gravel
+  gravel adventure bikes: Gravel
+  cx bikes: Gravel
+  road race bikes: Road
+  road endurance bikes: Road
+  tt/triathlon bikes: Road
+  track bikes: Road
+  flat-bar road: Commuter
+  hybrid: Commuter
+  urban & commuter bikes: Commuter
+  balance bikes: Commuter
+  # Covers the wheel-size variants: 12"/16"/20"/24" Kids Bikes.
+  kids bikes: Commuter
