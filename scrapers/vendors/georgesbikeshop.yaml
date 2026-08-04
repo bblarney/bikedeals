@@ -1,28 +1,49 @@
 vendor_name: "George's Bike Shop"
 city: "Perth"
-shop_path: "product-category/giant-bikes-perth"
 max_pages: 10
 base_url: "https://www.georgesbikeshop.com.au"
-pipeline: "woocommerce"
-# Giant dealer. All bikes are Giant brand; brand resolved from product_cat-giant-bikes-perth class.
-# Standard WooCommerce h2/img/span.price selectors.
-# Category product_cat classes are Giant-specific subcategories (product_cat-12-inch,
-#   product_cat-giant-kids-bikes-perth) — not useful for type mapping.
-# Categories resolved from Giant model name keywords instead.
-# E-bike keys precede mountain keys to correctly classify Trance E, Fathom E, etc.
-brand_map:
-  giant-bikes-perth: Giant
-  giant-kids-bikes-perth: Giant
-selectors:
-  product_list: "li.product"
-  model_name: "h2.woocommerce-loop-product__title"
-  product_url: "a.woocommerce-loop-product__link"
-  image_url: "img.attachment-woocommerce_thumbnail"
-  price_sale: "span.price ins span.woocommerce-Price-amount bdi"
-  price_original: "span.price del span.woocommerce-Price-amount bdi"
-  price_regular: "span.price span.woocommerce-Price-amount bdi"
+pipeline: "woocommerce_api"
+# STILL BLOCKED — this config does not currently produce data.
+#
+# Cloudflare serves a JS bot challenge (403, cf-mitigated) to our datacenter
+# egress on this shop. Verified from a GitHub runner on 2026-08-04, both
+# directly and through the Worker proxy, on the HTML category pages *and* on
+# /wp-json/wc/store/v1: the mitigation is scoped to the egress IP class, not to
+# a path, so no endpoint choice gets around it. Unblocking needs a
+# challenge-solving egress (residential proxy or scraping API).
+#
+# The config is switched to the Store API anyway because it is verified working
+# off a residential IP (430 records / 142 products, 0 invalid) and is better
+# data than the listing HTML — real per-size frame sizes rather than "One Size",
+# exact regular/sale prices, and a brands field (the shop stocks Liv, Radio,
+# Cruzee and Micro alongside Giant, which the old giant-only brand_map
+# flattened). The day the egress changes, this works with no further edits.
+#
+# "giant-bikes-perth" is the umbrella category and is a superset of every other
+# bike category on the shop (kids, Liv, dirt jumper, electric, mountain and road
+# are all subsets of its 142 products), so one slug covers the whole range
+# without dragging in the ~115 micro-scooter listings.
+collections:
+  - giant-bikes-perth
 category_map:
-  # E-bikes first — catch "Trance E", "Fathom E", "E+" before their non-electric variants
+  # Category slugs are checked before the model name and are the reliable
+  # signal; the pipeline sorts electric slugs first so an e-MTB isn't claimed
+  # by its mountain category.
+  giant-electric-bikes-perth: E-Bike
+  giant-mens-gravel-and-cross-bikes-perth: Gravel
+  liv-womens-gravel-and-cross-bikes: Gravel
+  giant-mens-road-bikes-perth: Road
+  giant-kids-road-bikes-perth: Road
+  road-bikes: Road
+  giant-men-mountain-bikes-perth: Mountain
+  mountain-bikes: Mountain
+  dirt-jumper-perth: Mountain
+  kids-balance-bikes-perth: Commuter
+  giant-kids-bikes-perth: Commuter
+  # Model-name keywords, reached when the slugs above don't resolve a product
+  # (e.g. a bike filed only under the umbrella or a women's category).
+  # E-bike keys precede mountain keys so Trance E, Fathom E and E+ don't get
+  # classified by their non-electric namesake.
   e+: E-Bike
   trance e: E-Bike
   fathom e: E-Bike
@@ -46,9 +67,13 @@ category_map:
   xtc: Mountain
   maestro: Mountain
   glory: Mountain
+  tempt: Mountain
+  embolden: Mountain
+  pique: Mountain
   # Gravel
   revolt: Gravel
   toughroad: Gravel
+  devote: Gravel
   # Road
   contend: Road
   propel: Road
@@ -56,6 +81,7 @@ category_map:
   tcr: Road
   ocr: Road
   avail: Road
+  langma: Road
   # Commuter / kids
   escape: Commuter
   animator: Commuter
@@ -64,6 +90,8 @@ category_map:
   sedona: Commuter
   roam: Commuter
   fastroad: Commuter
+  anytour: Commuter
+  alight: Commuter
+  balance bike: Commuter
   triple x: Commuter
-  giant-kids-bikes-perth: Commuter
   kids: Commuter

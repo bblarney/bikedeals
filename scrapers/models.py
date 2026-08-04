@@ -23,11 +23,15 @@ class VendorConfig(BaseModel):
     city: str | None = None      # single-location vendors
     cities: list[str] | None = None  # national chains: one record per city
     base_url: str
-    pipeline: Literal["shopify", "woocommerce", "bigcommerce", "giant", "canyon", "custom"]
+    pipeline: Literal[
+        "shopify", "woocommerce", "woocommerce_api", "bigcommerce", "giant", "canyon", "custom"
+    ]
     category_map: dict[str, str]
     selectors: dict[str, str] | None = None
     collection: str | None = None
-    collections: list[str] | None = None   # multi-collection Shopify stores
+    # Curated product groupings to scrape: Shopify collection handles, or
+    # WooCommerce product-category slugs for the woocommerce_api pipeline.
+    collections: list[str] | None = None
     # Maps a Shopify collection handle -> our category. For collection-targeted
     # stores whose product_type/tags are too generic to categorise (e.g. every
     # product is product_type "Bikes"), the curated collection a product was

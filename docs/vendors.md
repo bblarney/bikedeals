@@ -19,6 +19,23 @@ Vendors are grouped into:
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
+> **Registered but not currently returning data (checked 2026-08-04):**
+>
+> - **George's Bike Shop** — Cloudflare challenges our datacenter egress
+>   (403 `cf-mitigated`) on both the HTML category pages and the Store API,
+>   from a GitHub runner directly *and* through the Worker proxy. The block is
+>   on the egress IP class, not a path, so it needs a challenge-solving egress
+>   to unblock. Its config is on the `woocommerce_api` pipeline and is verified
+>   working off a residential IP, so it recovers with no edits if egress changes.
+> - **Cycle Co-op** — vendor-side outage, not ours. `cycleco-op.au` returns
+>   Cloudflare error 1016 (origin DNS resolution failure, surfaced as HTTP 409)
+>   from every egress tried; the domain resolves to Shopify but is no longer
+>   attached to a store. The shop is still trading, so this should recover on
+>   its own once they reconnect the domain. No config change made.
+>
+> Both keep their existing rows in the DB — the orchestrator treats a failed
+> vendor as "keep the data, skip `mark_stale`" rather than wiping it.
+
 | Vendor | Location | Domain | Pipeline |
 |---|---|---|---|
 | 99 Bikes | 8 stores (chain) | 99bikes.com.au | shopify |
@@ -82,7 +99,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Ride 'n' Roll | Gold Coast | ridenroll.com.au | shopify |
 | Ride Union Bike Co | Adelaide Hills | rideunionbikeco.com.au | shopify |
 | Saint Cloud | Melbourne | saintcloud.com.au | shopify |
-| Summit Cycles | Melbourne | summitcycles.bike | woocommerce |
+| Summit Cycles | Melbourne | summitcycles.bike | shopify |
 | Supreme Cycles | Sunshine Coast | supremecycles.com.au | shopify |
 | The Bicycle Company | Melbourne | thebicyclecompany.com.au | shopify |
 | The Bike Shop | Brisbane | thebikeshop.au | shopify |
