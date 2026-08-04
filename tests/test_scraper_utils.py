@@ -61,6 +61,15 @@ def test_parse_price(raw, expected):
     ("54cm", "54cm"),
     ("M", "M"),
     ("Matte Black", "Matte Black"),  # no size segment -> returns original
+    # MTB-brand size abbreviations, with the size on either side of the colour.
+    ("Matte Deep Purple / SML", "SML"),
+    ("MED / Gloss Mustard Yellow", "MED"),
+    ("LGE / Matte Dark Blue", "LGE"),
+    ("ZENDIT XR / ML", "ML"),
+    ("MD / Shimano XT Di2 / Raw", "MD"),
+    ("T3 X0 AXS / Midnight / LG", "LG"),
+    # A colour-only title still has no size segment.
+    ("Gloss Mustard Yellow", "Gloss Mustard Yellow"),
 ])
 def test_extract_frame_size(raw, expected):
     assert extract_frame_size(raw) == expected

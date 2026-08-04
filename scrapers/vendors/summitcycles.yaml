@@ -1,41 +1,42 @@
 vendor_name: "Summit Cycles"
 city: "Melbourne"
-shop_path: "product-category/bikes"
-max_pages: 10
+max_pages: 5
 base_url: "https://summitcycles.bike"
-pipeline: "woocommerce"
-# WooPress theme. Products are wrapped in div.type-product (not li.product) — the outer
-# div carries all product_cat-* classes needed for brand and category resolution.
-# Title in div.product-title; URL on a.product-content-image href.
-# MTB specialist — Ibis, Deviate, Zerode, Juliana, Amflow (e-MTB).
+pipeline: "shopify"
+# Migrated from WooCommerce to Shopify (observed 2026-08-04): the old
+# /product-category/bikes/ path now 301s to /collections/bikes, so the DOM
+# scrape matched nothing and the vendor silently returned 0 bikes.
+#
+# Curated collections only. The root /products.json is mostly parts &
+# accessories and the "specials" collection is 112/148 non-bike, so neither is
+# safe to walk; these three are 100% bike-typed. Handles overlap (e-bikes is
+# largely a subset of bikes) and the pipeline dedupes by product handle.
+collections:
+  - bikes
+  - e-bikes
+  - custom-builds
+# Shopify "vendor" is already the brand; only the suffixed/uppercase variants
+# need canonicalising.
 brand_map:
-  amflow: Amflow
-  ibis-cycles: Ibis
-  deviate-bikes: Deviate
-  zerode: Zerode
-  juliana: Juliana
-selectors:
-  product_list: "div.type-product"
-  model_name: "div.product-title"
-  product_url: "a.product-content-image"
-  image_url: "img.attachment-woocommerce_thumbnail"
-  price_sale: "span.price ins span.woocommerce-Price-amount bdi"
-  price_original: "span.price del span.woocommerce-Price-amount bdi"
-  price_regular: "span.price span.woocommerce-Price-amount bdi"
+  Yeti Cycles: Yeti
+  Ibis Cycles: Ibis
+  AMFLOW: Amflow
+# product_type carries the category ("Bike Electric", "Bike Full Suspension",
+# "Bike OTHER") and is the first candidate resolve_category checks, so these
+# exact keys decide every product before titles or tags are consulted.
 category_map:
-  e-bikes: E-Bike
+  bike electric: E-Bike
+  bike full suspension: Mountain
+  bike hardtail: Mountain
+  # MTB specialist — Yeti, Santa Cruz, Ibis, Juliana, Deviate, Zerode,
+  # Mondraker, Amflow. "Bike OTHER" is a handful of dirt-jump and hardtail
+  # listings; one gravel Juliana Quincy is mislabelled Mountain by this default.
+  bike other: Mountain
+  # Fallbacks, only reached if a new product_type appears.
   electric: E-Bike
   e-bike: E-Bike
-  ebike: E-Bike
-  mountain: Mountain
-  hardtail: Mountain
-  enduro: Mountain
-  dual-suspension: Mountain
-  downhill: Mountain
-  trail: Mountain
   gravel: Gravel
   road: Road
-  commuter: Commuter
   hybrid: Commuter
-  city: Commuter
+  commuter: Commuter
   kids: Commuter

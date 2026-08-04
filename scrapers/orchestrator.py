@@ -10,6 +10,7 @@ from scrapers.pipelines.canyon import scrape_canyon
 from scrapers.pipelines.giant import scrape_giant
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
+from scrapers.pipelines.woocommerce_api import scrape_woocommerce_api
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ async def scrape_vendor(
                 bikes, invalid_count = await scrape_shopify(config, client)
             elif config.pipeline == "woocommerce":
                 bikes, invalid_count = await scrape_woocommerce(config, client)
+            elif config.pipeline == "woocommerce_api":
+                bikes, invalid_count = await scrape_woocommerce_api(config, client)
             elif config.pipeline == "bigcommerce":
                 bikes, invalid_count = await scrape_bigcommerce(config, client)
             elif config.pipeline == "giant":

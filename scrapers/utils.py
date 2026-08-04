@@ -80,6 +80,11 @@ def parse_drivetrain_groupset(body_html: str | None) -> str | None:
 
 _SIZE_WORD_RE = re.compile(
     r"^(XXS|XS|S|M|L|XL|XXL|XXXL|3XL|4XL"
+    # Three- and two-letter abbreviations used by MTB brands (Santa Cruz, Yeti,
+    # Mondraker, Juliana). Without these, variant titles like
+    # "Matte Deep Purple / SML" have no segment that looks like a size, so the
+    # colour leaks into frame_size and pollutes the size filter.
+    r"|SML|MED|LGE|XLG|SM|MD|LG|ML"
     r"|X-?Small|Small|Medium|Large|X-?Large|XX-?Large|Extra\s*Large"
     r"|[SMLX][0-9]|[0-9][SMLX]"
     r")$",
