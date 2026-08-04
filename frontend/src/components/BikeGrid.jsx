@@ -1,5 +1,6 @@
 import BikeCard from './BikeCard'
 import { DEFAULT_FILTERS } from '../constants'
+import { scrollMainToTop } from '../lib/scroll'
 
 const SORT_LABELS = {
   discount_desc: 'biggest discount',
@@ -44,7 +45,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col">
       {/* Results bar */}
       <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-100">
         <div className="flex items-center gap-2">
@@ -67,7 +68,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
             <>
               <button
                 disabled={offset === 0}
-                onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); scrollMainToTop() }}
                 className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 ← Prev
@@ -75,7 +76,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
               <span className="text-xs text-slate-400 tabular-nums">{page} of {totalPages}</span>
               <button
                 disabled={offset + limit >= total}
-                onClick={() => { onUpdate({ offset: offset + limit }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                onClick={() => { onUpdate({ offset: offset + limit }); scrollMainToTop() }}
                 className="px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Next →
@@ -126,7 +127,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
         <div className="flex items-center justify-center gap-2 px-5 py-4 bg-white border-t border-slate-100">
           <button
             disabled={offset === 0}
-            onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); scrollMainToTop() }}
             className="px-3.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             ← Prev
@@ -136,7 +137,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
           </span>
           <button
             disabled={offset + limit >= total}
-            onClick={() => { onUpdate({ offset: offset + limit }); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onClick={() => { onUpdate({ offset: offset + limit }); scrollMainToTop() }}
             className="px-3.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Next →

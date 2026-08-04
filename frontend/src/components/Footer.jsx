@@ -36,7 +36,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-navy-900 mt-auto">
+    <footer className="bg-navy-900 mt-auto flex-shrink-0">
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>

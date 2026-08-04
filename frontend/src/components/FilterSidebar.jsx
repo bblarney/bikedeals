@@ -72,7 +72,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5">
         <FilterSection label="Region">
           <div className="grid grid-cols-4 gap-1">
             {REGIONS.map((r) => (
