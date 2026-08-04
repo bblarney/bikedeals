@@ -1,0 +1,55 @@
+vendor_name: "Cycle World"
+city: "Sydney"
+max_pages: 10
+base_url: "https://cycleworld.com.au"
+pipeline: "woocommerce_api"
+# Merida / Giant / Liv dealer. The Store API is reachable and is much better
+# data than the listing HTML: per-size frame-size terms, exact regular/sale
+# prices, and a real brands field.
+#
+# "bikes" (~215 products) is the umbrella over the pedal disciplines, but
+# "ebikes" is a sibling of it rather than a child — fetching only "bikes"
+# returned zero E-Bikes. Both are listed; the pipeline dedupes by product id,
+# and each product's own category slugs still decide its category, so the
+# discipline sub-categories don't need listing.
+collections:
+  - bikes
+  - ebikes
+category_map:
+  # The pipeline sorts a product's category slugs electric-first, so every
+  # "*-ebikes" slug is checked before the discipline slug it shares a product
+  # with. All of them are mapped exactly so that ordering actually decides:
+  # a city e-bike carries both "city-bikes" and "city-ebikes".
+  ebikes: E-Bike
+  mtb-ebikes: E-Bike
+  dual-suspension-ebikes: E-Bike
+  dual-suspension-enduro-ebikes: E-Bike
+  dual-suspension-trail-ebikes: E-Bike
+  dual-suspension-xc-ebikes: E-Bike
+  hardtail-ebikes: E-Bike
+  hardtail-trail-ebikes: E-Bike
+  road-ebikes: E-Bike
+  gravel-ebikes: E-Bike
+  hybrid-ebikes: E-Bike
+  city-ebikes: E-Bike
+  mtb-bikes: Mountain
+  hardtail-mtb-bikes: Mountain
+  dual-suspension-bikes: Mountain
+  gravel-bikes: Gravel
+  cyclocross-bikes: Gravel
+  road-bikes: Road
+  endurance-road-bikes: Road
+  aero-road-bikes: Road
+  performance-road-bikes: Road
+  sport-road-bikes: Road
+  triathlon-tt-bikes: Road
+  track-bikes: Road
+  flat-bar-road-bikes-bikes: Commuter
+  hybrid-bikes: Commuter
+  sport-hybrid-bikes: Commuter
+  city-bikes: Commuter
+  kids-bikes: Commuter
+  kids-balance-bikes: Commuter
+# NOTE: "bikes" is deliberately NOT a key. It is on every product, so mapping
+# it would short-circuit the discipline slugs and flatten the whole catalogue
+# into one category.

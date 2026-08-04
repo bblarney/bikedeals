@@ -1,0 +1,40 @@
+vendor_name: "ABC Bikes"
+city: "Sydney"
+max_pages: 10
+base_url: "https://www.abcbikes.com.au"
+pipeline: "shopify"
+# Casula (Crossroads Homemaker Centre), south-west Sydney. Giant / Liv /
+# Cannondale / GT / BMC / Norco / Scott dealer with a very deep catalogue —
+# the "bikes" collection is several thousand products once colourways are
+# counted, hence the high max_pages.
+#
+# product_type is namespaced ("Bikes Road", "Bikes E-Bike", …) which makes it
+# an unambiguous category signal: every bike key below starts with "bikes ",
+# so no accessory product_type ("Clothing", "Parts", "Rubber") can collide.
+collections:
+  - bikes
+category_map:
+  # E-bike keys first by convention; resolve_category matches product_type
+  # exactly here, so ordering is documentation rather than precedence.
+  bikes e-bike: E-Bike
+  bikes dual suspension: Mountain
+  bikes hardtail: Mountain
+  bikes dirt jump: Mountain
+  bikes gravel: Gravel
+  bikes cyclocross: Gravel
+  bikes road: Road
+  bikes triathlon: Road
+  bikes hybrid: Commuter
+  bikes flat bar: Commuter
+  bikes cruiser: Commuter
+  bikes kids: Commuter
+  bikes bmx: Commuter
+  bikes folding: Commuter
+  # Fallbacks for product_types that appear only on newer stock; these are
+  # reached via the substring pass and are checked longest-key-first.
+  dual suspension: Mountain
+  hardtail: Mountain
+  e-bike: E-Bike
+  gravel: Gravel
+  road: Road
+  kids: Commuter

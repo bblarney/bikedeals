@@ -1,0 +1,52 @@
+vendor_name: "Treadly Bike Shop"
+city: "Adelaide"
+max_pages: 5
+base_url: "https://treadlybikeshop.com.au"
+pipeline: "shopify"
+# Norwood commuter/cargo/touring specialist — Brompton, Tern, Surly, Kona,
+# Yuba, Benno, tokyobike, Pelago. No road-race or MTB range, so this vendor
+# contributes Commuter/E-Bike/Gravel stock the rest of the registry is thin on.
+#
+# product_type is empty or a useless "Bicycle"/"Bicycles" on every bike, and
+# the root /products.json is ~1450 products dominated by bags, tyres and
+# components, so the curated collections are the only usable signal.
+#
+# Order matters: the pipeline dedupes by product handle across collections, so
+# the first collection listing a product assigns its category. Cargo leads
+# because Treadly's cargo range is overwhelmingly electric (Tern GSD/HSD,
+# Benno, Yuba, Wombat) — filing it as E-Bike rather than Commuter is the more
+# useful classification, and the few unassisted cargo bikes are the exception.
+#
+# "brompton-all" (112 products) is deliberately excluded despite being the only
+# place the folding bikes live: it is a brand aisle, not a bike aisle, and is
+# mostly Brompton bags, cases and spares. Their titles ("Brompton Metro Zip
+# Pouch", "Brompton Replacement crank only") aren't reliably caught by the
+# accessory filter, so including it put $12 parts into the feed as Commuter
+# bikes. Losing ~10 folding bikes is the cheaper trade.
+collections:
+  - cargo-bikes
+  - adventure-bikes
+  - urban
+  - kids-bikes
+collection_category_map:
+  cargo-bikes: E-Bike
+  # Drop-bar tourers and all-road machines (Surly, Kona Rove, Bombtrack).
+  adventure-bikes: Gravel
+  urban: Commuter
+  brompton-all: Commuter
+  kids-bikes: Commuter
+# Fallback only. The accessory filter already removes the bags/racks/tyres that
+# share these collections, so this mainly catches a renamed handle.
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric bike: E-Bike
+  cargo bike: E-Bike
+  gravel bike: Gravel
+  adventure bike: Gravel
+  touring: Gravel
+  commuter bike: Commuter
+  urban bike: Commuter
+  city bikes: Commuter
+  folding bike: Commuter
+  kids: Commuter

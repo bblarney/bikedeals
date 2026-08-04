@@ -94,6 +94,19 @@ def _frame_sizes(product: dict) -> list[str]:
     return ["One Size"]
 
 
+def _is_electric_slug(slug: str) -> bool:
+    """True if a product-category slug denotes electric bikes.
+
+    Hyphens are dropped before matching so the three spellings shops actually
+    use — ``electric-bikes``, ``e-bikes`` and ``ebikes`` (plus compounds like
+    ``mtb-ebikes``) — are all recognised. Missing one of them silently breaks
+    the electric-first ordering in :func:`_build_records`, which is what keeps
+    an e-MTB from being categorised by its mountain category.
+    """
+    flat = slug.replace("-", "")
+    return "electric" in flat or "ebike" in flat
+
+
 def _known_brands(products: dict[int, dict]) -> list[str]:
     """Brand names this shop uses, longest first."""
     names = {
@@ -210,7 +223,7 @@ def _build_records(
         # mountain category, and whichever the API lists first would otherwise
         # decide. Same "e-bike keys before mountain keys" rule the vendor YAMLs
         # already follow for title keywords.
-        slugs.sort(key=lambda s: ("electric" not in s and "e-bike" not in s, s))
+        slugs.sort(key=lambda s: (not _is_electric_slug(s), s))
         category = resolve_category(slugs + [model_name.lower()], config.category_map)
         if category is None:
             category_skipped += 1

@@ -1,0 +1,32 @@
+vendor_name: "Woolys Wheels"
+city: "Sydney"
+max_pages: 5
+base_url: "https://woolyswheels.com.au"
+pipeline: "shopify"
+# Paddington institution; Specialized / Giant / Cervélo / Focus dealer.
+#
+# One curated collection is enough: "all-bikes" is the shop's own whole-bike
+# grouping (~650 products) and every product in it carries one of seven clean
+# product_type values, so category_map keys off product_type alone. The root
+# /products.json is ~2000 products dominated by Rapha apparel and parts, so it
+# is not worth walking.
+collections:
+  - all-bikes
+# Shopify "vendor" is the brand, but the two biggest suppliers use their full
+# company name. Cervélo, Focus, BYK, Neo and Micro already come through clean.
+brand_map:
+  Specialized Bicycles: Specialized
+  Giant Bicycles: Giant
+# product_type is the first candidate resolve_category checks and decides every
+# product here — these seven keys are the complete observed set.
+category_map:
+  e-bikes: E-Bike
+  mountain bikes: Mountain
+  adventure & gravel bikes: Gravel
+  road bikes: Road
+  fitness and urban bikes: Commuter
+  # Micro scooters share this product_type; the pipeline's accessory filter
+  # drops them on the "scooter" title word, leaving only the kids' bikes.
+  childrens bikes & scooters: Commuter
+# NOTE: product_type "Frame Set" (~24 products) is deliberately absent — a
+# frameset is not a rideable bike, and leaving it unmapped skips it.

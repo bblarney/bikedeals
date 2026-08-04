@@ -3,7 +3,7 @@ import pytest
 
 from scrapers.models import VendorConfig
 from scrapers.pipelines import shopify as shopify_pipeline
-from scrapers.pipelines.shopify import scrape_shopify
+from scrapers.pipelines.shopify import _size_option_key, scrape_shopify
 from scrapers.registry import load_registry
 
 
@@ -29,6 +29,33 @@ def test_new_shopify_vendors_present_and_well_formed():
     assert hendrys.collection_category_map["e-bikes"] == "E-Bike"
     # Every scraped collection must have a category mapping.
     assert set(hendrys.collections) <= set(hendrys.collection_category_map)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Woolys Wheels", "ABC Bikes", "CCACHE", "Giant Lygon St",
+        "Giant South Yarra", "West Coast Cycles", "Treadly Bike Shop",
+        "Cycle World", "Canberra Cyclery",
+    ],
+)
+def test_added_vendor_is_registered_with_a_location(name):
+    by_name = {c.vendor_name: c for c in load_registry()}
+    config = by_name[name]
+    assert config.city or config.cities
+    assert config.category_map
+
+
+def test_collection_category_maps_cover_every_scraped_collection():
+    """A collection scraped but missing from collection_category_map silently
+    falls back to category_map, which for these vendors means every product is
+    dropped for having no category."""
+    for config in load_registry():
+        if not config.collection_category_map:
+            continue
+        assert set(config.collections or []) <= set(config.collection_category_map), (
+            f"{config.vendor_name}: collections not covered by collection_category_map"
+        )
 
 
 # --- collection_category_map precedence ---------------------------------------
@@ -113,6 +140,160 @@ async def test_pagination_stops_when_page_adds_no_new_products(_patch_shopify, m
     # Page 1 ingests a + b (full page → continues); page 2 is all-seen → stop.
     assert calls == 2
     assert {b.product_url.split("/products/")[1].split("?")[0] for b in bikes} == {"a", "b"}
+
+
+# --- frame size comes from the size axis, not the variant title ---------------
+
+def _opts(*names):
+    return [{"name": n, "position": i} for i, n in enumerate(names, start=1)]
+
+
+@pytest.mark.parametrize(
+    "names, expected",
+    [
+        (("Size",), "option1"),
+        (("SIZE",), "option1"),
+        (("Color", "Size"), "option2"),
+        (("Colour", "Size", "Year"), "option2"),
+        # An explicit frame-size axis beats a wheel-size one.
+        (("FRAME SIZE", "WHEEL SIZE", "Color"), "option1"),
+        # A loose match is accepted only when nothing better exists...
+        (("SPEC", "Bike Size"), "option2"),
+        # ...but a wheel size is never a frame size.
+        (("WHEEL SIZE", "AXLE SPACING"), None),
+        # No size axis at all: single-variant and colour-only products.
+        (("Title",), None),
+        (("Colour",), None),
+    ],
+)
+def test_size_option_key(names, expected):
+    assert _size_option_key({"options": _opts(*names)}) == expected
+
+
+async def test_frame_size_reads_the_size_axis_not_the_colour(_patch_shopify, monkeypatch):
+    product = {
+        **_product("Road Bikes"),
+        "options": _opts("Colour", "Size"),
+        "variants": [
+            {"id": 1, "title": "Forge Grey / M", "option1": "Forge Grey",
+             "option2": "M", "price": "1000", "available": True},
+        ],
+    }
+
+    async def _fake_get(client, url, headers=None):
+        return _Resp({"products": [product]})
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road bikes": "Road"}, collection="all-bikes",
+    )
+    bikes, _ = await scrape_shopify(config, client=None)
+    assert [b.frame_size for b in bikes] == ["M"]
+
+
+async def test_colour_only_product_is_kept_with_unknown_frame_size(
+    _patch_shopify, monkeypatch
+):
+    """"Forge Grey" and "Banksia Orange" share no word with the colour
+    vocabulary, so title parsing recorded them as frame sizes. With no size
+    axis the size is unknown — but the bike is still real and must be kept."""
+    product = {
+        **_product("Road Bikes"),
+        "options": _opts("Colour"),
+        "variants": [
+            {"id": 1, "title": "Forge Grey", "option1": "Forge Grey",
+             "price": "1000", "available": True},
+            {"id": 2, "title": "Banksia Orange", "option1": "Banksia Orange",
+             "price": "1100", "available": True},
+        ],
+    }
+
+    async def _fake_get(client, url, headers=None):
+        return _Resp({"products": [product]})
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road bikes": "Road"}, collection="all-bikes",
+    )
+    bikes, _ = await scrape_shopify(config, client=None)
+    assert [b.frame_size for b in bikes] == ["N/A", "N/A"]
+    assert len({b.id for b in bikes}) == 2
+
+
+async def test_framesets_and_scooters_are_not_bikes(_patch_shopify, monkeypatch):
+    """Shops file both under a bike product_type, so only the title tells."""
+    products = [
+        {**_product("Road Race Bikes"), "handle": "a",
+         "title": "Safi Works Form R32.1 Road Frameset"},
+        {**_product("Childrens Bikes & Scooters"), "handle": "b",
+         "title": "Micro Sprite Scooter"},
+        {**_product("Road Race Bikes"), "handle": "c", "title": "Factor Ostro VAM"},
+    ]
+
+    async def _fake_get(client, url, headers=None):
+        return _Resp({"products": products})
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road race bikes": "Road", "childrens bikes & scooters": "Commuter"},
+        collection="all-bikes",
+    )
+    bikes, _ = await scrape_shopify(config, client=None)
+    assert [b.model_name for b in bikes] == ["Factor Ostro VAM"]
+
+
+async def test_collection_pagination_uses_page_not_since_id(_patch_shopify, monkeypatch):
+    """Collection endpoints ignore since_id, so paging with it truncated every
+    collection at one page."""
+    monkeypatch.setattr(shopify_pipeline, "SHOPIFY_PAGE_SIZE", 2)
+    pages = {
+        1: [{**_product("Road Bikes"), "handle": "a"}, {**_product("Road Bikes"), "handle": "b"}],
+        2: [{**_product("Road Bikes"), "handle": "c"}],
+    }
+    requested = []
+
+    async def _fake_get(client, url, headers=None):
+        requested.append(url)
+        page = 2 if "page=2" in url else 1
+        return _Resp({"products": pages[page]})
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road bikes": "Road"}, collection="bikes",
+    )
+    bikes, _ = await scrape_shopify(config, client=None)
+    assert not any("since_id" in u for u in requested)
+    assert len(bikes) == 3
+
+
+async def test_root_products_json_still_pages_with_since_id(_patch_shopify, monkeypatch):
+    monkeypatch.setattr(shopify_pipeline, "SHOPIFY_PAGE_SIZE", 2)
+    pages = [
+        [{**_product("Road Bikes"), "handle": "a"}, {**_product("Road Bikes"), "handle": "b"}],
+        [{**_product("Road Bikes"), "handle": "c"}],
+    ]
+    requested = []
+
+    async def _fake_get(client, url, headers=None):
+        requested.append(url)
+        return _Resp({"products": pages[min(len(requested) - 1, 1)]})
+
+    monkeypatch.setattr(shopify_pipeline, "get_with_retry", _fake_get)
+
+    config = VendorConfig(
+        vendor_name="T", city="X", base_url="https://x", pipeline="shopify",
+        category_map={"road bikes": "Road"},
+    )
+    await scrape_shopify(config, client=None)
+    assert any("since_id" in u for u in requested)
 
 
 async def test_category_map_still_used_without_collection_override(_patch_shopify, monkeypatch):

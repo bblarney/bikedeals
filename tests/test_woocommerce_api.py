@@ -8,6 +8,7 @@ from scrapers.pipelines.woocommerce_api import (
     _build_records,
     _clean_text,
     _frame_sizes,
+    _is_electric_slug,
     _known_brands,
     _price,
     _resolve_brand,
@@ -189,6 +190,36 @@ def test_build_records_prefers_the_electric_category_over_mountain():
         categories=[{"slug": "mountain-bikes"}, {"slug": "electric-bikes"}],
     )
     bikes, _, _ = _build_records(make_config(), {1: product}, NOW)
+    assert bikes[0].category == "E-Bike"
+
+
+@pytest.mark.parametrize(
+    "slug, electric",
+    [
+        ("electric-bikes", True),
+        ("e-bikes", True),
+        # Unhyphenated spellings — Cycle World files e-MTBs under "mtb-ebikes"
+        # with no "electric" or "e-bike" anywhere, and missing them dropped the
+        # electric-first ordering that stops the mountain category winning.
+        ("ebikes", True),
+        ("mtb-ebikes", True),
+        ("dual-suspension-enduro-ebikes", True),
+        ("mountain-bikes", False),
+        ("road-bikes", False),
+        ("bikes", False),
+    ],
+)
+def test_is_electric_slug(slug, electric):
+    assert _is_electric_slug(slug) is electric
+
+
+def test_build_records_prefers_an_unhyphenated_ebike_category():
+    product = make_product(
+        name="Merida eOne-Sixty 500",
+        categories=[{"slug": "mtb-bikes"}, {"slug": "mtb-ebikes"}],
+    )
+    config = make_config(category_map={"mtb-bikes": "Mountain", "mtb-ebikes": "E-Bike"})
+    bikes, _, _ = _build_records(config, {1: product}, NOW)
     assert bikes[0].category == "E-Bike"
 
 

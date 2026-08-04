@@ -1,0 +1,56 @@
+vendor_name: "West Coast Cycles"
+city: "Perth"
+max_pages: 5
+base_url: "https://westcoastcycles.com.au"
+pipeline: "shopify"
+# Cannondale / Merida / Super73 / Ampd Bros dealer. Strong e-bike bias.
+#
+# Every product in this store has an empty product_type and the root
+# /products.json is ~1000 mostly-parts listings, so the curated collections are
+# the only category signal — hence collection_category_map.
+#
+# Order matters: the pipeline dedupes by product handle across collections, so
+# the first collection listing a product assigns its category. All electric
+# collections lead, since a fat-tyre or cargo e-bike is also filed under its
+# discipline collection.
+#
+# Brand collections (cannondale-bikes, dk-bikes, leitner-bikes, vamos-bikes)
+# are deliberately excluded: they mix disciplines, so they'd assign a category
+# by brand rather than by bike.
+collections:
+  - e-bikes
+  - fat-tyre-e-bikes
+  - cargo-e-bikes
+  - electric
+  - mountain-bikes
+  - gravel-bikes
+  - road-bikes
+  - road
+  - city-bikes
+  - pedal-bikes
+  - kids
+collection_category_map:
+  e-bikes: E-Bike
+  fat-tyre-e-bikes: E-Bike
+  cargo-e-bikes: E-Bike
+  electric: E-Bike
+  mountain-bikes: Mountain
+  gravel-bikes: Gravel
+  road-bikes: Road
+  road: Road
+  city-bikes: Commuter
+  pedal-bikes: Commuter
+  kids: Commuter
+# Only a fallback if a collection handle is renamed — product_type is empty
+# store-wide, so in practice these match against the model name.
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  mountain: Mountain
+  mtb: Mountain
+  gravel: Gravel
+  road: Road
+  hybrid: Commuter
+  commuter: Commuter
+  kids: Commuter
