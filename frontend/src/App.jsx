@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import BackToTop from './components/BackToTop'
@@ -11,6 +11,7 @@ import { usePins } from './hooks/usePins'
 import { useFilters } from './hooks/useFilters'
 import { useStats } from './hooks/useStats'
 import { canonicalFor, buildPageMeta } from './seo'
+import { MAIN_SCROLL_ID } from './lib/scroll'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
@@ -35,12 +36,15 @@ function MainLayout() {
   const showLanding = !regionSetThisSession && params.city.length === 0
   if (showLanding) {
     return (
-      <LandingPage
-        onUpdate={(changes) => {
-          setRegionSetThisSession(true)
-          params.update(changes)
-        }}
-      />
+      <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        <LandingPage
+          onUpdate={(changes) => {
+            setRegionSetThisSession(true)
+            params.update(changes)
+          }}
+        />
+        <Footer />
+      </div>
     )
   }
 
@@ -82,7 +86,7 @@ function MainLayout() {
           </svg>
         )}
       </button>
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <FilterSidebar
           filters={filtersData}
           params={params}
@@ -91,7 +95,8 @@ function MainLayout() {
           onCloseMobile={() => setSidebarOpen(false)}
           desktopCollapsed={sidebarCollapsed}
         />
-        <main className="flex-1 min-w-0 flex flex-col">
+        {/* The only scrollable region on the deals page — header and sidebar stay put. */}
+        <main id={MAIN_SCROLL_ID} className="flex-1 min-w-0 flex flex-col overflow-y-auto">
           <BikeGrid
             bikes={bikesData?.results}
             isLoading={isLoading}
@@ -106,6 +111,7 @@ function MainLayout() {
             onTogglePin={togglePin}
             onClearPins={clearPins}
           />
+          <Footer />
         </main>
       </div>
     </>
@@ -122,8 +128,12 @@ function StaticLayout({ children }) {
 }
 
 export default function App() {
+  // The deals page is a fixed app shell: the viewport never scrolls, its inner
+  // grid column does. Every other route keeps normal document scrolling.
+  const isShell = useLocation().pathname === '/'
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className={`flex flex-col bg-gray-50 ${isShell ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<MainLayout />} />
@@ -136,7 +146,8 @@ export default function App() {
           <Route path="/unsubscribe" element={<StaticLayout><UnsubscribePage /></StaticLayout>} />
         </Routes>
       </ErrorBoundary>
-      <Footer />
+      {/* On the shell route the footer lives inside the scrolling column instead. */}
+      {!isShell && <Footer />}
       <BackToTop />
     </div>
   )
