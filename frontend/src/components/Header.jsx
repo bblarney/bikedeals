@@ -5,7 +5,7 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
   const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
 
   return (
-    <header className="bg-navy-900 px-4 sm:px-6 py-2.5 flex items-center gap-3 sm:gap-5 flex-shrink-0">
+    <header className="bg-navy-900 px-4 sm:px-6 py-2.5 md:h-[var(--header-h)] flex items-center gap-3 sm:gap-5 flex-shrink-0">
       {params && onOpenSidebar && (
         <button
           type="button"
