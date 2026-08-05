@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { REGIONS, SIZE_ORDER } from '../constants'
 import { useFilters } from '../hooks/useFilters'
+import FlagAU from '../components/FlagAU'
 
 const selectClass =
   'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition cursor-pointer'
@@ -56,7 +57,7 @@ export default function LandingPage({ onUpdate }) {
       {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
         <img src="/logos/bikegrid/bikegrid-black.png" alt="BikeGrid" className="h-14 w-auto" />
-        <span className="text-slate-400 text-sm font-medium bg-white px-2 py-0.5 rounded-full border border-slate-200">AU</span>
+        <FlagAU className="h-5 w-10 rounded-sm ring-1 ring-slate-200 flex-shrink-0" />
       </div>
 
       <h1 className="text-3xl font-bold text-slate-900 text-center mb-10">Find bike deals near you</h1>

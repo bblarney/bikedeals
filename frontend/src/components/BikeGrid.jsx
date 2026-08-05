@@ -21,7 +21,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
         </svg>
-        <p className="font-medium text-slate-700">Could not load deals</p>
+        <p className="font-medium text-slate-700">Could not load bikes</p>
         <p className="text-sm text-slate-400 mt-1">Check the API is running and try again.</p>
       </div>
     )
@@ -33,7 +33,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
         </svg>
-        <p className="font-medium text-slate-700">No deals match your filters</p>
+        <p className="font-medium text-slate-700">No bikes match your filters</p>
         <button
           onClick={() => onUpdate(DEFAULT_FILTERS)}
           className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium"
@@ -53,7 +53,7 @@ export default function BikeGrid({ bikes, isLoading, isFetching, isError, total,
           <p className="text-sm text-slate-500">
             {total != null ? (
               <>
-                <span className="font-semibold text-slate-800">{total.toLocaleString()}</span> deals
+                <span className="font-semibold text-slate-800">{total.toLocaleString()}</span> bike{total === 1 ? '' : 's'}
               </>
             ) : (
               <span className="text-slate-400">Loading…</span>

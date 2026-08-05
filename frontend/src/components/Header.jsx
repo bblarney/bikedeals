@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatTimeAgo } from '../lib/time'
+import FlagAU from './FlagAU'
 
 export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) {
   const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
@@ -23,7 +24,7 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
 
       <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
         <img src="/logos/bikegrid/bikegrid_white.png" alt="BikeGrid" className="h-9 sm:h-11 w-auto object-contain" />
-        <span className="text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400">AU</span>
+        <FlagAU className="h-3.5 w-7 rounded-[2px] ring-1 ring-white/20 flex-shrink-0" />
       </Link>
 
       {params && (
@@ -49,7 +50,7 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
 
           {total != null && (
             <p className="hidden sm:block text-sm text-slate-400 flex-shrink-0">
-              <span className="text-white font-medium">{total.toLocaleString()}</span> deals
+              <span className="text-white font-medium">{total.toLocaleString()}</span> bike{total === 1 ? '' : 's'}
               {timeAgo && <span className="ml-2 text-slate-600">· updated {timeAgo}</span>}
             </p>
           )}
