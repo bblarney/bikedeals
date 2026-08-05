@@ -15,7 +15,7 @@ Vendors are grouped into:
 
 ## 1. Scraped
 
-68 vendors live in the registry. `pipeline` matches the loader in
+77 vendors live in the registry. `pipeline` matches the loader in
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
@@ -36,9 +36,18 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 > Both keep their existing rows in the DB — the orchestrator treats a failed
 > vendor as "keep the data, skip `mark_stale`" rather than wiping it.
 
+> **Added 2026-08-04 (68 → 77).** ABC Bikes, Woolys Wheels, CCACHE and Cycle
+> World (Sydney), Giant Lygon St and Giant South Yarra (Melbourne), West Coast
+> Cycles (Perth), Treadly Bike Shop (Adelaide), Canberra Cyclery (Canberra).
+> Five had previously been filed as blocked or accessories-only and were
+> re-probed successfully: Cycle World and Canberra Cyclery both yielded to the
+> `woocommerce_api` (Store API) pipeline, which reaches prices the HTML listings
+> withhold; Woolys Wheels, CCACHE and Treadly do stock complete bikes online.
+
 | Vendor | Location | Domain | Pipeline |
 |---|---|---|---|
 | 99 Bikes | 8 stores (chain) | 99bikes.com.au | shopify |
+| ABC Bikes | Sydney | abcbikes.com.au | shopify |
 | Alchemy Cycle Trader | Melbourne | alchemycycletrader.com.au | shopify |
 | Bay Bike Co | Newcastle | baybikeco.com.au | shopify |
 | Bayside Cycles | Melbourne | baysidecycles.com.au | shopify |
@@ -55,12 +64,15 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Bikes.com.au | Melbourne | bikes.com.au | shopify |
 | Bikes Online | 5 stores (chain) | bikesonline.com.au | shopify |
 | Bike Zone Fitzroy | Melbourne | bikezonefitzroy.com.au | shopify |
+| Canberra Cyclery | Canberra | canberracyclery.com.au | woocommerce_api |
 | Canyon | National (D2C) | canyon.com | canyon |
+| CCACHE | Sydney | ccache.cc | shopify |
 | Cranks | Sydney | cranks.com.au | woocommerce |
 | Crooze | Brisbane | crooze.com.au | shopify |
 | Currumbin Cycles | Gold Coast | currumbincycles.com.au | shopify |
 | Cycle Co-op | Canberra | cycleco-op.au | shopify |
 | Cyclespot | Sydney | cyclespot.com.au | shopify |
+| Cycle World | Sydney | cycleworld.com.au | woocommerce_api |
 | Cycle Zone | Sunshine Coast | cyclezone.com.au | shopify |
 | De Grandi Cycle Works | Geelong | degrandi.com.au | shopify |
 | Drift Bikes | Newcastle | driftbikes.com.au | shopify |
@@ -70,8 +82,10 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | George's Bike Shop | Perth | georgesbikeshop.com.au | woocommerce |
 | Giant Brisbane | Brisbane | giantbrisbane.com.au | shopify |
 | Giant Gold Coast | Gold Coast | giantgoldcoast.com.au | shopify |
+| Giant Lygon St | Melbourne | giantlygonst.com.au | shopify |
 | Giant Osborne Park | Perth | giantosbornepark.com.au | shopify |
 | Giant Ramsgate | Sydney | giantramsgate.com.au | giant |
+| Giant South Yarra | Melbourne | giantsthyarra.com.au | shopify |
 | Giant Sunshine Coast | Sunshine Coast | giantsunshinecoast.com.au | shopify |
 | Giant Sydney | Sydney | giantsydney.com.au | shopify |
 | Giant Wollongong | Wollongong | giantwollongong.com.au | shopify |
@@ -104,8 +118,11 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | The Bicycle Company | Melbourne | thebicyclecompany.com.au | shopify |
 | The Bike Shop | Brisbane | thebikeshop.au | shopify |
 | The Mountain Biker | Brisbane | themountainbiker.com.au | shopify |
+| Treadly Bike Shop | Adelaide | treadlybikeshop.com.au | shopify |
 | Venture Cycles | Sunshine Coast | venturecycles.com.au | shopify |
+| West Coast Cycles | Perth | westcoastcycles.com.au | shopify |
 | Wollongong Bike Hub | Wollongong | wollongongbikehub.com.au | shopify |
+| Woolys Wheels | Sydney | woolyswheels.com.au | shopify |
 
 ---
 
@@ -138,6 +155,13 @@ Confirmed scrapable but not yet building cleanly with existing pipelines.
 Permanently blocked, JS-rendered, or no accessible product catalog. Re-probed
 2026-06-21; status unchanged unless noted.
 
+> **Unblocked 2026-08-04:** Cycle World and Canberra Cyclery have moved to
+> [Scraped](#1-scraped). Both are WooCommerce sites whose *HTML* listings
+> defeated us (403s and empty listing prices respectively); both expose the
+> WooCommerce Store API at `/wp-json/wc/store/v1`, which the `woocommerce_api`
+> pipeline reads directly. Worth re-probing the other WooCommerce entries below
+> the same way before writing them off.
+
 | Store | URL | City | Platform | Reason |
 |---|---|---|---|---|
 | Pushys | pushys.com.au | National (online) | Non-Shopify | **Added 2026-06-21.** Large online retailer; `/products.json` returns HTTP 404 — not Shopify (BigCommerce/custom). No standard product API |
@@ -146,7 +170,6 @@ Permanently blocked, JS-rendered, or no accessible product catalog. Re-probed
 | PM Cycles | pmcycles.com.au | Melbourne | WooCommerce | Returns HTTP 403 (nginx) on all automated requests |
 | Cecil Walker | cecilwalker.com.au | Melbourne | BigCommerce | Headless/React; products via JS hash routing; static HTML has no product data |
 | Bike Superstore | bikesuperstore.com.au | Canberra | BigCommerce | Cloudflare Bot Management; `/products.json` 404; blocks `httpx` TLS fingerprint |
-| Cycle World | cycleworld.com.au | Sydney | WordPress | Returns HTTP 403/404 on automated requests; no product API |
 | Cyclery Northside | cyclerynorthside.com.au | Sydney | Lightspeed eCom | JS-rendered products (same platform as BAM) |
 | MC Cyclery | mccyclery.com.au | Sydney | Sanity headless | Product data from `cdn.sanity.io`; JS-rendered via Sanity CMS |
 | The Odd Spoke | theoddspoke.com.au | Sydney | Neto / Maropost | Behind Cloudflare ("Just a moment…", HTTP 403); products via Neto `nloader` JS |
@@ -157,7 +180,6 @@ Permanently blocked, JS-rendered, or no accessible product catalog. Re-probed
 | Lakes Bikes | lakesbikes.com.au | Perth | Lightspeed eCom | JS-rendered products ("Austin Theme") |
 | Movement Systems | movementsystems.com.au | Perth | WooCommerce | No products in static HTML — JS-rendered |
 | Speedlite Cycles | speedlitecycles.com.au | Perth | WordPress | Brochure site only; no product catalog |
-| Canberra Cyclery | canberracyclery.com.au | Canberra | WooCommerce | Listing prices empty; prices only on per-product detail pages |
 | Mike's Bikes | mikesbikes.com.au | Gold Coast | WordPress | Brochure-style site; no e-commerce catalog |
 | eMTB Store | emtbstore.com.au | Gold Coast | GoDaddy OLS | Fully JS-rendered; static HTML has only loading placeholders |
 | Bike Society | bikesociety.com.au | Adelaide | Astro / Vercel | **Updated 2026-06-21.** Migrated off Shopify to a custom Astro site on Vercel; no `/products.json`; still returns HTTP 429 to automated requests (bot firewall) |
@@ -180,10 +202,7 @@ bikes).
 
 | Store | URL | City | Reason |
 |---|---|---|---|
-| Wooly's Wheels | woolyswheels.com.au | Sydney | Wheel-building specialist; no complete bikes |
-| C Cache | ccache.cc | Sydney | Carbon accessories only (valves, wheels); no bikes |
 | Chainsmith | chainsmith.com.au | Sydney | Clothing and accessories only; no bikes |
 | Coolum Cycles | coolumcycles.com.au | Sunshine Coast | Custom PHP inquiry-only site; no online store |
-| Treadly Bike Shop | treadlybikeshop.com.au | Adelaide (Norwood) | Shopify confirmed but online catalog is accessories only (locks, lights, hubs); no complete bikes |
 | Inner City Cycles | innercitycycles.com.au | Sydney | Shopify confirmed but online catalog is helmets, tyres and lights only; no complete bikes |
 | Urban Pedaler | urbanpedaler.com.au | Melbourne | Shopify confirmed but online catalog is tyres and components only; no complete bikes |

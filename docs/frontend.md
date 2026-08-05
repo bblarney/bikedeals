@@ -1,8 +1,12 @@
 # Frontend Design
 
+Reflects `frontend/src/`. When the code and this document disagree, the code wins.
+
 ## Framework
 
-**Decision: React** (Vite scaffold). State via TanStack Query (server state) with filter values stored in URL query params.
+**React 19 + Vite + Tailwind CSS 4**, with TanStack Query for server state and
+filter values in URL query params. Routing is `react-router-dom`; the price-history
+chart uses `recharts`. No global state store — none has been needed.
 
 ---
 
@@ -35,71 +39,74 @@ Derive filter state from `useSearchParams()` on mount; update URL on filter chan
 
 ---
 
+## Routes
+
+| Path | Page |
+|---|---|
+| `/` | Main deal feed (`MainLayout`) |
+| `/bikes/:id` | `BikeDetailPage` — offers, size variants, price history |
+| `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy` | Static pages |
+| `/unsubscribe` | `UnsubscribePage` — posts the token from the email link |
+
+Everything except `/` renders inside `StaticLayout`.
+
+---
+
 ## Component tree
+
+The layout is a fixed shell: header and filter sidebar stay pinned, and only the
+bike grid scrolls.
 
 ```
 App
-├── Header
-│   ├── SiteName / logo
-│   └── StatsBanner          ← "342 deals · 12 shops · last updated 2h ago"
-├── FilterStrip (sticky)
-│   ├── CityDropdown         ← primary filter; scopes all others
-│   ├── CategoryDropdown
-│   ├── SizeGrid             ← multi-select button grid (S / M / L / XL / XS)
-│   ├── DiscountSlider       ← min discount %
-│   ├── VendorDropdown
-│   └── SearchInput
-├── ResultsHeader            ← "342 deals found · sorted by discount"
-├── BikeGrid
-│   └── BikeCard (×n)
-│       ├── BikeImage
-│       ├── DiscountBadge    ← "29% off · Save $200"
-│       ├── ModelInfo        ← Brand + Model, Size
-│       ├── PriceDisplay     ← $499 (was $699)
-│       ├── VendorTag        ← "Local Bike Shop"
-│       └── CTAButton        ← "View Deal →" (opens product_url in new tab)
-└── Pagination               ← or infinite scroll (see below)
+├── Header                    ← logo, search, stats ("342 deals · 77 shops · updated 2h ago")
+├── FilterSidebar (fixed)
+│   ├── MultiSelectDropdown   ← city, category, brand, vendor, material, groupset
+│   ├── size chips            ← multi-select
+│   ├── price + discount ranges
+│   └── added-since control
+├── BikeGrid (scroll container)
+│   ├── BikeCard (×n)         ← image, discount badge, model, size, price, vendor, CTA
+│   └── Prev / Next controls  ← top and bottom of the list
+├── SidebarAd
+├── BackToTop
+├── Footer
+└── ErrorBoundary             ← wraps the tree
+
+BikeDetailPage
+├── offers table              ← same SKU at other shops, cheapest first
+├── size variants
+├── PriceHistoryChart         ← recharts, from /price-history
+└── RelatedBikes
 ```
+
+Supporting modules: `hooks/` (`useBikes`, `useFilters`, `useStats`, `usePins`),
+`api/client.js`, `lib/` (`badges`, `scroll`, `time`), `logos.js`, `seo.js`.
 
 ---
 
-## Pagination vs infinite scroll
+## Pagination
 
-| | Offset pagination | Infinite scroll |
-|---|---|---|
-| Shareable position | Yes (URL: `?offset=50`) | No |
-| UX for deal hunting | Moderate | Better (keep scrolling) |
-| Complexity | Low | Medium |
+**Offset pagination**, as planned — Prev/Next controls rendered at both ends of
+the grid, with `offset` in the URL so a position is shareable. Changing any filter
+clears `offset` (see `useBikes.js`); changing `offset` itself does not. Page
+changes scroll the grid container back to the top rather than the window, because
+the shell is fixed.
 
-**Recommendation:** Start with offset pagination (simple, shareable links). Switch to infinite scroll if users complain about it feeling slow.
+Infinite scroll was considered and not adopted — it loses shareable position, and
+nothing so far suggests users want it.
 
 ---
 
-## BikeCard design
+## BikeCard
 
-Dense information per card is the stated goal. Two layout options:
+Dense information per card, responsive between a desktop list row and a mobile
+card. Beyond the core fields, cards surface badges derived in `lib/badges.js` from
+`price_drop_at` / `discount_started_at` (price drop, new deal) and
+`sku_vendor_count` ("available at N shops", shown only when ≥ 2).
 
-### Option A — Horizontal list row
-```
-[img 80×80] | Trek Marlin 5 · M   |  $499  ~~$699~~  | [29% OFF]  | Local Bike Shop | [View Deal →]
-```
-Maximizes vertical density. Good for desktop power users.
-
-### Option B — Compact card grid
-```
-┌──────────────────┐
-│  [img 200×150]   │
-│  29% OFF · $200  │  ← discount badge
-│  Trek Marlin 5   │
-│  Size: M         │
-│  $499 ~~$699~~   │
-│  Local Bike Shop │
-│  [View Deal →]   │
-└──────────────────┘
-```
-Better for mobile. Familiar e-commerce pattern.
-
-**Recommendation:** Build Option A (list row) for the desktop MVP; it shows more results above the fold and matches the "dense data" goal. Make it responsive to collapse into a card on mobile.
+Clicking through calls `POST /bikes/{id}/click` before opening `product_url` in a
+new tab; that counter backs the `clicks_desc` sort.
 
 ---
 
