@@ -15,9 +15,24 @@ Vendors are grouped into:
 
 ## 1. Scraped
 
-77 vendors live in the registry. `pipeline` matches the loader in
+100 vendors live in the registry. `pipeline` matches the loader in
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
+
+> **Giant franchise stores share one national catalogue (verified 2026-08-05).**
+> Every `giant`-pipeline store white-labels the same Giant/Liv range at the same
+> RRP — the same 53 road bikes totalling $402,947 at Adelaide, Ballarat and
+> Ramsgate — and the CMS shows no sale prices, so every row is 0% off. They earn
+> their place on **location**, not on distinct stock. Only stores adding a city
+> the registry did not already cover are registered; the rest of the ~41-store
+> network is deliberately left out rather than duplicating one catalogue 19 more
+> times. Two apparent Giant stores are not on this CMS at all: Giant Cairns
+> (Citrus-Lime, see [Not scraped](#3-not-scraped-blocked)) and Giant Hervey Bay.
+>
+> Their configs must use the **www** host. The apex 301s a deep path to the site
+> root (`giantramsgate.com.au/au/bikes/road-bikes` → `www.…/au`), so an apex
+> `base_url` scrapes the homepage's featured tiles for every path — 6 bikes
+> instead of 130, and `scrape_check` still reports PASS.
 
 > **Registered but not currently returning data (checked 2026-08-04):**
 >
@@ -44,11 +59,20 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 > `woocommerce_api` (Store API) pipeline, which reaches prices the HTML listings
 > withhold; Woolys Wheels, CCACHE and Treadly do stock complete bikes online.
 
+> **Added 2026-08-05 (77 → 100).** Ten independent shops — Bicycle Workshop and
+> Fitzroy Cycles (Melbourne), Velofix Rozelle and Wheelhaus (Sydney), Progear
+> Bikes and Curve Cycling (Melbourne), Ampd Bros (Gold Coast), Life Cycle Bikes
+> (Margaret River, the first South West WA vendor), Velectrix (Sunshine Coast)
+> and Lekker Bikes (3-store chain) — plus thirteen Giant franchise stores taken
+> only for the regional cities they add (see the note above). Bicycle Workshop
+> is the pick of them: 164 bikes with 319 of 549 variants discounted.
+
 | Vendor | Location | Domain | Pipeline |
 |---|---|---|---|
 | 99 Bikes | 8 stores (chain) | 99bikes.com.au | shopify |
 | ABC Bikes | Sydney | abcbikes.com.au | shopify |
 | Alchemy Cycle Trader | Melbourne | alchemycycletrader.com.au | shopify |
+| Ampd Bros | Gold Coast | ampdbros.com.au | shopify |
 | Bay Bike Co | Newcastle | baybikeco.com.au | shopify |
 | Bayside Cycles | Melbourne | baysidecycles.com.au | shopify |
 | Bicycle Centre Australia | 11 stores (chain) | bicycle-centre.com.au | shopify |
@@ -56,6 +80,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Bicycle Express | Adelaide | bicycleexpress.com.au | shopify |
 | Bicycle Fix | Adelaide Hills | bicyclefix.com.au | shopify |
 | Bicycle Superstore | Melbourne | bicyclesuperstore.com.au | shopify |
+| Bicycle Workshop | Melbourne | bicycleworkshop.com.au | shopify |
 | Bike Central GC | Gold Coast | bikecentralgc.com.au | shopify |
 | Bike Force Joondalup | Perth | bikeforcejoondalup.com.au | shopify |
 | Bike Line | Toowoomba | bikeline.com.au | shopify |
@@ -70,6 +95,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Cranks | Sydney | cranks.com.au | woocommerce |
 | Crooze | Brisbane | crooze.com.au | shopify |
 | Currumbin Cycles | Gold Coast | currumbincycles.com.au | shopify |
+| Curve Cycling | Melbourne | curvecycling.com | shopify |
 | Cycle Co-op | Canberra | cycleco-op.au | shopify |
 | Cyclespot | Sydney | cyclespot.com.au | shopify |
 | Cycle World | Sydney | cycleworld.com.au | woocommerce_api |
@@ -79,15 +105,29 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | eBikes Superstore | Adelaide | ebikessuperstore.com.au | shopify |
 | Electric Bikes Brisbane | Brisbane | electricbikesbrisbane.com.au | shopify |
 | Empire Cycles | Perth | empirecycles.com.au | shopify |
+| Fitzroy Cycles | Melbourne | fitzroycycles.com.au | shopify |
 | George's Bike Shop | Perth | georgesbikeshop.com.au | woocommerce |
+| Giant Bairnsdale | Bairnsdale | giantbairnsdale.com.au | giant |
+| Giant Ballarat | Ballarat | giantballarat.com.au | giant |
+| Giant Bendigo | Bendigo | giantbendigo.com.au | giant |
 | Giant Brisbane | Brisbane | giantbrisbane.com.au | shopify |
+| Giant Bundaberg | Bundaberg | giantbundaberg.com.au | giant |
+| Giant Castlemaine | Castlemaine | giantcastlemaine.com.au | giant |
+| Giant Devonport | Devonport | giantdevonport.com.au | giant |
+| Giant Echuca | Echuca | giantechuca.com.au | giant |
 | Giant Gold Coast | Gold Coast | giantgoldcoast.com.au | shopify |
 | Giant Lygon St | Melbourne | giantlygonst.com.au | shopify |
+| Giant Mandurah | Mandurah | giantmandurah.com.au | giant |
+| Giant Mudgee | Mudgee | giantmudgee.com.au | giant |
 | Giant Osborne Park | Perth | giantosbornepark.com.au | shopify |
 | Giant Ramsgate | Sydney | giantramsgate.com.au | giant |
+| Giant Rockhampton | Rockhampton | giantrockhampton.com.au | giant |
 | Giant South Yarra | Melbourne | giantsthyarra.com.au | shopify |
+| Giant St Helens | St Helens | giantsthelens.com | giant |
 | Giant Sunshine Coast | Sunshine Coast | giantsunshinecoast.com.au | shopify |
 | Giant Sydney | Sydney | giantsydney.com.au | shopify |
+| Giant Tamworth | Tamworth | gianttamworth.com.au | giant |
+| Giant Tuggerah | Central Coast | gianttuggerah.com.au | giant |
 | Giant Wollongong | Wollongong | giantwollongong.com.au | shopify |
 | Glowworm Bicycles | Sydney | glowwormbicycles.com.au | shopify |
 | Happy Wheels | Sydney | happywheels.com.au | woocommerce |
@@ -95,6 +135,8 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Ivanhoe Cycles | Melbourne | ivanhoecycles.com.au | shopify |
 | Jet Cycles | Sydney | jetcycles.com.au | shopify |
 | Just Ride Nerang | Gold Coast | justridenerang.com.au | shopify |
+| Lekker Bikes | 3 stores (chain) | lekkerbikes.com.au | shopify |
+| Life Cycle Bikes | Margaret River | lifecyclebikes.com.au | woocommerce_api |
 | Live Life Cycling | Brisbane | livelifecycling.com.au | shopify |
 | Macarthur Bikes | Sydney | macarthurebikes.com.au | shopify |
 | Mackay Cycles | Mackay | mackaycycles.com.au | shopify |
@@ -108,6 +150,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Pedal Inn | Brisbane | pedalinn.au | shopify |
 | Pedl | Sydney | pedl.com.au | shopify |
 | Planet Cycles | Brisbane | planetcycles.com.au | shopify |
+| Progear Bikes | Melbourne | progearbikes.com.au | shopify |
 | Reid Cycles | 2 stores (chain) | reidcycles.com.au | shopify |
 | Ride Bellerive | Hobart | ride.net.au | shopify |
 | Ride 'n' Roll | Gold Coast | ridenroll.com.au | shopify |
@@ -119,8 +162,11 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | The Bike Shop | Brisbane | thebikeshop.au | shopify |
 | The Mountain Biker | Brisbane | themountainbiker.com.au | shopify |
 | Treadly Bike Shop | Adelaide | treadlybikeshop.com.au | shopify |
+| Velectrix | Sunshine Coast | velectrix.com.au | woocommerce_api |
+| Velofix Rozelle | Sydney | velofix.com.au | shopify |
 | Venture Cycles | Sunshine Coast | venturecycles.com.au | shopify |
 | West Coast Cycles | Perth | westcoastcycles.com.au | shopify |
+| Wheelhaus | Sydney | wheelhaus.com.au | shopify |
 | Wollongong Bike Hub | Wollongong | wollongongbikehub.com.au | shopify |
 | Woolys Wheels | Sydney | woolyswheels.com.au | shopify |
 
@@ -202,6 +248,7 @@ bikes).
 
 | Store | URL | City | Reason |
 |---|---|---|---|
+| Abbotsford Cycles | abbotsfordcycles.com.au | Melbourne | **Added 2026-08-05.** WooCommerce Store API reachable and returns ~100 products, but the catalogue is bikepacking bags, racks, locks and touring parts — no complete bikes |
 | Chainsmith | chainsmith.com.au | Sydney | Clothing and accessories only; no bikes |
 | Coolum Cycles | coolumcycles.com.au | Sunshine Coast | Custom PHP inquiry-only site; no online store |
 | Inner City Cycles | innercitycycles.com.au | Sydney | Shopify confirmed but online catalog is helmets, tyres and lights only; no complete bikes |
