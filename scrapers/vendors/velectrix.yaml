@@ -1,0 +1,23 @@
+vendor_name: "Velectrix"
+city: "Sunshine Coast"
+max_pages: 5
+base_url: "https://velectrix.com.au"
+pipeline: "woocommerce_api"
+# Australian e-bike brand selling direct, based at Baringa on the Sunshine
+# Coast. Electric-only range, so every mapped slug resolves to E-Bike — the
+# discipline slugs below are the model families, not disciplines in our sense.
+collections:
+  - ebikes
+  - adventure
+  - commute
+  - cruise
+  - fat-bikes
+category_map:
+  ebikes: E-Bike
+  adventure: E-Bike
+  commute: E-Bike
+  cruise: E-Bike
+  fat-bikes: E-Bike
+# NOTE: the bulk of this site is spare parts (accessories-parts, drivetrain,
+# displays, motors, battery-chargers). Those categories are not listed above, so
+# the pipeline never fetches them.

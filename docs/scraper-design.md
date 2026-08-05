@@ -1,6 +1,6 @@
 # Scraper Design
 
-Reflects the implementation in `scrapers/` as of the 77-vendor registry. When the
+Reflects the implementation in `scrapers/` as of the 100-vendor registry. When the
 code and this document disagree, the code wins — please fix the document.
 
 ---
@@ -88,8 +88,31 @@ Six are implemented; `custom` is declarable but unimplemented and raises
 | `woocommerce` | Listing-page DOM via `selectors` | Fallback; one row per product |
 | `woocommerce_api` | `/wp-json/wc/store/v1` | Preferred over DOM where reachable |
 | `bigcommerce` | Listing-page DOM | |
-| `giant` | Giant franchise storefronts | Per-store `vendor_name` to avoid collisions |
+| `giant` | Giant franchise storefronts | Per-store `vendor_name` to avoid collisions. **`base_url` must use the www host** — see below |
 | `canyon` | Canyon direct-to-consumer | Outlet path falls back to URL-segment categories |
+
+### Giant franchise stores — www, and a shared catalogue
+
+Two things about the `giant` pipeline are easy to get wrong, and neither fails
+loudly:
+
+- **`base_url` must include `www.`** The apex host 301s a deep path to the site
+  root — `giantramsgate.com.au/au/bikes/road-bikes` → `www.giantramsgate.com.au/au`
+  — dropping the path. An apex `base_url` therefore scrapes the *homepage's*
+  handful of featured tiles once per configured path and dedupes them to a
+  single-figure result: Giant Ramsgate returned 6 bikes instead of 130, and
+  `scrape_check` still reported PASS because non-zero and 0% invalid is a pass.
+- **Category paths drift.** `electric-bikes` was renamed `e-bikes`, which cost
+  Ramsgate every E-Bike row while the other paths kept working. The current set
+  is `e-bikes`, `road-bikes`, `mountain-bikes`, `cross-and-gravel-bikes`,
+  `fitness-and-city-bikes`, `kids-bikes`. Categorise from the `surface-*` CSS
+  classes rather than the path: each product carries exactly one, so the
+  exact-match pass settles it. Note the path `cross-and-gravel-bikes` and the
+  class `cross-gravel-bikes` are spelled differently.
+
+Be aware that every franchise white-labels the **same national catalogue at the
+same RRP**, with no sale prices — so each store adds a location, not stock, and
+contributes only 0%-discount rows. See `docs/vendors.md` before adding more.
 
 ### Shopify pagination — the two cursoring modes
 

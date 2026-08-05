@@ -1,0 +1,43 @@
+vendor_name: "Fitzroy Cycles"
+city: "Melbourne"
+max_pages: 3
+base_url: "https://www.fitzroycycles.com.au"
+pipeline: "shopify"
+# Long-standing Brunswick St shop. The root catalogue is ~1,170 products and is
+# overwhelmingly apparel, tubes and tools, so it is not worth walking: the
+# curated per-discipline collections below are ~93 complete bikes with no
+# accessories mixed in.
+#
+# product_type on this shop is inconsistent (92 bikes carry an empty type), so
+# the collection a product was found in decides its category.
+collections:
+  - road-bikes
+  - mountain-bikes
+  - gravel-bikes
+  - ebikes
+  - hybrid-bikes
+  - flat-bar-road-bikes
+  - kids-bikes
+collection_category_map:
+  road-bikes: Road
+  mountain-bikes: Mountain
+  gravel-bikes: Gravel
+  ebikes: E-Bike
+  hybrid-bikes: Commuter
+  # Flat-bar road bikes are fitness/commuter machines, filed as Commuter to
+  # match how the registry treats "fitness and urban" elsewhere.
+  flat-bar-road-bikes: Commuter
+  kids-bikes: Commuter
+# NOTE: the generic "bikes" collection (62 products) is deliberately excluded —
+# it spans every discipline, so it would need category_map to re-derive what the
+# curated collections already state exactly.
+#
+# Fallback only.
+category_map:
+  road: Road
+  mountain: Mountain
+  gravel: Gravel
+  ebike: E-Bike
+  e-bike: E-Bike
+  hybrid: Commuter
+  kids: Commuter

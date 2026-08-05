@@ -1,0 +1,27 @@
+vendor_name: "Curve Cycling"
+city: "Melbourne"
+max_pages: 3
+base_url: "https://www.curvecycling.com"
+pipeline: "shopify"
+# Abbotsford titanium and steel frame builder selling complete bikes direct.
+# Note the domain is .com, not .com.au.
+#
+# Small range (~11 complete bikes). product_type "Bikes" is a single value that
+# can't categorise, so the curated collections decide instead.
+collections:
+  - on-road-bikes
+  - off-road-bikes
+  - gravel-bikes
+collection_category_map:
+  on-road-bikes: Road
+  # Curve builds no mountain bikes — its "off-road" range is drop-bar adventure
+  # and bikepacking, which sits under Gravel in our five-value enum.
+  off-road-bikes: Gravel
+  gravel-bikes: Gravel
+# NOTE: the "bikes" (38) and "framesets" (20) collections are excluded — the
+# first mixes framesets in with completes, and a frameset is not a rideable bike.
+#
+# Fallback only.
+category_map:
+  road: Road
+  gravel: Gravel
