@@ -22,6 +22,7 @@ from scrapers.db import (
 )
 from scrapers.orchestrator import scrape_vendor
 from scrapers.registry import load_registry
+from scrapers.utils import redact_proxy
 
 load_dotenv()
 
@@ -69,7 +70,10 @@ class _LogCollector(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            self.records.append((record.levelname, record.getMessage()))
+            # Belt and braces: these lines go out in the daily email, and this
+            # handler catches records from third-party loggers (httpx, urllib3)
+            # that never pass through our own redaction points.
+            self.records.append((record.levelname, redact_proxy(record.getMessage())))
         except Exception:
             pass
 

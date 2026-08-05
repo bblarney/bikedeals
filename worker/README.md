@@ -78,3 +78,20 @@ The `[!_]` glob skips the `_woocommerce-template.yaml` placeholder host.
 
 A request to an un-allowlisted host returns a distinct `403 {"error":"host not
 in allowlist: …"}`, which is easy to tell apart from a real vendor block.
+
+## Keeping the endpoint out of public view
+
+The Worker URL is not a credential — `PROXY_TOKEN` is — but it is the one piece
+of private infrastructure behind a public repo, so it is kept out of anything
+shareable. Nothing in this repo contains the real URL; it lives only in the
+`SCRAPER_PROXY_URL` GitHub secret, and `worker.js` is deployed from a local
+checkout that never records it either.
+
+The scraper scrubs it from error text on the way out (`redact_proxy` and
+`_restore_target_url` in `scrapers/utils.py` — see `docs/scraper-design.md`), so
+a failure names the *vendor* rather than the Worker. That covers the summary
+email, `scrape_summary.json` and CI logs.
+
+**When pasting logs anywhere public, check them anyway.** The redaction is only
+as good as its coverage, and GitHub's own secret masking applies to Actions logs
+but not to an email you forward or a file you attach.
