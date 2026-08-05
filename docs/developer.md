@@ -16,6 +16,7 @@ Types:
 | `fix` | Bug fix |
 | `scraper` | Adding or updating a vendor scraper |
 | `data` | Schema or migration changes |
+| `docs` | Documentation only |
 | `chore` | Tooling, deps, config, CI |
 
 Examples:
@@ -24,6 +25,7 @@ feat: add discount slider to filter strip
 fix: quarantine scraper on missing frame_size field
 scraper: add Trek Australia (Shopify pipeline)
 data: add city index to bikes table
+docs: refresh api-design.md against the implementation
 ```
 
 ### Description template
@@ -63,7 +65,17 @@ a single-category warning that usually means a broken `category_map`).
 
 The exit code mirrors what a real run would decide: **0** when the scrape would
 pass, **1** when it would be quarantined (scrape error or too many invalid
-records) or returns zero bikes. A green run here means the vendor is ready to add.
+records) or returns zero bikes.
+
+A green run here means the YAML is correct — **it does not mean the vendor will
+work in CI**. The nightly run egresses through the Cloudflare Worker proxy, which
+only proxies hostnames on its allowlist, so a new vendor also needs its host added
+to `ALLOWED_HOSTS` in `worker/worker.js` **and the Worker redeployed**
+(`cd worker && npx wrangler deploy`). Skip it and the vendor 403s every night while
+every other shop succeeds. `tests/test_worker_allowlist.py` fails the build on a
+stale file, but nothing detects a stale *deploy*.
+
+The full checklist is in [`scraper-design.md`](scraper-design.md#adding-a-new-vendor--required-checklist).
 
 ---
 

@@ -1,26 +1,44 @@
 # Implementation Plan
 
-This document is the authoritative step-by-step build guide for Bikedeals. All design decisions referenced here are already resolved — do not re-litigate them. Read each section fully before writing any code for it, and read the linked design doc before touching that layer.
+> ## ⚠️ Historical document
+>
+> **Phases 1–4 are complete and shipped.** This was the original step-by-step
+> build guide, kept as a record of how the system was assembled and why. The code
+> snippets below are the *original targets*, not current API — the implementation
+> has moved on in ways this document does not track (77 vendors across 6
+> pipelines, a Cloudflare Worker egress proxy, Alembic migrations, price history,
+> cross-shop SKU matching, and more).
+>
+> **For how the system works today, read the living docs instead:**
+> [`scraper-design.md`](scraper-design.md) · [`data-model.md`](data-model.md) ·
+> [`api-design.md`](api-design.md) · [`frontend.md`](frontend.md) ·
+> [`architecture.md`](architecture.md) · [`developer.md`](developer.md).
+>
+> Do not follow the snippets here when writing new code. Where this document and
+> the living docs disagree, the living docs win; where they and the code disagree,
+> the code wins.
 
 ---
 
 ## Resolved decisions (do not re-open)
 
-| Question | Answer |
-|---|---|
-| Frontend framework | React + Vite + Tailwind CSS + TanStack Query |
-| ORM | SQLAlchemy — PostgreSQL everywhere (Supabase for both dev and prod) |
-| DB ID strategy | `sha256(vendor_name::product_url::frame_size)[:16]` |
-| Variants | One row per size variant |
-| Pagination | Offset pagination |
-| Hosting | GitHub Actions + Supabase + Render/Railway + Cloudflare Pages |
-| Geographic scope | Australian cities only; `city` field on every bike row |
-| Alerting | GitHub Actions job failure (emails owner); optional Slack webhook later |
-| `discount_percentage` | Computed in scraper, stored as column, always recomputed on UPSERT |
-| Image URL breakage | Accept 404 breakage; show placeholder. No re-hosting yet. |
-| Category fallback | If no tag matches `category_map`, log and skip the record. Do not guess. |
-| Full-text search | `LIKE '%q%'` on `brand \|\| ' ' \|\| model_name` — fast enough at < 50k rows, no setup required |
-| Stale product handling | Mark `in_stock = 0` after `last_seen_at < run_start_time`; never delete rows |
+Still binding, except where the "now" column notes a post-launch change.
+
+| Question | Answer | Now |
+|---|---|---|
+| Frontend framework | React + Vite + Tailwind CSS + TanStack Query | unchanged |
+| ORM | SQLAlchemy — PostgreSQL everywhere (Supabase for both dev and prod) | + Alembic owns the schema |
+| DB ID strategy | `sha256(vendor_name::product_url::frame_size)[:16]` | now includes `city` |
+| Variants | One row per size variant | unchanged |
+| Pagination | Offset pagination | unchanged |
+| Hosting | GitHub Actions + Supabase + Render/Railway + Cloudflare Pages | + Cloudflare Worker egress proxy |
+| Geographic scope | Australian cities only; `city` field on every bike row | `city` is nullable |
+| Alerting | GitHub Actions job failure (emails owner); optional Slack webhook later | summary email every run, with all warnings |
+| `discount_percentage` | Computed in scraper, stored as column, always recomputed on UPSERT | unchanged |
+| Image URL breakage | Accept 404 breakage; show placeholder. No re-hosting yet. | unchanged |
+| Category fallback | If no tag matches `category_map`, log and skip the record. Do not guess. | unchanged |
+| Full-text search | `LIKE '%q%'` on `brand \|\| ' ' \|\| model_name` | matches brand **or** model, not the concatenation |
+| Stale product handling | Mark `in_stock = 0` after `last_seen_at < run_start_time`; never delete rows | also skipped when a vendor fails or returns 0 bikes |
 
 ---
 
@@ -804,6 +822,8 @@ Workflow is implemented at `.github/workflows/scrape.yml`. It runs at 8 AM UTC d
 | `SMTP_USER` | Gmail address used to send the email |
 | `SMTP_PASSWORD` | Gmail **app password** — generate at myaccount.google.com → Security → 2-Step Verification → App passwords (not your login password) |
 | `NOTIFY_EMAIL` | Destination email address (can be same as `SMTP_USER`) |
+| `SCRAPER_PROXY_URL` | Cloudflare Worker URL (`https://…workers.dev`) — **added post-launch**; without it the scrape egresses from GitHub's blocked IP range |
+| `SCRAPER_PROXY_TOKEN` | Shared secret matching the Worker's `PROXY_TOKEN` |
 
 The scraper writes `scrape_summary.json` to the workspace root on every run. The workflow reads that file to build the email body.
 
@@ -813,19 +833,18 @@ The scraper writes `scrape_summary.json` to the workspace root on every run. The
 
 1. Create a Supabase project (free tier).
 2. Copy the connection string (`postgresql+asyncpg://...`) from Project Settings → Database → Connection string (URI mode, with `?prepared_statement_cache_size=0` appended for asyncpg compatibility).
-3. Run the schema setup once — this creates both tables and all indexes:
+3. Create the schema.
+
+   > **Superseded — do not use the original `create_all` snippet.** Alembic now
+   > owns the Postgres schema. Running `Base.metadata.create_all` against Supabase
+   > creates tables outside Alembic's tracking, and the next migration that tries
+   > to create the same table fails with `DuplicateTableError`. Both `api/main.py`
+   > and `scrapers/run.py` guard `create_all` to SQLite for this reason.
+
    ```bash
-   DATABASE_URL=<supabase-url> python -c "
-   import asyncio, os
-   from sqlalchemy.ext.asyncio import create_async_engine
-   from api.models import Base
-   async def main():
-       engine = create_async_engine(os.environ['DATABASE_URL'])
-       async with engine.begin() as conn:
-           await conn.run_sync(Base.metadata.create_all)
-   asyncio.run(main())
-   "
+   DATABASE_URL=<supabase-url> alembic upgrade head
    ```
+
 4. Save the connection string as `DATABASE_URL` in GitHub Actions secrets.
 
 ---
@@ -841,7 +860,14 @@ The scraper writes `scrape_summary.json` to the workspace root on every run. The
 
 ### Task 4.4 — SEO pre-launch configuration
 
-Replace the placeholder domain `bikegrid.com.au` with the real production domain in the following files before deploying:
+**Done.** `bikegrid.com.au` turned out to be the real production domain, so no
+replacement was needed; it is now the default for both `SITE_URL` and the CORS
+allowlist in `api/main.py`. The API also serves a generated `/sitemap.xml` with one
+entry per in-stock bike, which supersedes the static file for detail-page
+discovery.
+
+The original instruction is kept below for reference — if the domain ever changes,
+these are the files to update:
 
 - `frontend/public/sitemap.xml` — all `<loc>` entries
 - `frontend/public/robots.txt` — the `Sitemap:` line
