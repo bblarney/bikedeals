@@ -128,6 +128,65 @@ def _apply_proxy(url: str, headers: dict | None) -> tuple[str, dict | None]:
         proxied["X-Proxy-Token"] = SCRAPER_PROXY_TOKEN
     return SCRAPER_PROXY_URL, proxied
 
+
+# Stand-in for the proxy endpoint in any text that might be shown or shared.
+PROXY_PLACEHOLDER = "<scraper-proxy>"
+
+
+def redact_proxy(text: str) -> str:
+    """Strip the proxy endpoint out of user-visible text.
+
+    The proxy URL is not a credential (the token is), but it is the one piece of
+    private infrastructure in an otherwise public project, and it reaches humans
+    through several channels: the daily summary email, ``scrape_summary.json``,
+    and CI logs — any of which can end up pasted into a public issue or PR.
+    Naming it there also buys nothing diagnostically: when a proxied request
+    fails, the useful URL is the *vendor's*, not ours.
+
+    A no-op when no proxy is configured.
+    """
+    if not SCRAPER_PROXY_URL:
+        return text
+    return text.replace(SCRAPER_PROXY_URL, PROXY_PLACEHOLDER)
+
+
+def _restore_target_url(resp: httpx.Response, target_url: str) -> None:
+    """Point a proxied response's ``request`` back at the vendor URL.
+
+    Every pipeline calls ``resp.raise_for_status()``, and httpx builds that
+    message from ``resp.request.url`` — which, for a proxied request, is the
+    Worker. That produced errors like "403 Forbidden for url
+    '<scraper-proxy>'": it leaked the endpoint *and* named the wrong host, which
+    is precisely why a vendor missing from the Worker's allowlist read as a
+    mysterious proxy fault instead of a config omission.
+
+    Rewriting the request here fixes both at a single point, so no pipeline has
+    to know the proxy exists.
+
+    The proxy control headers are dropped rather than copied across: the
+    rewritten request is attached to any raised ``HTTPStatusError``, and
+    ``X-Proxy-Token`` is a real credential that should not ride along on an
+    exception object that gets logged with ``exc_info``.
+    """
+    if not SCRAPER_PROXY_URL:
+        return
+    try:
+        original = resp.request
+    except RuntimeError:
+        # httpx raises if no request was ever attached to the response.
+        original = None
+    headers = (
+        {
+            k: v
+            for k, v in original.headers.items()
+            if k.lower() not in ("x-target-url", "x-proxy-token")
+        }
+        if original is not None
+        else {}
+    )
+    resp.request = httpx.Request("GET", target_url, headers=headers)
+
+
 # Match the User-Agent header we send (case-insensitive token only, since
 # robotparser does case-insensitive prefix matching internally).
 _OUR_AGENT = "bikegrid-scraper"
@@ -190,6 +249,10 @@ async def get_with_retry(
     for attempt in range(retries):
         try:
             resp = await client.get(request_url, headers=request_headers, follow_redirects=True)
+            # Re-point the response at the vendor before anything can read
+            # resp.request: callers raise_for_status() off it, and it must name
+            # the shop, not our proxy. See _restore_target_url.
+            _restore_target_url(resp, url)
             if _is_cloudflare_challenge(resp):
                 raise CloudflareChallenge(url, resp)
             if resp.status_code in _RETRYABLE_STATUS:
@@ -203,7 +266,7 @@ async def get_with_retry(
                 delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
                 logger.warning(
                     "GET %s failed (attempt %d/%d): %s; retrying in %.1fs",
-                    url, attempt + 1, retries, exc, delay,
+                    url, attempt + 1, retries, redact_proxy(str(exc)), delay,
                 )
                 await asyncio.sleep(delay)
     assert last_exc is not None
@@ -236,7 +299,9 @@ async def check_robots(base_url: str, client: httpx.AsyncClient) -> bool:
                 return False
         return True
     except Exception as exc:
-        logger.warning("[%s] robots.txt check failed (%s); proceeding", base_url, exc)
+        logger.warning(
+            "[%s] robots.txt check failed (%s); proceeding", base_url, redact_proxy(str(exc))
+        )
         return True
 
 

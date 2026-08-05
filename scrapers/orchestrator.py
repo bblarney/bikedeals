@@ -11,6 +11,7 @@ from scrapers.pipelines.giant import scrape_giant
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
 from scrapers.pipelines.woocommerce_api import scrape_woocommerce_api
+from scrapers.utils import redact_proxy
 
 logger = logging.getLogger(__name__)
 
@@ -50,5 +51,9 @@ async def scrape_vendor(
                 invalid_count=invalid_count,
             )
         except Exception as exc:
-            logger.error("[%s] Scrape failed: %s", config.vendor_name, exc, exc_info=True)
-            return ScrapeResult(vendor_name=config.vendor_name, bikes=[], error=str(exc))
+            # ScrapeResult.error travels into scrape_summary.json and the daily
+            # email, so scrub the proxy endpoint out of it here — this is the
+            # single boundary every vendor failure passes through.
+            message = redact_proxy(str(exc))
+            logger.error("[%s] Scrape failed: %s", config.vendor_name, message, exc_info=True)
+            return ScrapeResult(vendor_name=config.vendor_name, bikes=[], error=message)

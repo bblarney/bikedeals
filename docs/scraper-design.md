@@ -164,6 +164,27 @@ and tests fetch vendors directly and are unaffected.
 The Worker enforces an https-only, hostname-allowlist policy so a leaked token
 can't turn it into an open proxy — hence checklist step 3 above.
 
+### Keeping the proxy out of error text
+
+This is a public repo, and scrape errors reach humans through the daily summary
+email, `scrape_summary.json`, and CI logs — any of which can be pasted into an
+issue or PR. Two mechanisms keep the proxy out of them:
+
+- **`_restore_target_url`** re-points a proxied response's `request` at the vendor
+  URL before any caller reads it. Every pipeline calls `resp.raise_for_status()`,
+  and httpx builds that message from `resp.request.url` — so without this a
+  failure reads `403 Forbidden for url '<the Worker>'`. That both named our
+  endpoint and pointed at the wrong host, which is exactly why an allowlist
+  omission looked like a proxy fault. The rewrite also **drops `X-Proxy-Token`**,
+  which otherwise rides along on the request attached to any raised exception.
+- **`redact_proxy`** replaces the endpoint with `<scraper-proxy>` in text that
+  can't be fixed structurally: transport-error strings, the `robots.txt` warning,
+  `ScrapeResult.error`, and every record the summary's log collector captures
+  (including from third-party loggers like httpx).
+
+Both are no-ops when no proxy is configured. If you add a code path that surfaces
+an exception to a human, run it through `redact_proxy`.
+
 ---
 
 ## Quarantine

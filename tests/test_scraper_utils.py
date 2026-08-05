@@ -1,9 +1,12 @@
 """Unit tests for the pure scraper helpers and the retry wrapper."""
+import asyncio
+
 import httpx
 import pytest
 
 from scrapers.models import BikeRecord, compute_discount, make_bike_id
 from scrapers.utils import (
+    PROXY_PLACEHOLDER,
     CloudflareChallenge,
     _apply_proxy,
     extract_frame_size,
@@ -11,6 +14,7 @@ from scrapers.utils import (
     parse_drivetrain_groupset,
     parse_frame_material,
     parse_price,
+    redact_proxy,
     resolve_category,
 )
 
@@ -252,3 +256,88 @@ async def test_get_with_retry_routes_through_proxy(monkeypatch):
     assert seen["headers"]["X-Target-URL"] == "https://shop.example/products.json"
     assert seen["headers"]["X-Proxy-Token"] == "secret-token"
     assert seen["headers"]["User-Agent"] == "UA"
+
+
+# --- proxy redaction ----------------------------------------------------------
+#
+# The proxy endpoint is the one piece of private infrastructure in a public repo,
+# and it reaches humans via the daily email, scrape_summary.json and CI logs. It
+# must never appear in any of them — and naming the vendor instead is also the
+# more useful error.
+
+def test_redact_proxy_is_noop_when_unset(monkeypatch):
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", None)
+    assert redact_proxy("403 for https://proxy.workers.dev") == "403 for https://proxy.workers.dev"
+
+
+def test_redact_proxy_replaces_endpoint(monkeypatch):
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+    assert redact_proxy("403 for https://proxy.workers.dev") == f"403 for {PROXY_PLACEHOLDER}"
+
+
+async def test_proxied_response_raise_for_status_names_the_vendor(monkeypatch):
+    """The regression this whole change exists for.
+
+    Pipelines call resp.raise_for_status(); httpx builds that message from
+    resp.request.url. Un-rewritten, a proxied failure reports the Worker — which
+    leaks the endpoint and points the reader at the wrong host.
+    """
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_TOKEN", "secret-token")
+
+    class _ForbiddenClient:
+        async def get(self, url, headers=None, follow_redirects=True):
+            # A realistic proxied response: httpx records the PROXY as the request.
+            return httpx.Response(
+                403, request=httpx.Request("GET", url, headers=headers or {})
+            )
+
+    resp = await get_with_retry(
+        _ForbiddenClient(), "https://shop.example/products.json", headers={"User-Agent": "UA"}
+    )
+    with pytest.raises(httpx.HTTPStatusError) as excinfo:
+        resp.raise_for_status()
+
+    message = str(excinfo.value)
+    assert "shop.example/products.json" in message
+    assert "proxy.workers.dev" not in message
+
+
+async def test_proxied_request_rewrite_drops_the_token(monkeypatch):
+    """The rewritten request rides along on raised exceptions, so it must not
+    carry the proxy credential."""
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_TOKEN", "secret-token")
+
+    class _Client:
+        async def get(self, url, headers=None, follow_redirects=True):
+            return httpx.Response(200, request=httpx.Request("GET", url, headers=headers or {}))
+
+    resp = await get_with_retry(
+        _Client(), "https://shop.example/products.json", headers={"User-Agent": "UA"}
+    )
+    assert "x-proxy-token" not in resp.request.headers
+    assert "x-target-url" not in resp.request.headers
+    assert resp.request.headers["User-Agent"] == "UA"
+
+
+async def test_scrape_failure_message_is_redacted(monkeypatch):
+    """A vendor failure travels into scrape_summary.json and the daily email."""
+    from scrapers.models import VendorConfig
+    from scrapers.orchestrator import scrape_vendor
+
+    monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
+
+    async def _boom(config, client):
+        raise RuntimeError("connect failed to https://proxy.workers.dev")
+
+    monkeypatch.setattr("scrapers.orchestrator.scrape_shopify", _boom)
+
+    config = VendorConfig(
+        vendor_name="V", city="Sydney", base_url="https://shop.example",
+        pipeline="shopify", category_map={"road": "Road"},
+    )
+    result = await scrape_vendor(config, client=None, sem=asyncio.Semaphore(1))
+
+    assert "proxy.workers.dev" not in result.error
+    assert PROXY_PLACEHOLDER in result.error
