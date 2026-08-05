@@ -1,0 +1,27 @@
+vendor_name: "Progear Bikes"
+city: "Melbourne"
+max_pages: 3
+base_url: "https://www.progearbikes.com.au"
+pipeline: "shopify"
+# Budget-brand range sold direct from Broadmeadows. product_type names the
+# discipline precisely, so category_map keys off it and no collection curation
+# is needed.
+category_map:
+  # Electric first. These are exact product_type values, so the exact-match pass
+  # settles them before substring matching is ever reached.
+  electric street bikes: E-Bike
+  electric cargo bikes: E-Bike
+  e-mtb: E-Bike
+  e-hybrid: E-Bike
+  e-cruiser: E-Bike
+  e-tricycle: E-Bike
+  dual suspension mtb: Mountain
+  hardtail mtb: Mountain
+  fat tyre bikes: Mountain
+  kids beginner bikes: Commuter
+  balance bikes: Commuter
+  folding bikes: Commuter
+# NOTE: the BMX range (Freestyle BMX, Cruiser BMX, Single Speed BMX) and the
+# Electric Dirt Bike are deliberately unmapped. BikeRecord.category is a strict
+# five-value Literal with no BMX member and no Other bucket, so these are
+# skipped rather than forced into a category they don't belong to.

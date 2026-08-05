@@ -1,0 +1,25 @@
+vendor_name: "Life Cycle Bikes"
+city: "Margaret River"
+max_pages: 5
+base_url: "https://www.lifecyclebikes.com.au"
+pipeline: "woocommerce_api"
+# Margaret River shop — the registry's only vendor in WA's South West, so this
+# one matters for regional coverage rather than volume (~24 bikes).
+#
+# The Store API is used rather than the listing HTML for the per-size frame-size
+# terms and the real brands field.
+collections:
+  - life-cycle-bikes
+category_map:
+  # The pipeline sorts electric slugs first, so "electric" is checked before the
+  # discipline slug it shares with a product (an e-MTB carries both).
+  electric: E-Bike
+  mountain: Mountain
+  gravel: Gravel
+  recreational: Commuter
+  kids: Commuter
+  youth: Commuter
+# NOTE: "womens" and "on-sale-models" are deliberately unmapped — they cut
+# across disciplines rather than naming one, and every product in them also
+# carries its discipline slug. "life-cycle-bikes" is the umbrella on every
+# product and is likewise unmapped, so it can't flatten the catalogue.

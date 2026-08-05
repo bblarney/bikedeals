@@ -1,0 +1,31 @@
+vendor_name: "Giant Castlemaine"
+city: "Castlemaine"
+# NOTE: the www host is required — the apex redirects a deep path to the site
+# root, which silently scrapes the homepage instead of the catalogue.
+base_url: "https://www.giantcastlemaine.com.au"
+pipeline: "giant"
+shop_paths:
+  # Electric first so an e-road/e-MTB is claimed here and deduplicated out of
+  # the road/mountain pages, which also list it.
+  - au/bikes/e-bikes
+  - au/bikes/road-bikes
+  - au/bikes/mountain-bikes
+  - au/bikes/cross-and-gravel-bikes
+  - au/bikes/fitness-and-city-bikes
+  - au/bikes/kids-bikes
+# Giant franchise store on Giant's proprietary brand CMS. Every franchise serves
+# the same national Giant/Liv catalogue at RRP, so this shop's value is the
+# Castlemaine location rather than distinct stock — expect 0% discounts throughout.
+brand_map:
+  giant: Giant
+  liv: Liv
+# Keys are the store's `surface-*` CSS classes; each product carries exactly one,
+# so resolve_category's exact-match pass settles every product. The path spells
+# it `cross-and-gravel-bikes` but the CSS class is `cross-gravel-bikes`.
+category_map:
+  e-bikes: E-Bike
+  road-bikes: Road
+  mountain-bikes: Mountain
+  cross-gravel-bikes: Gravel
+  cross-and-gravel-bikes: Gravel
+  kids-bikes: Commuter

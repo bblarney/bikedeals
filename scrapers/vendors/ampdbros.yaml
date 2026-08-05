@@ -1,0 +1,14 @@
+vendor_name: "Ampd Bros"
+city: "Gold Coast"
+max_pages: 3
+base_url: "https://ampdbros.com.au"
+pipeline: "shopify"
+# Australian electric fat-tyre bike brand selling direct; HQ showroom at
+# Burleigh Heads. Electric-only range, so the single mapped product_type
+# resolves to E-Bike.
+category_map:
+  electric bike: E-Bike
+# NOTE: the catalogue is ~460 products but only 25 are bikes — the rest is
+# spare parts, accessories and merchandise, which the accessory filter and the
+# unmapped product_types drop. "Electric Skateboard" and "Electric Dirt Bike"
+# are deliberately unmapped: neither is a bicycle.

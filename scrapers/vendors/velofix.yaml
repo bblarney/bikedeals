@@ -1,0 +1,22 @@
+vendor_name: "Velofix Rozelle"
+city: "Sydney"
+max_pages: 3
+base_url: "https://velofix.com.au"
+pipeline: "shopify"
+# Rozelle shop (sales, repairs and bike fitting); Specialized and Cannondale
+# dealer. Shopify's `vendor` field carries the real manufacturer here, so brands
+# come through clean without a brand_map.
+#
+# product_type is a strict "Group - Discipline" taxonomy, so category_map keys
+# off it directly and no collection curation is needed.
+category_map:
+  bike - e-bike: E-Bike
+  bike - road: Road
+  bike - gravel: Gravel
+  bike - mountain: Mountain
+  bike - fitness: Commuter
+  bike - kids: Commuter
+# NOTE: framesets are product_type "Bike - Frame - Road" (20 products). That
+# string does not contain the substring "bike - road", so it matches no key and
+# the framesets are skipped — which is what we want, a frameset is not a
+# rideable bike. Do not add a bare "road" key: it would sweep them all back in.

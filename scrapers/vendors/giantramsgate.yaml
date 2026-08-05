@@ -1,26 +1,34 @@
 vendor_name: "Giant Ramsgate"
 city: "Sydney"
+# NOTE: the www host is required. The apex redirects a deep path to the site
+# root (giantramsgate.com.au/au/bikes/road-bikes -> www.giantramsgate.com.au/au),
+# so an apex base_url silently scrapes the homepage's 6 featured bikes for every
+# path instead of the ~162 in the catalogue — and still reports PASS.
+base_url: "https://www.giantramsgate.com.au"
+pipeline: "giant"
 shop_paths:
-  # Electric-bikes path first so e-road and e-MTB products get E-Bike category
-  # before road-bikes and mountain-bikes paths encounter them.
-  - au/bikes/electric-bikes
+  # Electric first so an e-road/e-MTB is claimed here and deduplicated out of
+  # the road/mountain pages, which also list it.
+  - au/bikes/e-bikes
   - au/bikes/road-bikes
   - au/bikes/mountain-bikes
   - au/bikes/cross-and-gravel-bikes
+  - au/bikes/fitness-and-city-bikes
   - au/bikes/kids-bikes
-base_url: "https://giantramsgate.com.au"
-pipeline: "giant"
-# Giant Bicycles franchise store using Giant's proprietary brand CMS.
-# All bikes are Giant brand. Prices are RRP only (no sale markdowns shown).
+# Giant Bicycles franchise store on Giant's proprietary brand CMS.
+# Prices are RRP only (no sale markdowns shown), so every record is 0% off.
 # Products duplicated across category paths are deduplicated by URL.
 brand_map:
   giant: Giant
+  liv: Liv
+# Keys are the store's `surface-*` CSS classes. Each product carries exactly one
+# surface tag, so resolve_category's exact-match pass settles every product and
+# no ordering workaround is needed. The path is `cross-and-gravel-bikes` but the
+# CSS class is `cross-gravel-bikes` — they differ, so both spellings are mapped.
 category_map:
-  # electric must precede road/mountain to catch electric-road and electric-mountain
-  electric: E-Bike
+  e-bikes: E-Bike
   road-bikes: Road
   mountain-bikes: Mountain
+  cross-gravel-bikes: Gravel
   cross-and-gravel-bikes: Gravel
-  gravel: Gravel
   kids-bikes: Commuter
-  kids: Commuter

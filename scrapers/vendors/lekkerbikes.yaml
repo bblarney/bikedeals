@@ -1,0 +1,23 @@
+vendor_name: "Lekker Bikes"
+cities:
+  - "Melbourne"
+  - "Sydney"
+  - "Canberra"
+max_pages: 3
+base_url: "https://lekkerbikes.com.au"
+pipeline: "shopify"
+# Dutch city-bike brand with three Australian stores (North Melbourne,
+# Marrickville and Kingston ACT), so `cities` fans it out to one record per
+# store city.
+#
+# Most of the catalogue is spare parts, racks and baskets; the two model-range
+# collections below are the complete bikes.
+collections:
+  - amsterdam-range-ebikes
+  - jordaan-range-ebikes
+collection_category_map:
+  amsterdam-range-ebikes: E-Bike
+  jordaan-range-ebikes: E-Bike
+# Fallback only — the shop's one bike product_type.
+category_map:
+  ebikes: E-Bike

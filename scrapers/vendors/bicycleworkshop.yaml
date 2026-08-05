@@ -1,0 +1,40 @@
+vendor_name: "Bicycle Workshop"
+city: "Melbourne"
+max_pages: 3
+base_url: "https://bicycleworkshop.com.au"
+pipeline: "shopify"
+# Ringwood shop in Melbourne's outer east. One of the best discount sources in
+# the registry: 102 of its 164 bikes carry a compare-at price.
+#
+# Every product is product_type "Bicycle", so product_type cannot categorise
+# anything — the curated collections below decide instead, via
+# collection_category_map (which takes precedence over category_map).
+collections:
+  - road-bikes
+  - mountain-bikes
+  - gravel-bikes
+  - electric-bikes
+  - city-and-hybrid-bikes
+  - kids-bikes
+collection_category_map:
+  road-bikes: Road
+  mountain-bikes: Mountain
+  gravel-bikes: Gravel
+  electric-bikes: E-Bike
+  city-and-hybrid-bikes: Commuter
+  kids-bikes: Commuter
+# NOTE: the shop sets Shopify's `vendor` field to its own name on every product
+# rather than the manufacturer, so `brand` records as "Bicycle Workshop". A
+# brand_map can't fix that — it rewrites one vendor string, and here there is
+# only the one. The real brand is in the title, which we deliberately do not
+# parse (see the frame-size note in docs/scraper-design.md for why guessing
+# from titles is avoided).
+#
+# Fallback only — reached if a product is served outside the collections above.
+category_map:
+  road: Road
+  mountain: Mountain
+  gravel: Gravel
+  electric: E-Bike
+  hybrid: Commuter
+  kids: Commuter

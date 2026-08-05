@@ -1,0 +1,22 @@
+vendor_name: "Wheelhaus"
+city: "Sydney"
+max_pages: 3
+base_url: "https://wheelhaus.com.au"
+pipeline: "shopify"
+# Enmore boutique; Cervélo, Factor and Focus dealer. Small but high-value
+# catalogue — road and gravel only, no MTB or kids range.
+#
+# Every complete bike is product_type "Complete Bikes", which cannot categorise
+# on its own. The discipline is on the product's *tags* ("Road Bikes",
+# "Gravel Bikes"), which the Shopify pipeline offers to resolve_category after
+# product_type and the model name, so the keys below match there.
+category_map:
+  road bikes: Road
+  gravel bikes: Gravel
+  gravel: Gravel
+# NOTE: "complete bikes" is deliberately unmapped. Mapping it would match every
+# bike on product_type before the tags were ever considered, flattening road and
+# gravel into a single category.
+#
+# Bike Frames (10) and Wheelsets (15) carry no discipline tag, so they resolve
+# to nothing and are skipped — correct, they are not rideable bikes.
