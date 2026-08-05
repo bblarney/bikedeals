@@ -61,15 +61,20 @@ CI to a non-fix.
 
 ## Maintenance
 
-`ALLOWED_HOSTS` in `worker.js` must include any newly added vendor host. When
-`scrapers/vendors/*.yaml` changes, regenerate the list (from the repo root) and
-redeploy:
+`ALLOWED_HOSTS` in `worker.js` must include any newly added vendor host. **A new
+vendor is not scrapeable in CI until the Worker is redeployed** — adding the YAML
+alone leaves it failing with the allowlist `403`. When `scrapers/vendors/*.yaml`
+changes, regenerate the list (from the repo root), paste it into `worker.js`, and
+`npx wrangler deploy`:
 
 ```bash
-grep -h -i base_url scrapers/vendors/*.yaml \
+grep -h -i base_url scrapers/vendors/[!_]*.yaml \
   | sed -E 's/.*base_url:\s*//; s/["'"'"']//g; s#https?://(www\.)?##; s#/.*##' \
   | sort -u
 ```
+
+The `[!_]` glob skips the `_woocommerce-template.yaml` placeholder host.
+`tests/test_worker_allowlist.py` fails if the two ever drift apart again.
 
 A request to an un-allowlisted host returns a distinct `403 {"error":"host not
 in allowlist: …"}`, which is easy to tell apart from a real vendor block.

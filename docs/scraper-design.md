@@ -1,141 +1,224 @@
 # Scraper Design
 
+Reflects the implementation in `scrapers/` as of the 77-vendor registry. When the
+code and this document disagree, the code wins — please fix the document.
+
+---
+
+## Adding a new vendor — required checklist
+
+Most new shops need **no Python at all**: drop a YAML file in `scrapers/vendors/`
+and pick an existing pipeline. But a vendor is not actually live until every box
+below is ticked. Steps 3 and 4 are the ones that have bitten us.
+
+1. **Write the vendor YAML** — `scrapers/vendors/<slug>.yaml`, matching
+   `VendorConfig` (see below). Files starting with `_` are templates and are
+   skipped by `load_registry()`.
+
+2. **Verify it in isolation, with no database:**
+
+   ```bash
+   python -m scrapers.scrape_check "<Vendor Name>"
+   ```
+
+   This runs the real pipeline for one shop and exits non-zero if the scrape
+   would fail production's checks (error, >5% invalid records, or zero bikes).
+   Check the sample rows it prints: right categories, real frame sizes (not
+   colours), sane prices.
+
+3. **Add the vendor's hostname to `ALLOWED_HOSTS` in `worker/worker.js`, and
+   redeploy the Worker** (`cd worker && npx wrangler deploy`).
+
+   In CI every request egresses through the Cloudflare Worker proxy, which only
+   proxies hosts on its allowlist. Skipping this gives a `403 {"error": "host not
+   in allowlist: …"}` on the nightly run *only for the new shops* — everything
+   else keeps working, so it reads like a mysterious per-vendor block rather than
+   a config omission. `tests/test_worker_allowlist.py` fails the build if the file
+   drifts from the registry, but **it cannot detect a stale deploy** — the
+   deployed Worker is a separate artifact. Redeploying is a manual step.
+
+4. **If the shop needs a new *pipeline*** (not just a new YAML), see
+   "Requirements for a new pipeline" at the end of this document.
+
+5. **Confirm on the next nightly run** — the summary email lists per-vendor
+   failures and every warning logged during the run.
+
+---
+
 ## Vendor registry
 
-Each supported shop is defined as a vendor config entry:
+One YAML file per shop in `scrapers/vendors/`, loaded by
+`scrapers/registry.py::load_registry()` into a `VendorConfig`
+(`scrapers/models.py`):
 
 ```python
 class VendorConfig(BaseModel):
     vendor_name: str
-    city: str                   # e.g. "Seattle" — denormalized onto every bike row
+    city: str | None = None              # single-location vendors
+    cities: list[str] | None = None      # national chains: one record per city
     base_url: str
-    pipeline: Literal["shopify", "woocommerce", "custom"]
-    category_map: dict[str, str]  # shop tag → our category
-    # Pipeline B only:
-    selectors: dict[str, str] | None = None
+    pipeline: Literal["shopify", "woocommerce", "woocommerce_api",
+                      "bigcommerce", "giant", "canyon", "custom"]
+    category_map: dict[str, str]         # shop tag -> our category
+    selectors: dict[str, str] | None = None          # DOM pipelines only
+    collection: str | None = None                    # single Shopify collection
+    collections: list[str] | None = None             # curated collections/slugs
+    collection_category_map: dict[str, str] | None = None
+    max_pages: int | None = None
+    shop_path: str = "shop"
+    shop_paths: list[str] | None = None              # multi-path stores
+    brand_map: dict[str, str] | None = None          # brand-name overrides
 ```
 
-The registry is a YAML or JSON file checked into the repo. Adding a new shop = adding one entry; no code change required for standard pipelines.
+`cities` fans a national chain out to one record per city. `collection_category_map`
+takes precedence over `category_map`: for shops where every product is
+`product_type: "Bikes"`, the curated collection a product was found in decides its
+category.
 
 ---
 
-## Pipeline A — Shopify / BigCommerce
+## Pipelines
 
-```
-GET {base_url}/products.json?limit=250&page={n}
-```
+Six are implemented; `custom` is declarable but unimplemented and raises
+`NotImplementedError`. Dispatch lives in `scrapers/orchestrator.py`.
 
-Iterate pages until the response returns fewer than 250 products.
+| Pipeline | Source | Notes |
+|---|---|---|
+| `shopify` | `/products.json` or `/collections/<handle>/products.json` | Most vendors |
+| `woocommerce` | Listing-page DOM via `selectors` | Fallback; one row per product |
+| `woocommerce_api` | `/wp-json/wc/store/v1` | Preferred over DOM where reachable |
+| `bigcommerce` | Listing-page DOM | |
+| `giant` | Giant franchise storefronts | Per-store `vendor_name` to avoid collisions |
+| `canyon` | Canyon direct-to-consumer | Outlet path falls back to URL-segment categories |
 
-### Field mapping
+### Shopify pagination — the two cursoring modes
 
-| Shopify field | Our field |
-|---|---|
-| `vendor` | `brand` |
-| `title` | `model_name` |
-| `product_type` / tags | `category` (via `category_map`) |
-| `variants[].title` | `frame_size` |
-| `variants[].price` | `price_sale` |
-| `variants[].compare_at_price` | `price_original` |
-| `variants[].available` | `in_stock` |
-| `images[0].src` | `image_url` |
-| `handle` | used to build `product_url` |
+Root and collection endpoints page **differently**, and getting this wrong
+silently truncates a shop at 250 products:
 
-Each variant in `variants[]` becomes a separate row. Skip variants where `title` is a colour or non-size attribute (e.g. "Default Title").
+- `/products.json` supports `since_id` cursoring — page with `since_id=<last id>`.
+- `/collections/<handle>/products.json` **ignores `since_id`** and re-serves page
+  one. Page it with `?page=N` instead.
 
-### Shopify detection
+Stop when a page returns fewer than `SHOPIFY_PAGE_SIZE` (250) products, or when
+`max_pages` is hit. A guard also drops products whose handle was already seen, so
+a looping cursor can't duplicate rows.
 
-A shop runs Shopify if `/products.json` returns HTTP 200 with a `products` key. No need for manual flagging in the vendor registry if you auto-detect.
+### Frame size, not colour
 
----
+Frame size comes from Shopify's declared size axis in `product.options`,
+preferring `"Frame Size"` over `"Wheel Size"`. Do **not** parse it out of the
+variant title: colour names like "Forge Grey" or "DISRUPT Camo" share no word with
+the size vocabulary and end up in the size filter. A product with no size axis
+records `"N/A"` and is kept, not dropped.
 
-## Pipeline B — WooCommerce / custom HTML
+### Accessory filtering
 
-DOM-targeted micro-scrapers. Each shop has its own selector config in the vendor registry.
-
-```python
-selectors = {
-    "product_list": "ul.products li.product",
-    "model_name":   ".woocommerce-loop-product__title",
-    "price_sale":   ".price ins .amount",
-    "price_original": ".price del .amount",
-    "product_url":  "a.woocommerce-LoopProduct-link",
-    "image_url":    "img.attachment-woocommerce_thumbnail",
-    "frame_size":   ".variation-size",  # may be absent
-}
-```
-
-These selectors will break when shops redesign. This is expected. Handle it via the quarantine mechanism below.
+Shops file frames, scooters, chargers and helmets under a bike `product_type`.
+`_is_accessory()` matches an accessory-word set against both `product_type` and
+the title, and those products are skipped before validation.
 
 ---
 
 ## Rate limiting
 
-Small local bike shops run on shared hosting. Be a polite scraper:
+Small local shops run on shared hosting. Be a polite scraper:
 
-- **Delay between requests:** 1–2 seconds random jitter.
-- **Concurrent requests per vendor:** max 2.
-- **User-Agent:** Set a descriptive UA: `BikeGrid-Scraper/1.0 (+https://bikegrid.example.com)`.
-- **robots.txt:** Check and respect `robots.txt` for each domain before scraping. Log a warning and skip if disallowed; do not scrape anyway.
+- **Delay between requests:** `SCRAPER_DELAY_RANGE` = 1–2 s random jitter.
+- **Concurrent vendors:** `MAX_CONCURRENT_VENDORS` (default 3, env-overridable).
+  Kept low deliberately — parallel bursts from one IP trip Cloudflare bot
+  mitigation, which then challenges the rest of the run.
+- **Startup jitter:** each vendor waits 0.5–1.5 s after acquiring its slot so
+  workers don't fire in lockstep. Off for `scrape_check`.
+- **User-Agent:** `BikeGrid-Scraper/1.0 (+https://bikegrid.com.au)`.
+- **robots.txt:** checked per host via stdlib `robotparser` before scraping; a
+  disallow logs a warning and skips the vendor. Missing/unreachable robots.txt is
+  treated as permissive (RFC 9309).
 
-```python
-async def scrape_vendor(config: VendorConfig, client: httpx.AsyncClient):
-    await asyncio.sleep(random.uniform(1.0, 2.0))
-    # ...
-```
+### Retries and Cloudflare challenges
+
+`get_with_retry` retries 429/500/502/503/504 and network errors with exponential
+backoff (3 attempts). A Cloudflare bot challenge is the deliberate exception: the
+`cf-mitigated` response header means a JS interstitial an httpx client cannot
+solve, so `CloudflareChallenge` is raised immediately. Retrying it is not just
+useless but harmful — each extra request further degrades our IP reputation.
+Sites behind a JS challenge need a challenge-solving egress (residential proxy or
+scraping API) and are currently out of scope.
 
 ---
 
-## Quarantine mechanism
+## Egress proxy (CI only)
 
-A quarantined scraper is one that has raised an unhandled exception (network error, selector not found, schema validation failure). It must not write any data to the database for that run.
+GitHub Actions egresses from a datacenter IP range that Cloudflare and Shopify
+block as a class, so every vendor request in CI is tunnelled through a free
+Cloudflare Worker (`worker/worker.js`, documented in `worker/README.md`):
 
 ```
-scrape_vendor(config)
-  └─ raises → log exception with vendor_name, timestamp, error detail
-            → append to quarantine_log table or file
-            → continue to next vendor (never crash the whole run)
-            → trigger alert if N consecutive failures
+GitHub Actions ──(X-Target-URL + X-Proxy-Token)──> Cloudflare Worker ──> vendor
 ```
 
-### Quarantine table
+`scrapers/utils.py::_apply_proxy` rewrites every request in `get_with_retry` and
+`check_robots`. It is a **no-op when `SCRAPER_PROXY_URL` is unset**, so local dev
+and tests fetch vendors directly and are unaffected.
+
+The Worker enforces an https-only, hostname-allowlist policy so a leaked token
+can't turn it into an open proxy — hence checklist step 3 above.
+
+---
+
+## Quarantine
+
+A vendor is quarantined for a run when it raises, or when its data looks corrupt.
+Quarantine means: **write nothing for that vendor**, keep yesterday's data, and
+carry on with the rest of the run. A single bad vendor never crashes the run and
+never wipes its own inventory.
+
+Three conditions, all in `scrapers/run.py`:
+
+| Condition | `scrape_log.status` | Effect |
+|---|---|---|
+| Pipeline raised | `quarantined` | No upsert, no `mark_stale` |
+| >5% of products failed validation (`QUARANTINE_INVALID_RATIO`) | `quarantined` | No upsert, no `mark_stale` |
+| Scrape returned 0 bikes | `empty` | No upsert, no `mark_stale` |
+
+The zero-bikes rule matters: we can't distinguish a genuinely empty shop from a
+blocked fetch, and running `mark_stale` on an empty result would flag the
+vendor's *entire* inventory out-of-stock on a transient failure.
 
 ```sql
 CREATE TABLE scrape_log (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    vendor_name TEXT NOT NULL,
-    run_at      TEXT NOT NULL,
-    status      TEXT NOT NULL CHECK (status IN ('ok', 'quarantined', 'skipped')),
-    error_msg   TEXT,
-    bikes_upserted INTEGER DEFAULT 0
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    vendor_name     TEXT NOT NULL UNIQUE,   -- one current row per vendor
+    run_at          TIMESTAMPTZ NOT NULL,
+    status          TEXT NOT NULL,          -- ok | quarantined | skipped | empty
+    error_msg       TEXT,
+    bikes_upserted  INTEGER DEFAULT 0,
+    last_success_at TIMESTAMPTZ             -- preserved across failing runs
 );
 ```
 
-Alert when `status = 'quarantined'` for the same vendor in 3 consecutive runs. This is the only alerting condition that justifies waking someone up.
+The row is upserted per vendor, and `last_success_at` is only advanced on `ok` —
+so "how long has this vendor been broken?" is answerable from one row.
 
 ---
 
-## Alerting (unresolved in original plan)
+## Alerting
 
-The original plan says "logs an alert" with no destination. Options:
-
-| Method | Cost | Complexity |
-|---|---|---|
-| Email via `smtplib` or SendGrid | Free tier | Low |
-| Slack webhook | Free | Low |
-| GitHub Actions job failure | Free (native) | Lowest — job fails, GitHub notifies you by email |
-| PagerDuty / Opsgenie | Paid | High — overkill for this |
-
-**Recommendation for early stage:** Let GitHub Actions job failure be the primary alert. If the scraper process exits non-zero, GHA emails you. Add a Slack webhook when that feels insufficient.
+The daily workflow emails a summary after every run (`if: always()`), built from
+`scrape_summary.json`. It carries the run duration, ok/failed vendor counts, total
+bikes upserted, each failure with its reason, and **every WARNING+ log record
+grouped with a count** — so problems that don't sink a whole vendor (retries,
+robots.txt skips, category-map misses) stay visible instead of being averaged away.
 
 ---
 
 ## UPSERT / deduplication
 
-Daily runs must UPSERT, not INSERT. If a product already exists (matched by `id`), update price and stock. If it's new, insert it.
+Daily runs UPSERT on `bikes.id`, a 16-char SHA-256 of
+`vendor_name::city::product_url::frame_size` (`make_bike_id`). Including city
+keeps a national chain's per-city rows distinct.
 
 ```sql
--- SQLite
 INSERT INTO bikes (...) VALUES (...)
 ON CONFLICT(id) DO UPDATE SET
     price_sale = excluded.price_sale,
@@ -145,11 +228,18 @@ ON CONFLICT(id) DO UPDATE SET
     last_seen_at = excluded.last_seen_at;
 ```
 
-PostgreSQL uses `ON CONFLICT DO UPDATE` with the same syntax.
+### Price history
+
+`upsert_bikes` appends a `price_events` row only when a bike is **first seen or
+its sale price changes** — not a daily snapshot — so the table stays within the
+free-tier storage cap while still backing a real price-history timeline. Events
+older than `PRICE_EVENT_RETENTION_DAYS` (default 365) are pruned at the end of
+each run.
 
 ### Stale product handling
 
-After each vendor's scrape completes successfully, mark any row for that vendor that was NOT in the current run's result set:
+After a vendor scrapes successfully, rows for that vendor not seen in this run are
+marked out of stock — never deleted, so price history and bookmarked URLs survive:
 
 ```sql
 UPDATE bikes
@@ -158,53 +248,96 @@ WHERE vendor_name = :vendor
   AND last_seen_at < :run_start_time;
 ```
 
-Do not delete rows. Keep them for price history and to avoid confusing users who bookmarked a URL.
-
 ---
 
 ## Category normalization
 
-This is the hardest part of normalization and it's completely missing from the original plan.
-
-Shop tags are free-form. Examples seen in the wild:
-- "road", "Road Bikes", "ROAD CYCLING", "drop-bar", "endurance road"
-- "mtb", "Mountain Bikes", "trail", "full-suspension", "hardtail"
-
-The `category_map` in the vendor registry handles this per-shop:
+Shop tags are free-form ("road", "Road Bikes", "ROAD CYCLING", "drop-bar"). The
+per-shop `category_map` resolves them to the five-value enum (`Road`, `Mountain`,
+`Gravel`, `E-Bike`, `Commuter`):
 
 ```yaml
-# vendors/trek-seattle.yaml
 category_map:
   road: Road
-  road bikes: Road
-  mountain: Mountain
   mtb: Mountain
   trail: Mountain
   gravel: Gravel
   e-bike: E-Bike
-  electric: E-Bike
   commuter: Commuter
-  city: Commuter
 ```
 
-For products with no matching tag, default to a special `category = "Other"` (add to the enum) or drop the record and log it. Do **not** silently assign a wrong category.
+There is **no `Other` bucket** — `BikeRecord.category` is a strict `Literal`, and a
+product with no category match is dropped rather than guessed at. Because a
+misconfigured `category_map` would therefore yield a silent zero-bike scrape, the
+Shopify pipeline logs an explicit warning when products were found but none
+matched.
 
-**Alternative — ML classification:** Use a small embedding model to classify `model_name + tags` into the category enum. More robust but adds complexity. Not recommended until the manual map fails repeatedly.
+`resolve_category` (`scrapers/utils.py`) does two passes over the candidate
+strings: exact key match first, then substring match with keys tried
+**longest-first**, so `"mountain bikes"` beats `"bikes"` regardless of YAML order.
+
+Where a product belongs to several categories at once, the *pipeline* decides
+which candidate is offered first. `woocommerce_api` sorts electric slugs ahead of
+the rest (`_is_electric_slug`) so an e-MTB resolves to `E-Bike` rather than
+`Mountain`; that check matches on `"electric"`/`"ebike"` after stripping
+separators, because a shop filing e-MTBs under `mtb-ebikes` contains neither
+"electric" nor "e-bike" literally. Any new pipeline covering shops that
+cross-file e-bikes needs the same ordering.
 
 ---
 
-## Scraper run orchestration
+## Run orchestration
 
 ```
-run_scrapers.py
-  ├─ load vendor registry
-  ├─ for each vendor (async, max 5 concurrent):
-  │     ├─ select pipeline (A or B)
-  │     ├─ scrape → List[BikeRecord]
-  │     ├─ validate each record (pydantic)
-  │     ├─ UPSERT to DB
-  │     └─ write scrape_log entry
-  └─ mark stale records for all successfully-scraped vendors
+python -m scrapers.run
+  ├─ load registry, shuffle vendor order (no vendor permanently starved)
+  ├─ alembic upgrade head has already run (Postgres); create_all is SQLite-only
+  ├─ for each vendor (async, max 3 concurrent, 0.5–1.5s startup jitter):
+  │     ├─ dispatch to pipeline → (list[BikeRecord], invalid_count)
+  │     ├─ quarantine checks (raised / >5% invalid / 0 bikes)
+  │     ├─ upsert_bikes  → append price_events on change
+  │     ├─ mark_stale
+  │     └─ write_scrape_log
+  ├─ prune_price_events older than the retention window
+  └─ write scrape_summary.json  → formatted into the summary email
 ```
 
-Run time target: under 10 minutes for 20 shops. GitHub Actions free tier allows 6-hour jobs; well within budget.
+Schedule: `.github/workflows/scrape.yml`, daily at 08:00 UTC, plus
+`workflow_dispatch`. Note `create_all` is restricted to SQLite on purpose — running
+it against Postgres adds new tables but never altered columns, silently drifting
+prod out of Alembic's tracking.
+
+---
+
+## Requirements for a new pipeline
+
+If a shop can't be served by an existing pipeline, a new one must:
+
+1. **Live in `scrapers/pipelines/<name>.py`** exposing
+   `async def scrape_<name>(config, client) -> tuple[list[BikeRecord], int]`
+   — the second element is the invalid-record count that feeds the quarantine
+   ratio. Add the name to the `VendorConfig.pipeline` `Literal` and to the
+   dispatch in `orchestrator.py`.
+
+2. **Route every request through `get_with_retry`** (and `check_robots` before
+   the first fetch). Never call `client.get` directly: that bypasses the proxy
+   rewrite, the retry policy, and Cloudflare-challenge detection in one go.
+
+3. **Let `CloudflareChallenge` propagate.** Don't catch it to return partial
+   data — the orchestrator turns it into a clean per-vendor failure that
+   preserves existing rows.
+
+4. **Count invalid records rather than dropping them silently**, so a vendor
+   whose schema changed trips the 5% quarantine threshold instead of quietly
+   halving its inventory.
+
+5. **Return `[]` rather than raising for an empty-but-healthy fetch** — `run.py`
+   already treats zero bikes as a failure that preserves existing data.
+
+6. **Respect `SCRAPER_DELAY_RANGE`** between requests within a vendor.
+
+7. **Ship tests** in `tests/` against recorded fixtures, and verify a real shop
+   end-to-end with `scrape_check` before merging.
+
+8. **Follow the new-vendor checklist above** — a new pipeline still needs its
+   hostnames allowlisted in the Worker and the Worker redeployed.

@@ -24,12 +24,14 @@
 // leading "www." stripped; the incoming host is normalised the same way, so a
 // single entry covers both the apex and www variants.
 //
-// Regenerate when the vendor list changes (from the repo root):
-//   grep -h -i base_url scrapers/vendors/*.yaml \
+// Regenerate when the vendor list changes (from the repo root). The `_`-prefixed
+// template files are skipped — they carry a placeholder host, not a real vendor:
+//   grep -h -i base_url scrapers/vendors/[!_]*.yaml \
 //     | sed -E 's/.*base_url:\s*//; s/["'"'"']//g; s#https?://(www\.)?##; s#/.*##' \
 //     | sort -u
 const ALLOWED_HOSTS = new Set([
   "99bikes.com.au",
+  "abcbikes.com.au",
   "alchemycycletrader.com.au",
   "baybikeco.com.au",
   "baysidecycles.com.au",
@@ -46,12 +48,15 @@ const ALLOWED_HOSTS = new Set([
   "bikes.com.au",
   "bikesonline.com.au",
   "bikezonefitzroy.com.au",
+  "canberracyclery.com.au",
   "canyon.com",
+  "ccache.cc",
   "cranks.com.au",
   "crooze.com.au",
   "currumbincycles.com.au",
   "cycleco-op.au",
   "cyclespot.com.au",
+  "cycleworld.com.au",
   "cyclezone.com.au",
   "degrandi.com.au",
   "driftbikes.com.au",
@@ -61,8 +66,10 @@ const ALLOWED_HOSTS = new Set([
   "georgesbikeshop.com.au",
   "giantbrisbane.com.au",
   "giantgoldcoast.com.au",
+  "giantlygonst.com.au",
   "giantosbornepark.com.au",
   "giantramsgate.com.au",
+  "giantsthyarra.com.au",
   "giantsunshinecoast.com.au",
   "giantsydney.com.au",
   "giantwollongong.com.au",
@@ -95,8 +102,11 @@ const ALLOWED_HOSTS = new Set([
   "thebicyclecompany.com.au",
   "thebikeshop.au",
   "themountainbiker.com.au",
+  "treadlybikeshop.com.au",
   "venturecycles.com.au",
+  "westcoastcycles.com.au",
   "wollongongbikehub.com.au",
+  "woolyswheels.com.au",
 ]);
 
 // Request headers we must not forward to the origin: our own control headers
