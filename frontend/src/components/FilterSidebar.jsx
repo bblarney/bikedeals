@@ -41,7 +41,8 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
       <aside
         className={`bg-white border-r border-slate-200 flex flex-col flex-shrink-0
           fixed inset-y-0 left-0 z-40 w-72 max-w-[85%] transform transition-transform duration-200
-          md:static md:transform-none md:transition-[width] md:duration-200
+          md:sticky md:inset-y-auto md:top-0 md:left-auto md:h-[calc(100dvh-var(--header-h))]
+          md:transform-none md:transition-[width] md:duration-200
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${desktopCollapsed ? 'md:w-0 md:min-w-0 md:overflow-hidden md:border-r-0' : 'md:w-60'}`}
       >

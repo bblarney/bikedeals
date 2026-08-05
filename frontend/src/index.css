@@ -6,6 +6,12 @@
   --color-navy-900: #0e1c3a;
 }
 
+:root {
+  /* Header height on md+. The sticky sidebar sizes itself off this, so the
+     header pins it explicitly rather than letting content decide. */
+  --header-h: 4rem;
+}
+
 .saved-glow {
   border-color: rgb(234 88 12);
   box-shadow:

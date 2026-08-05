@@ -86,33 +86,38 @@ function MainLayout() {
           </svg>
         )}
       </button>
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <FilterSidebar
-          filters={filtersData}
-          params={params}
-          onUpdate={params.update}
-          mobileOpen={sidebarOpen}
-          onCloseMobile={() => setSidebarOpen(false)}
-          desktopCollapsed={sidebarCollapsed}
-        />
-        {/* The only scrollable region on the deals page — header and sidebar stay put. */}
-        <main id={MAIN_SCROLL_ID} className="flex-1 min-w-0 flex flex-col overflow-y-auto">
-          <BikeGrid
-            bikes={bikesData?.results}
-            isLoading={isLoading}
-            isFetching={isFetching}
-            isError={isError}
-            total={bikesData?.total}
-            newToday={statsData?.new_today}
+      {/* The only scrollable region on the deals page — the header stays put and the
+          sidebar sticks beside the grid, but the footer scrolls up past it full-width. */}
+      <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        {/* grow/shrink-0 so a short grid still pushes the footer to the bottom, while a
+            tall one grows the row instead of being squeezed under the footer. */}
+        <div className="flex grow shrink-0">
+          <FilterSidebar
+            filters={filtersData}
             params={params}
             onUpdate={params.update}
-            pinnedBikes={pinnedBikes}
-            pinnedIds={pinnedIds}
-            onTogglePin={togglePin}
-            onClearPins={clearPins}
+            mobileOpen={sidebarOpen}
+            onCloseMobile={() => setSidebarOpen(false)}
+            desktopCollapsed={sidebarCollapsed}
           />
-          <Footer />
-        </main>
+          <main className="flex-1 min-w-0 flex flex-col">
+            <BikeGrid
+              bikes={bikesData?.results}
+              isLoading={isLoading}
+              isFetching={isFetching}
+              isError={isError}
+              total={bikesData?.total}
+              newToday={statsData?.new_today}
+              params={params}
+              onUpdate={params.update}
+              pinnedBikes={pinnedBikes}
+              pinnedIds={pinnedIds}
+              onTogglePin={togglePin}
+              onClearPins={clearPins}
+            />
+          </main>
+        </div>
+        <Footer />
       </div>
     </>
   )
