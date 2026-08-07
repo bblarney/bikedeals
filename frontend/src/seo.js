@@ -61,6 +61,20 @@ export function buildBikeMeta(bike) {
   }
 }
 
+// Schema.org BreadcrumbList. Takes [{ name, path }] in trail order.
+export function buildBreadcrumbJsonLd(items) {
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map(({ name, path }, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name,
+      item: canonicalFor(path),
+    })),
+  }
+}
+
 // Schema.org Product + AggregateOffer for rich Google results. Built from the
 // detail endpoint's cross-shop `offers` list.
 export function buildBikeJsonLd(bike) {

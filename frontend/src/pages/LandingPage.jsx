@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { REGIONS, SIZE_ORDER } from '../constants'
 import { useFilters } from '../hooks/useFilters'
 import FlagAU from '../components/FlagAU'
@@ -124,6 +125,16 @@ export default function LandingPage({ onUpdate }) {
       >
         Show all of Australia →
       </button>
+
+      {/* This page's whole premise is that the visitor may not know what they
+          want — every dropdown defaults to "I don't know". Give them somewhere
+          to go that answers the question instead of filtering on it. */}
+      <Link
+        to="/guides"
+        className="mt-4 text-sm text-slate-400 hover:text-orange-600 transition-colors"
+      >
+        New to bikes? Read our bike guide →
+      </Link>
     </div>
   )
 }

@@ -25,7 +25,8 @@ VITE_API_BASE_URL=https://api.bikegrid.example.com
 
 `npm run build` is three steps: the client build, an SSR build of
 `src/entry-server.jsx`, then `scripts/prerender.js`, which writes real HTML for
-`/`, `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy`.
+`/`, `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy`, and every guide
+route listed in `src/content/guides.js`.
 
 This exists because the SPA otherwise ships `<div id="root"></div>` and nothing
 else. Crawlers that don't execute JavaScript — including the AdSense review
@@ -57,6 +58,12 @@ is gone, so an unlisted route 404s. That is deliberate: the old catch-all
 answered every unknown URL with a 200 app shell, which Google reads as a soft
 404.
 
+Guide routes are the exception, and are handled structurally: `prerender.js`
+imports `GUIDE_PATHS` from `src/content/guides.js` and concatenates it onto
+`ROUTES`, so adding a guide to that array is enough. That import is why
+`content/guides.js` must stay free of JSX, imports and `import.meta.env` — bare
+`node` loads it, outside Vite.
+
 Anything rendered during the prerender must tolerate the absence of `window`,
 `document`, and `localStorage`. Effects and event handlers are safe; `useState`
 initializers are not.
@@ -87,10 +94,20 @@ Derive filter state from `useSearchParams()` on mount; update URL on filter chan
 |---|---|
 | `/` | Main deal feed (`MainLayout`) |
 | `/bikes/:id` | `BikeDetailPage` — offers, size variants, price history |
+| `/guides` | Guide hub — comparison table and cards, `pages/guides/` |
+| `/guides/:type` | Five bike-type guides, enumerated in `src/content/guides.js` |
 | `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy` | Static pages |
 | `/unsubscribe` | `UnsubscribePage` — posts the token from the email link |
 
 Everything except `/` renders inside `StaticLayout`.
+
+Guide pages wrap their content in `components/guides/GuideLayout`, which owns
+the title/description/canonical block and the BreadcrumbList JSON-LD. Their deal
+strips use `components/CatalogRail`, which overfetches and dedupes by
+brand+model — every size and store of the same bike is its own row, so an
+undeduped top-4 on a narrow query renders four copies of one bike. The rail's
+CTA link renders unconditionally, because the prerender never fetches and that
+link is the only part of the strip a crawler ever sees.
 
 ---
 

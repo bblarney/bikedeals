@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { canonicalFor } from '../seo'
+import { GUIDES } from '../content/guides'
 
 const CATEGORIES = ['Road', 'Mountain', 'Gravel', 'E-Bike', 'Commuter']
 
@@ -12,7 +13,7 @@ export default function SitemapPage() {
       <h1 className="text-2xl font-semibold text-slate-900 mb-2">Sitemap</h1>
       <p className="text-sm text-slate-400 mb-8">All pages and category shortcuts.</p>
 
-      <div className="grid gap-8 sm:grid-cols-2">
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
             Browse by category
@@ -33,6 +34,26 @@ export default function SitemapPage() {
                   className="text-orange-600 hover:text-orange-700 text-sm"
                 >
                   {cat} bikes
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            Guides
+          </h2>
+          <ul className="space-y-2">
+            <li>
+              <Link to="/guides" className="text-orange-600 hover:text-orange-700 text-sm font-medium">
+                All bike guides
+              </Link>
+            </li>
+            {GUIDES.map((g) => (
+              <li key={g.path}>
+                <Link to={g.path} className="text-orange-600 hover:text-orange-700 text-sm">
+                  {g.label}
                 </Link>
               </li>
             ))}
