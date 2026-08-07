@@ -11,6 +11,12 @@ const queryClient = new QueryClient({
   },
 })
 
+// Drop the canonical baked in by scripts/prerender.js. Every route's component
+// declares its own, and React appends rather than replacing static tags — so
+// leaving this one would leave two conflicting canonicals in the head after the
+// first client-side navigation.
+document.querySelector('link[rel="canonical"][data-prerendered]')?.remove()
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>

@@ -1,3 +1,18 @@
-# SPA fallback: serve index.html for client-side routes so deep links
-# (e.g. /unsubscribe, /about) don't 404 on hard refresh.
-/*  /index.html  200
+# SPA fallback, scoped to the two routes that are NOT prerendered.
+#
+# Every other client route is emitted as a real HTML file by
+# scripts/prerender.js (/, /about, /contact, /sitemap, /terms, /privacy) and is
+# served as a static asset. A blanket `/* /index.html 200` is deliberately not
+# used: it shadows those files on static servers that apply the fallback before
+# checking for an asset, and it also answers every unknown URL with a 200 app
+# shell — soft 404s, which Google treats as a quality signal. Unmatched paths
+# now 404 properly.
+#
+# Adding a client route means either adding it to ROUTES in
+# scripts/prerender.js, or adding a fallback line here.
+#
+# These point at app-shell.html, not index.html: index.html is the prerendered
+# landing page, and serving it here would hand every bike detail page a canonical
+# pointing at the homepage before JS runs. app-shell.html is the bare shell.
+/bikes/*      /app-shell.html   200
+/unsubscribe  /app-shell.html   200

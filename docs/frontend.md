@@ -21,6 +21,48 @@ VITE_API_BASE_URL=https://api.bikegrid.example.com
 
 ---
 
+## Prerendering
+
+`npm run build` is three steps: the client build, an SSR build of
+`src/entry-server.jsx`, then `scripts/prerender.js`, which writes real HTML for
+`/`, `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy`.
+
+This exists because the SPA otherwise ships `<div id="root"></div>` and nothing
+else. Crawlers that don't execute JavaScript — including the AdSense review
+crawler — saw an empty document on every URL.
+
+**The prerender never calls the API.** React Query only fetches from an effect,
+which `renderToString` doesn't run, so pages render in their empty-data shape:
+headings, copy, nav, footer. Dropdown options and deal data fill in on the
+client. A build therefore succeeds while the API is cold or down.
+
+Three things are load-bearing:
+
+- **`createRoot`, not `hydrateRoot`.** React discards the prerendered markup and
+  re-renders on mount. The markup is for crawlers and first paint only. This is
+  what lets a returning visitor — whose `localStorage` sends them to the deal
+  feed rather than the landing page — avoid a hydration mismatch.
+- **`app-shell.html`.** `/bikes/:id` and `/unsubscribe` are not prerendered and
+  are rewritten to this bare shell, not to `index.html`. `index.html` is now the
+  prerendered landing page; serving it for a bike detail page would give every
+  one a canonical pointing at the homepage before JS runs.
+- **`data-prerendered` on the canonical.** React appends its own canonical
+  rather than replacing static markup it didn't create, so `main.jsx` removes
+  the prerendered one on mount. Without that, every client-side navigation
+  leaves two conflicting canonicals in the head.
+
+Adding a client route means adding it to `ROUTES` in `scripts/prerender.js`, or
+adding a fallback line to `public/_redirects` — the blanket `/* /index.html 200`
+is gone, so an unlisted route 404s. That is deliberate: the old catch-all
+answered every unknown URL with a 200 app shell, which Google reads as a soft
+404.
+
+Anything rendered during the prerender must tolerate the absence of `window`,
+`document`, and `localStorage`. Effects and event handlers are safe; `useState`
+initializers are not.
+
+---
+
 ## State management
 
 Keep it simple. At this scale, **React Query (TanStack Query)** handles all server state:
