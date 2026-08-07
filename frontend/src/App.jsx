@@ -23,9 +23,13 @@ import BikeDetailPage from './pages/BikeDetailPage'
 
 function MainLayout() {
   const params = useBikeParams()
-  const [regionSetThisSession, setRegionSetThisSession] = useState(
-    () => !!localStorage.getItem('bikegrid_region')
-  )
+  // Guarded because this initializer also runs during the build-time prerender,
+  // where there is no localStorage. Falling back to false renders the landing
+  // page, which is the version we want in the static HTML anyway.
+  const [regionSetThisSession, setRegionSetThisSession] = useState(() => {
+    try { return !!localStorage.getItem('bikegrid_region') }
+    catch { return false }
+  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
@@ -35,8 +39,15 @@ function MainLayout() {
 
   const showLanding = !regionSetThisSession && params.city.length === 0
   if (showLanding) {
+    // Declare the same metadata the deal-feed branch does. Without it this
+    // branch is the one route React never supplies a canonical for, which
+    // leaves the prerendered tag with nothing to replace it (see main.jsx).
+    const landingMeta = buildPageMeta(params)
     return (
       <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        <title>{landingMeta.title}</title>
+        <meta name="description" content={landingMeta.description} />
+        <link rel="canonical" href={landingMeta.canonical} />
         <LandingPage
           onUpdate={(changes) => {
             setRegionSetThisSession(true)

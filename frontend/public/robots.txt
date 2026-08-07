@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+# Internal SPA fallback shell (see public/_redirects). Reachable directly but
+# empty, and not a page anyone should land on.
+Disallow: /app-shell.html
 
 Sitemap: https://bikegrid.com.au/sitemap.xml
