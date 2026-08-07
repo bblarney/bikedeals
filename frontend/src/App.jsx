@@ -78,25 +78,6 @@ function MainLayout() {
         params={params}
         onOpenSidebar={() => setSidebarOpen(true)}
       />
-      <button
-        onClick={() => setSidebarCollapsed(p => !p)}
-        aria-label={sidebarCollapsed ? 'Expand filters' : 'Collapse filters'}
-        style={{
-          left: sidebarCollapsed ? '8px' : '224px',
-          transition: 'left 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        className="hidden md:flex fixed top-1/2 -translate-y-1/2 z-50 w-8 h-8 items-center justify-center bg-white border border-slate-200 rounded-full shadow-md text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-      >
-        {sidebarCollapsed ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        )}
-      </button>
       {/* The only scrollable region on the deals page — the header stays put and the
           sidebar sticks beside the grid, but the footer scrolls up past it full-width. */}
       <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col">
@@ -111,6 +92,32 @@ function MainLayout() {
             onCloseMobile={() => setSidebarOpen(false)}
             desktopCollapsed={sidebarCollapsed}
           />
+          {/* Zero-width rail so the toggle overlays the sidebar's edge without taking
+              layout width. Sticky rather than fixed: it shares the sidebar's containing
+              block, so at the end of the scroll it rides up with the sidebar's bottom
+              edge instead of being left floating over the footer. */}
+          <div className="hidden md:block w-0 flex-none">
+            <button
+              onClick={() => setSidebarCollapsed(p => !p)}
+              aria-label={sidebarCollapsed ? 'Expand filters' : 'Collapse filters'}
+              style={{
+                top: 'calc(50dvh - var(--header-h) / 2 - 16px)',
+                marginLeft: sidebarCollapsed ? '8px' : '-16px',
+                transition: 'margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              className="sticky z-50 flex w-8 h-8 items-center justify-center bg-white border border-slate-200 rounded-full shadow-md text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            >
+              {sidebarCollapsed ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              )}
+            </button>
+          </div>
           <main className="flex-1 min-w-0 flex flex-col">
             <BikeGrid
               bikes={bikesData?.results}
