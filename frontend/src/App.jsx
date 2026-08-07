@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import BackToTop from './components/BackToTop'
+import ScrollToTop from './components/ScrollToTop'
 import FilterSidebar from './components/FilterSidebar'
 import BikeGrid from './components/BikeGrid'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -20,6 +21,12 @@ import PrivacyPage from './pages/PrivacyPage'
 import UnsubscribePage from './pages/UnsubscribePage'
 import LandingPage from './pages/LandingPage'
 import BikeDetailPage from './pages/BikeDetailPage'
+import GuidesHubPage from './pages/guides/GuidesHubPage'
+import ElectricBikesPage from './pages/guides/ElectricBikesPage'
+import MountainBikesPage from './pages/guides/MountainBikesPage'
+import RoadBikesPage from './pages/guides/RoadBikesPage'
+import GravelBikesPage from './pages/guides/GravelBikesPage'
+import CommuterBikesPage from './pages/guides/CommuterBikesPage'
 
 function MainLayout() {
   const params = useBikeParams()
@@ -157,10 +164,20 @@ export default function App() {
 
   return (
     <div className={`flex flex-col bg-gray-50 ${isShell ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
+      <ScrollToTop />
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<MainLayout />} />
           <Route path="/bikes/:id" element={<StaticLayout><BikeDetailPage /></StaticLayout>} />
+          {/* Guides: also listed in src/content/guides.js, which is what
+              scripts/prerender.js reads to decide what to prerender. A route
+              here without an entry there ships as a 404. */}
+          <Route path="/guides" element={<StaticLayout><GuidesHubPage /></StaticLayout>} />
+          <Route path="/guides/electric-bikes" element={<StaticLayout><ElectricBikesPage /></StaticLayout>} />
+          <Route path="/guides/mountain-bikes" element={<StaticLayout><MountainBikesPage /></StaticLayout>} />
+          <Route path="/guides/road-bikes" element={<StaticLayout><RoadBikesPage /></StaticLayout>} />
+          <Route path="/guides/gravel-bikes" element={<StaticLayout><GravelBikesPage /></StaticLayout>} />
+          <Route path="/guides/commuter-bikes" element={<StaticLayout><CommuterBikesPage /></StaticLayout>} />
           <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
           <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
           <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />

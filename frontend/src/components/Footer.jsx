@@ -11,6 +11,7 @@ const CATEGORIES = [
 ]
 
 const COMPANY_LINKS = [
+  { label: 'Bike guides', to: '/guides' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
   { label: 'Terms of Use', to: '/terms' },

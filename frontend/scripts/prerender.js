@@ -17,7 +17,24 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 
-const ROUTES = ['/', '/about', '/contact', '/sitemap', '/terms', '/privacy']
+// Guide routes are derived, not listed, so adding a guide to content/guides.js
+// prerenders it automatically. Forgetting this list is otherwise a hard 404 in
+// production — public/_redirects has no catch-all. That import is also why
+// content/guides.js must stay free of JSX and import.meta.env: it is loaded
+// here by bare node, outside Vite.
+const { GUIDE_PATHS } = await import(
+  pathToFileURL(join(root, 'src', 'content', 'guides.js')).href
+)
+
+const ROUTES = [
+  '/',
+  '/about',
+  '/contact',
+  '/sitemap',
+  '/terms',
+  '/privacy',
+  ...GUIDE_PATHS,
+]
 
 // Mirrors seo.js so a prerendered canonical matches the client-rendered one.
 const SITE = (process.env.VITE_PUBLIC_URL || 'https://bikegrid.com.au').replace(/\/$/, '')
