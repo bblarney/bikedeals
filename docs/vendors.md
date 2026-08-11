@@ -15,7 +15,7 @@ Vendors are grouped into:
 
 ## 1. Scraped
 
-100 vendors live in the registry. `pipeline` matches the loader in
+97 vendors live in the registry. `pipeline` matches the loader in
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
@@ -42,14 +42,21 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 >   on the egress IP class, not a path, so it needs a challenge-solving egress
 >   to unblock. Its config is on the `woocommerce_api` pipeline and is verified
 >   working off a residential IP, so it recovers with no edits if egress changes.
-> - **Cycle Co-op** — vendor-side outage, not ours. `cycleco-op.au` returns
->   Cloudflare error 1016 (origin DNS resolution failure, surfaced as HTTP 409)
->   from every egress tried; the domain resolves to Shopify but is no longer
->   attached to a store. The shop is still trading, so this should recover on
->   its own once they reconnect the domain. No config change made.
 >
-> Both keep their existing rows in the DB — the orchestrator treats a failed
-> vendor as "keep the data, skip `mark_stale`" rather than wiping it.
+> It keeps its existing rows in the DB — the orchestrator treats a failed vendor
+> as "keep the data, skip `mark_stale`" rather than wiping it.
+
+> **Retired 2026-08-11 (100 → 97).** Cranks, Cycle Co-op and NRG Cycles had each
+> been failing every nightly run for weeks, for three unrelated reasons (all
+> diagnosed below, in [Not scraped](#3-not-scraped-blocked)). Their YAMLs are
+> deleted and their hosts are out of the Worker allowlist.
+>
+> De-registering a vendor does **not** remove its data: nothing in the run prunes
+> rows a config no longer produces, and `mark_stale` only runs for vendors still
+> being scraped, so their listings would have sat in the DB with a frozen
+> "last seen" date and no way to ever change. Migration `e4b1a72c9d35` deletes
+> their `bikes`, `price_events` and `scrape_log` rows. Re-adding any of them
+> means re-adding the YAML and letting the nightly run repopulate from scratch.
 
 > **Added 2026-08-04 (68 → 77).** ABC Bikes, Woolys Wheels, CCACHE and Cycle
 > World (Sydney), Giant Lygon St and Giant South Yarra (Melbourne), West Coast
@@ -92,11 +99,9 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Canberra Cyclery | Canberra | canberracyclery.com.au | woocommerce_api |
 | Canyon | National (D2C) | canyon.com | canyon |
 | CCACHE | Sydney | ccache.cc | shopify |
-| Cranks | Sydney | cranks.com.au | woocommerce |
 | Crooze | Brisbane | crooze.com.au | shopify |
 | Currumbin Cycles | Gold Coast | currumbincycles.com.au | shopify |
 | Curve Cycling | Melbourne | curvecycling.com | shopify |
-| Cycle Co-op | Canberra | cycleco-op.au | shopify |
 | Cyclespot | Sydney | cyclespot.com.au | shopify |
 | Cycle World | Sydney | cycleworld.com.au | woocommerce_api |
 | Cycle Zone | Sunshine Coast | cyclezone.com.au | shopify |
@@ -143,7 +148,6 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | McBain Cycles | Hobart | mcbaincycles.com.au | shopify |
 | Melbourne Bicycles | Melbourne | melbournebicycles.com.au | shopify |
 | My Ride | 20+ stores (chain) | myride.com.au | shopify |
-| NRG Cycles | Brisbane | nrgcycles.com.au | woocommerce |
 | Off Course | Melbourne | offcourse.bike | woocommerce |
 | Omafiets | Sydney | omafiets.com.au | shopify |
 | Pedal Heads | Brisbane | pedalheads.com.au | shopify |
@@ -210,6 +214,9 @@ Permanently blocked, JS-rendered, or no accessible product catalog. Re-probed
 
 | Store | URL | City | Platform | Reason |
 |---|---|---|---|---|
+| Cranks | cranks.com.au | Sydney | Next.js + Ecwid | **Retired 2026-08-11**, previously scraped. Replatformed off WooCommerce: the old category path still answers 200 with no product markup, and the new storefront server-renders no products anywhere — no `products.json`, no Store API, and per-product JSON-LD with a price but no sale price and no category. The live catalogue reaches the browser only inside a content-hashed Next.js build chunk |
+| Cycle Co-op | cycleco-op.au | Canberra | Shopify | **Retired 2026-08-11**, previously scraped. Store closed: the domain returns Cloudflare error 1016 (origin DNS failure, surfaced as HTTP 409) and the Shopify store behind it, `870a95.myshopify.com`, answers "Store unavailable". Canberra is still covered by My Ride, the same shop's former banner |
+| NRG Cycles | nrgcycles.com.au | Brisbane | WooCommerce | **Retired 2026-08-11**, previously scraped. Its Cloudflare zone 403s ("Attention Required", no `cf-mitigated` header) on **every** path — category HTML, the Store API, product pages, `/robots.txt` — from every overseas/datacenter egress tried, while the same requests from an Australian residential IP scrape 65 bikes. A zone-wide source block, so no pipeline or endpoint change reaches it |
 | Pushys | pushys.com.au | National (online) | Non-Shopify | **Added 2026-06-21.** Large online retailer; `/products.json` returns HTTP 404 — not Shopify (BigCommerce/custom). No standard product API |
 | Hillside Cycles | hillsidecycles.com | Perth (Glen Forrest) | Shopify | **Added 2026-06-21.** Shopify confirmed but `/products.json` returns `{"products":[]}` — empty online catalog; hire/service shop with no online bike sales |
 | BAM Cycles | bamcycles.com.au | Melbourne | Lightspeed eCom | Product listings are client-side JS-rendered; `/products.json` 404, `?format=json` returns page metadata only |
