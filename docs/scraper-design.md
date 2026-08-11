@@ -168,6 +168,16 @@ useless but harmful — each extra request further degrades our IP reputation.
 Sites behind a JS challenge need a challenge-solving egress (residential proxy or
 scraping API) and are currently out of scope.
 
+A Cloudflare **block** is the same problem wearing different clothes: a WAF rule
+(or a ban) returns a plain 403 with the "Attention Required" page and *no*
+`cf-mitigated` header, so it is indistinguishable from a shop's own 403 until the
+body is read. `_is_cloudflare_block` checks a 403/429 HTML body for Cloudflare's
+own markers and raises the same `CloudflareChallenge` with `mitigation="block"`.
+Without it, a zone that blocks our egress on every path — robots.txt included —
+surfaces only as "0 bikes scraped", which reads like a broken selector rather
+than an egress problem no config change can fix. That is what NRG Cycles was
+doing for weeks before it was diagnosed and retired (`docs/vendors.md`).
+
 ---
 
 ## Egress proxy (CI only)

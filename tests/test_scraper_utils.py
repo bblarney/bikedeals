@@ -210,6 +210,52 @@ async def test_get_with_retry_fails_fast_on_cloudflare_challenge():
     assert client.calls == 1  # not retried
 
 
+# Cloudflare's block page, trimmed to the markers we key off.
+_CF_BLOCK_PAGE = (
+    "<!DOCTYPE html><html><head><title>Attention Required! | Cloudflare</title>"
+    "</head><body><h1>Sorry, you have been blocked</h1>"
+    '<div class="cf-error-details">Cloudflare Ray ID: abc123</div></body></html>'
+)
+
+
+async def test_get_with_retry_reports_a_cloudflare_block_as_a_challenge():
+    """A WAF block sets no cf-mitigated header — without reading the body it is
+    just a 403, which surfaced as an unexplained "0 bikes" every night."""
+    class _BlockedClient:
+        def __init__(self):
+            self.calls = 0
+
+        async def get(self, url, headers=None, follow_redirects=True):
+            self.calls += 1
+            return httpx.Response(
+                403,
+                headers={"content-type": "text/html; charset=UTF-8", "server": "cloudflare"},
+                text=_CF_BLOCK_PAGE,
+                request=httpx.Request("GET", url),
+            )
+
+    client = _BlockedClient()
+    with pytest.raises(CloudflareChallenge) as exc:
+        await get_with_retry(client, "https://shop.example/product-category/bikes/", retries=3)
+    assert "block" in str(exc.value)
+    assert client.calls == 1  # not retried
+
+
+async def test_get_with_retry_leaves_an_ordinary_403_alone():
+    """Only Cloudflare's own page counts: a shop's 403 is returned to the caller."""
+    class _ForbiddenClient:
+        async def get(self, url, headers=None, follow_redirects=True):
+            return httpx.Response(
+                403,
+                headers={"content-type": "text/html"},
+                text="<html><body>Members only</body></html>",
+                request=httpx.Request("GET", url),
+            )
+
+    resp = await get_with_retry(_ForbiddenClient(), "https://shop.example/bikes")
+    assert resp.status_code == 403
+
+
 # --- proxy routing ------------------------------------------------------------
 
 def test_apply_proxy_noop_when_unset(monkeypatch):
