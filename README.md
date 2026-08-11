@@ -41,7 +41,7 @@ Start with [`docs/scraper-design.md`](docs/scraper-design.md) if you're adding a
 |---|---|
 | [`architecture.md`](docs/architecture.md) | Topology, hosting, ORM and migration mandate |
 | [`data-model.md`](docs/data-model.md) | Tables, DDL, ID strategy, variants |
-| [`scraper-design.md`](docs/scraper-design.md) | New-vendor checklist, the six pipelines, quarantine |
+| [`scraper-design.md`](docs/scraper-design.md) | New-vendor checklist, the seven pipelines, quarantine |
 | [`api-design.md`](docs/api-design.md) | Endpoints, rate limits, CORS, caching |
 | [`frontend.md`](docs/frontend.md) | Routes, components, state |
 | [`developer.md`](docs/developer.md) | PR conventions, coding guidelines |

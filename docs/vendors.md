@@ -34,7 +34,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 > `base_url` scrapes the homepage's featured tiles for every path — 6 bikes
 > instead of 130, and `scrape_check` still reports PASS.
 
-> **Registered but not currently returning data (checked 2026-08-04):**
+> **Registered but not currently returning data (rechecked 2026-08-11):**
 >
 > - **George's Bike Shop** — Cloudflare challenges our datacenter egress
 >   (403 `cf-mitigated`) on both the HTML category pages and the Store API,
@@ -42,14 +42,34 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 >   on the egress IP class, not a path, so it needs a challenge-solving egress
 >   to unblock. Its config is on the `woocommerce_api` pipeline and is verified
 >   working off a residential IP, so it recovers with no edits if egress changes.
-> - **Cycle Co-op** — vendor-side outage, not ours. `cycleco-op.au` returns
->   Cloudflare error 1016 (origin DNS resolution failure, surfaced as HTTP 409)
->   from every egress tried; the domain resolves to Shopify but is no longer
->   attached to a store. The shop is still trading, so this should recover on
->   its own once they reconnect the domain. No config change made.
+> - **NRG Cycles** — same class of block, found by the same test. `nrgcycles.com.au`
+>   sits behind Cloudflare and returns 403 with the "Attention Required" page to
+>   every overseas/datacenter egress tried, on **every path** — the category HTML,
+>   the Store API (`/wp-json/wc/store/v1/products`, which is otherwise open), the
+>   product pages, and even `/robots.txt`. The same requests, same User-Agent,
+>   succeed from an Australian residential IP and scrape 65 bikes. There is no
+>   path or pipeline that dodges a zone-wide source block, so the config is
+>   unchanged and it recovers by itself if egress changes. The block sets no
+>   `cf-mitigated` header, which is why this was reported for weeks as a bare
+>   "0 bikes" — `_is_cloudflare_block` now names it in the summary email.
+> - **Cycle Co-op** — vendor-side, and worse than first recorded. `cycleco-op.au`
+>   still returns Cloudflare error 1016 (origin DNS resolution failure, surfaced
+>   as HTTP 409) from every egress, and the Shopify store behind it —
+>   `870a95.myshopify.com`, from an archived copy of the site — now answers
+>   **"Store unavailable"**: the storefront is closed, not just detached from its
+>   domain. Nothing to scrape and nothing to fix; the config is left in place in
+>   case they reopen. Canberra is still covered by My Ride, whose Canberra store
+>   is the same shop's former banner.
 >
-> Both keep their existing rows in the DB — the orchestrator treats a failed
+> All three keep their existing rows in the DB — the orchestrator treats a failed
 > vendor as "keep the data, skip `mark_stale`" rather than wiping it.
+
+> **Cranks replatformed (2026-08-11).** `cranks.com.au` moved off WooCommerce to a
+> headless Next.js storefront over an Ecwid catalogue. The old category path still
+> answers 200 with no product markup at all, so the DOM selectors silently scraped
+> zero. Rebuilt on the new `ecwid_next` pipeline: 85 bikes, all in stock-flagged
+> and categorised, none discounted (the new store is reserve-online/pay-in-store
+> and lists no sale prices yet).
 
 > **Added 2026-08-04 (68 → 77).** ABC Bikes, Woolys Wheels, CCACHE and Cycle
 > World (Sydney), Giant Lygon St and Giant South Yarra (Melbourne), West Coast
@@ -92,7 +112,7 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Canberra Cyclery | Canberra | canberracyclery.com.au | woocommerce_api |
 | Canyon | National (D2C) | canyon.com | canyon |
 | CCACHE | Sydney | ccache.cc | shopify |
-| Cranks | Sydney | cranks.com.au | woocommerce |
+| Cranks | Sydney | cranks.com.au | ecwid_next |
 | Crooze | Brisbane | crooze.com.au | shopify |
 | Currumbin Cycles | Gold Coast | currumbincycles.com.au | shopify |
 | Curve Cycling | Melbourne | curvecycling.com | shopify |

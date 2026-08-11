@@ -57,7 +57,7 @@ class VendorConfig(BaseModel):
     city: str | None = None              # single-location vendors
     cities: list[str] | None = None      # national chains: one record per city
     base_url: str
-    pipeline: Literal["shopify", "woocommerce", "woocommerce_api",
+    pipeline: Literal["shopify", "woocommerce", "woocommerce_api", "ecwid_next",
                       "bigcommerce", "giant", "canyon", "custom"]
     category_map: dict[str, str]         # shop tag -> our category
     selectors: dict[str, str] | None = None          # DOM pipelines only
@@ -79,7 +79,7 @@ category.
 
 ## Pipelines
 
-Six are implemented; `custom` is declarable but unimplemented and raises
+Seven are implemented; `custom` is declarable but unimplemented and raises
 `NotImplementedError`. Dispatch lives in `scrapers/orchestrator.py`.
 
 | Pipeline | Source | Notes |
@@ -87,6 +87,7 @@ Six are implemented; `custom` is declarable but unimplemented and raises
 | `shopify` | `/products.json` or `/collections/<handle>/products.json` | Most vendors |
 | `woocommerce` | Listing-page DOM via `selectors` | Fallback; one row per product |
 | `woocommerce_api` | `/wp-json/wc/store/v1` | Preferred over DOM where reachable |
+| `ecwid_next` | Ecwid catalogue baked into a Next.js build chunk | Client-rendered storefronts with no listing HTML — see below |
 | `bigcommerce` | Listing-page DOM | |
 | `giant` | Giant franchise storefronts | Per-store `vendor_name` to avoid collisions. **`base_url` must use the www host** — see below |
 | `canyon` | Canyon direct-to-consumer | Outlet path falls back to URL-segment categories |
@@ -113,6 +114,41 @@ loudly:
 Be aware that every franchise white-labels the **same national catalogue at the
 same RRP**, with no sale prices — so each store adds a location, not stock, and
 contributes only 0%-discount rows. See `docs/vendors.md` before adding more.
+
+### `ecwid_next` — headless storefronts with no listing HTML
+
+A shop that replatforms onto a headless Next.js front end over an Ecwid
+(Lightspeed eCom) catalogue serves category pages that are 200 OK and *empty*:
+no product markup, no `/products.json`, and per-product JSON-LD that carries a
+price but no sale price and no category. A DOM scrape of one reports zero bikes
+every night while looking healthy from the outside.
+
+What the browser actually renders from is the catalogue itself, baked into one
+of the page's build chunks as `JSON.parse('[{…}]')` — id, sku, name, `price`,
+`compareToPrice`, `inStock`, `enabled`, `brand`, image and `categoryPaths`. The
+pipeline fetches the listing page named by `shop_path`, scans the chunks it
+references (last first — the page-specific chunks are emitted last) for the
+`"categoryPaths"` marker, and parses that literal.
+
+Three things to know when configuring one:
+
+- **`collections` lists top-level Ecwid category names** (`["Bikes"]`), not
+  slugs. The catalogue is the shop's *whole* inventory — helmets, spare parts,
+  workshop services — so bikes are selected by root category rather than by
+  hoping no accessory matches `category_map`. `category_map` keys then match
+  against the full path, e.g. `Bikes / Mountain Bikes / Hard Tail`.
+- **`brand_map` keys double as brand names to look for in the product name.**
+  Entries frequently leave `brand` null; without this the bike is labelled with
+  the shop's own name, which then appears in the brand filter.
+- **One row per product, and no SKU.** The catalogue has a single price and
+  stock flag per product (sizes live on the product page), and its `sku` is the
+  shop's POS id — recording that would collide with another shop's internal ids
+  in the cross-shop SKU match.
+
+Product URLs come from `/sitemap.xml`, matched by slugified name: the
+catalogue's own `url` field points at the shop's staging host and the legacy
+Ecwid `/store#!/…/p/<id>` route. A product with no sitemap entry is dropped
+rather than recorded with a URL that 404s.
 
 ### Shopify pagination — the two cursoring modes
 
@@ -167,6 +203,15 @@ solve, so `CloudflareChallenge` is raised immediately. Retrying it is not just
 useless but harmful — each extra request further degrades our IP reputation.
 Sites behind a JS challenge need a challenge-solving egress (residential proxy or
 scraping API) and are currently out of scope.
+
+A Cloudflare **block** is the same problem wearing different clothes: a WAF rule
+(or a ban) returns a plain 403 with the "Attention Required" page and *no*
+`cf-mitigated` header, so it is indistinguishable from a shop's own 403 until the
+body is read. `_is_cloudflare_block` checks a 403/429 HTML body for Cloudflare's
+own markers and raises the same `CloudflareChallenge` with `mitigation="block"`.
+Without it, a zone that blocks our egress on every path — robots.txt included —
+is reported only as "0 bikes scraped", which reads like a broken selector rather
+than an egress problem no config change can fix (NRG Cycles, `docs/vendors.md`).
 
 ---
 

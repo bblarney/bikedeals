@@ -197,19 +197,21 @@ _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
 class CloudflareChallenge(Exception):
-    """Raised when a response is a Cloudflare bot challenge (``cf-mitigated``).
+    """Raised when a response is Cloudflare interdicting us, not vendor data.
 
-    These come back as 429/403 with a JavaScript "Verifying your connection…"
-    interstitial that an httpx client can't solve. Retrying is pointless and
-    actively harmful: every extra request further degrades our IP reputation,
-    making Cloudflare challenge *more* of our vendors. So we fail fast and let
-    the caller treat the whole vendor as failed (without wiping its data).
+    Two shapes of the same problem: a *challenge* (429/403 with a JavaScript
+    "Verifying your connection…" interstitial that an httpx client can't solve)
+    and a *block* (a WAF rule or ban that returns the "Attention Required" page
+    outright). Neither is transient, and retrying is actively harmful: every
+    extra request further degrades our IP reputation, making Cloudflare
+    challenge *more* of our vendors. So we fail fast and let the caller treat
+    the whole vendor as failed (without wiping its data).
     """
 
-    def __init__(self, url: str, response: httpx.Response):
+    def __init__(self, url: str, response: httpx.Response, mitigation: str | None = None):
         self.url = url
         self.response = response
-        mitigation = response.headers.get("cf-mitigated", "challenge")
+        mitigation = mitigation or response.headers.get("cf-mitigated", "challenge")
         super().__init__(
             f"Cloudflare bot challenge ({mitigation}, HTTP {response.status_code}) for {url} — "
             "cannot be solved by the scraper; needs a challenge-solving egress (residential "
@@ -225,6 +227,37 @@ def _is_cloudflare_challenge(resp: httpx.Response) -> bool:
     body-free signal, so we don't need to read/parse the HTML interstitial.
     """
     return bool(resp.headers.get("cf-mitigated"))
+
+
+# Text unique to Cloudflare's own block page. Checked against the body because
+# a *block* — unlike a challenge — sets no `cf-mitigated` header.
+_CF_BLOCK_MARKERS = (
+    "Attention Required! | Cloudflare",
+    "Sorry, you have been blocked",
+    "cf-error-details",
+)
+
+
+def _is_cloudflare_block(resp: httpx.Response) -> bool:
+    """True if a 403/429 is Cloudflare blocking us rather than the shop's origin.
+
+    A WAF rule (or the ban that follows repeated hits) returns a plain 403 with
+    Cloudflare's "Attention Required" page and no ``cf-mitigated`` header, so it
+    is indistinguishable from an ordinary forbidden response until the body is
+    read. That cost a real diagnosis: a shop whose zone blocks our datacenter
+    egress on *every* path — including robots.txt — was reported for weeks as
+    "0 bikes scraped", which reads like a broken selector rather than an egress
+    problem no config change can fix.
+    """
+    if resp.status_code not in (403, 429):
+        return False
+    if "html" not in resp.headers.get("content-type", "").lower():
+        return False
+    try:
+        body = resp.text
+    except Exception:  # undecodable body — not a block page we can identify
+        return False
+    return any(marker in body for marker in _CF_BLOCK_MARKERS)
 
 
 async def get_with_retry(
@@ -255,6 +288,8 @@ async def get_with_retry(
             _restore_target_url(resp, url)
             if _is_cloudflare_challenge(resp):
                 raise CloudflareChallenge(url, resp)
+            if _is_cloudflare_block(resp):
+                raise CloudflareChallenge(url, resp, mitigation="block")
             if resp.status_code in _RETRYABLE_STATUS:
                 raise httpx.HTTPStatusError(
                     f"retryable status {resp.status_code}", request=resp.request, response=resp

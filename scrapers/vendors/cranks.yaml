@@ -1,40 +1,44 @@
 vendor_name: "Cranks"
 city: "Sydney"
-shop_path: "shop/bikes"
-max_pages: 10
 base_url: "https://cranks.com.au"
-pipeline: "woocommerce"
-# Custom theme. Title in div.product-title; price in div.price (not span.price).
-# Standard product_cat-* classes carry both category and brand info.
-# Category classes: product_cat-road-bike, product_cat-mountain-bikes, product_cat-e-bikes,
-#   product_cat-dual-suspension, product_cat-dirt-jumper, product_cat-city-commuter,
-#   product_cat-kids-bikes, product_cat-balance-bikes.
-# Brand classes: product_cat-trek, product_cat-norco, product_cat-hornit, product_cat-icon.
+pipeline: "ecwid_next"
+# Replatformed (2026-08) from WooCommerce to a headless Next.js storefront over
+# an Ecwid catalogue: /shop/bikes still returns 200, but with no product markup
+# at all, so the old DOM selectors scraped 0 bikes every night.
+# shop_path is the listing page whose build chunk carries the catalogue.
+shop_path: "bikes"
+# Top-level Ecwid categories to keep. The catalogue is the shop's whole
+# inventory — "Helmets", workshop services, spare parts — and only "Bikes"
+# holds complete bikes.
+collections:
+  - "Bikes"
+# Labels the catalogue never sets a `brand` for; matched in the product name so
+# these don't fall back to the shop's own name.
 brand_map:
-  trek: Trek
-  norco: Norco
-  hornit: Hornit
-  icon: Icon
-selectors:
-  product_list: "li.product"
-  model_name: "div.product-title"
-  product_url: "div.product-title a"
-  image_url: "img.thumb-image"
-  price_sale: "div.price ins span.woocommerce-Price-amount bdi"
-  price_original: "div.price del span.woocommerce-Price-amount bdi"
-  price_regular: "div.price span.woocommerce-Price-amount bdi"
+  base bike: "Base Bikes"
+  hornit: "Hornit"
+  kule: "Kule"
+# Matched against the Ecwid category path, e.g.
+# "Bikes / Mountain Bikes / Hard Tail", "Bikes / E Bikes / E MTB Bikes".
+# E-bike keys before the discipline keys: the pipeline offers electric paths
+# first so an e-MTB doesn't resolve to Mountain.
 category_map:
+  e bikes: E-Bike
   e-bikes: E-Bike
   electric: E-Bike
-  e-bike: E-Bike
-  dual-suspension: Mountain
-  dirt-jumper: Mountain
-  mountain-bikes: Mountain
-  mountain bike: Mountain
-  road-bike: Road
-  road bikes: Road
+  mountain bikes: Mountain
+  dual suspension: Mountain
+  hard tail: Mountain
+  dirt jumper: Mountain
+  fat bikes: Mountain
+  cx and gravel: Gravel
   gravel: Gravel
-  city-commuter: Commuter
-  commuter-and-urban: Commuter
-  kids-bikes: Commuter
-  balance-bikes: Commuter
+  road bikes: Road
+  commuter & urban: Commuter
+  city & hybrid: Commuter
+  flat bar: Commuter
+  cruisers: Commuter
+  folding: Commuter
+  kids bikes: Commuter
+  balance bikes: Commuter
+  bmx: Commuter

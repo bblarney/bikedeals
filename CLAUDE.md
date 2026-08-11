@@ -32,11 +32,11 @@ added to `ALLOWED_HOSTS` in `worker/worker.js` and the Worker redeployed, or it
 
 ## Architecture
 
-### Ingestion (six pipelines)
+### Ingestion (seven pipelines)
 
 Selected per vendor via `pipeline:` in the YAML; dispatch in `scrapers/orchestrator.py`.
 
-- **JSON feeds:** `shopify` (`/products.json` or `/collections/<handle>/products.json`), `woocommerce_api` (WooCommerce Store API at `/wp-json/wc/store/v1`).
+- **JSON feeds:** `shopify` (`/products.json` or `/collections/<handle>/products.json`), `woocommerce_api` (WooCommerce Store API at `/wp-json/wc/store/v1`), `ecwid_next` (Ecwid catalogue embedded in a Next.js build chunk, for headless storefronts that render nothing server-side).
 - **DOM scrapers:** `woocommerce`, `bigcommerce`, `giant`, `canyon` — keyed to retailer CSS selectors, and expected to break when shops redesign.
 
 A failing vendor is quarantined for that run: nothing is written, yesterday's data is kept, and the run continues. Never corrupt the database.
@@ -93,7 +93,7 @@ Detailed planning and critique for each layer — read these before touching tha
 
 - [`docs/architecture.md`](docs/architecture.md) — topology, hosting, ORM/migration mandate, geographic scope
 - [`docs/data-model.md`](docs/data-model.md) — all four tables, DDL, ID strategy, variants, timestamps
-- [`docs/scraper-design.md`](docs/scraper-design.md) — **new-vendor checklist**, the six pipelines, rate limiting, egress proxy, quarantine, UPSERT
+- [`docs/scraper-design.md`](docs/scraper-design.md) — **new-vendor checklist**, the seven pipelines, rate limiting, egress proxy, quarantine, UPSERT
 - [`docs/api-design.md`](docs/api-design.md) — full endpoint spec, rate limits, CORS, error formats, caching
 - [`docs/frontend.md`](docs/frontend.md) — routes, component tree, state management, UX choices
 - [`docs/developer.md`](docs/developer.md) — PR conventions, vendor testing, coding guidelines
