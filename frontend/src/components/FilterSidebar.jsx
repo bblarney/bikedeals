@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
 import SidebarAd from './SidebarAd'
 import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
+import { REGION_KEY } from '../lib/landing'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
   const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, added_since } = params
@@ -80,7 +81,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
               <button
                 key={r.abbr}
                 onClick={() => {
-                  localStorage.setItem('bikegrid_region', r.name)
+                  localStorage.setItem(REGION_KEY, r.name)
                   onUpdate({ city: r.cities })
                 }}
                 className={`py-1.5 rounded-lg border text-xs font-medium transition-colors text-center ${

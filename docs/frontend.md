@@ -37,12 +37,22 @@ which `renderToString` doesn't run, so pages render in their empty-data shape:
 headings, copy, nav, footer. Dropdown options and deal data fill in on the
 client. A build therefore succeeds while the API is cold or down.
 
-Three things are load-bearing:
+Four things are load-bearing:
 
 - **`createRoot`, not `hydrateRoot`.** React discards the prerendered markup and
   re-renders on mount. The markup is for crawlers and first paint only. This is
   what lets a returning visitor — whose `localStorage` sends them to the deal
   feed rather than the landing page — avoid a hydration mismatch.
+- **The pre-paint gate on `/`.** `/` is the one route whose prerendered markup is
+  not what every visitor gets: it is the landing page, but a visitor with a
+  stored region or a `?city=` URL renders the deal feed. Without the gate that
+  visitor watches the landing page paint and then get thrown away on mount — a
+  flash of the wrong page on every refresh. `src/lib/landing.js` owns both the
+  condition and the style; `prerender.js` inlines them into the head of `/` and
+  wraps the body in `#prerendered-landing`, which the style hides before first
+  paint for exactly those visitors. A crawler has neither `localStorage` nor a
+  query string, so it still gets the landing page. The condition mirrors
+  `showLanding` in `App.jsx` — change one and change the other.
 - **`app-shell.html`.** `/bikes/:id` and `/unsubscribe` are not prerendered and
   are rewritten to this bare shell, not to `index.html`. `index.html` is now the
   prerendered landing page; serving it for a bike detail page would give every
@@ -62,7 +72,8 @@ Guide routes are the exception, and are handled structurally: `prerender.js`
 imports `GUIDE_PATHS` from `src/content/guides.js` and concatenates it onto
 `ROUTES`, so adding a guide to that array is enough. That import is why
 `content/guides.js` must stay free of JSX, imports and `import.meta.env` — bare
-`node` loads it, outside Vite.
+`node` loads it, outside Vite. `src/lib/landing.js` is imported the same way and
+carries the same constraint.
 
 Anything rendered during the prerender must tolerate the absence of `window`,
 `document`, and `localStorage`. Effects and event handlers are safe; `useState`
