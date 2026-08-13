@@ -8,7 +8,8 @@
 // The client still uses createRoot, not hydrateRoot — the prerendered markup is
 // for crawlers and first paint, and React discards and re-renders it on mount.
 // That keeps returning visitors (whose localStorage sends them to the deal feed
-// rather than the landing page) free of hydration-mismatch errors.
+// rather than the landing page) free of hydration-mismatch errors. Those
+// visitors are also never shown the discarded markup: see gateHead below.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -24,6 +25,11 @@ const dist = join(root, 'dist')
 // here by bare node, outside Vite.
 const { GUIDE_PATHS } = await import(
   pathToFileURL(join(root, 'src', 'content', 'guides.js')).href
+)
+
+// Same deal: loaded by bare node, so src/lib/landing.js stays plain JS.
+const { DEAL_FEED_GATE, DEAL_FEED_GATE_STYLE } = await import(
+  pathToFileURL(join(root, 'src', 'lib', 'landing.js')).href
 )
 
 const ROUTES = [
@@ -121,6 +127,26 @@ function applyMeta(head, tags, route) {
   return sawCanonical ? out : setCanonical(out, SITE + route)
 }
 
+// `/` is the one route whose prerendered markup is not what every visitor gets:
+// it is the landing page, but a visitor with a stored region or a city-filtered
+// URL renders the deal feed instead. Without this the landing page paints and
+// is then thrown away on mount — a flash of the wrong page on every refresh.
+// The gate hides it before first paint, for those visitors only; a crawler has
+// no localStorage and no query string, so it still gets the landing page.
+function gateHead(head) {
+  return head.replace(
+    '</head>',
+    `  <script>${DEAL_FEED_GATE}</script>\n` +
+      `  <style>${DEAL_FEED_GATE_STYLE}</style>\n  </head>`,
+  )
+}
+
+// The id the gate's style hooks onto. Only ever present in prerendered markup —
+// React renders its own tree into #root and never emits this wrapper.
+function gateBody(body) {
+  return `<div id="prerendered-landing">${body}</div>`
+}
+
 function outputPath(route) {
   return route === '/'
     ? join(dist, 'index.html')
@@ -142,10 +168,13 @@ for (const route of ROUTES) {
   const { body, tags } = splitMeta(render(route))
 
   const [head, tail] = template.split('<body>')
+  const isLanding = route === '/'
+  const rootHtml = isLanding ? gateBody(body) : body
+  const headHtml = applyMeta(head, tags, route)
   const html =
-    applyMeta(head, tags, route) +
+    (isLanding ? gateHead(headHtml) : headHtml) +
     '<body>' +
-    tail.replace('<div id="root"></div>', `<div id="root">${body}</div>`)
+    tail.replace('<div id="root"></div>', `<div id="root">${rootHtml}</div>`)
 
   const file = outputPath(route)
   await mkdir(dirname(file), { recursive: true })

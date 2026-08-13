@@ -13,6 +13,7 @@ import { useFilters } from './hooks/useFilters'
 import { useStats } from './hooks/useStats'
 import { canonicalFor, buildPageMeta } from './seo'
 import { MAIN_SCROLL_ID } from './lib/scroll'
+import { REGION_KEY, hasStoredRegion } from './lib/landing'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SitemapPage from './pages/SitemapPage'
@@ -30,13 +31,11 @@ import CommuterBikesPage from './pages/guides/CommuterBikesPage'
 
 function MainLayout() {
   const params = useBikeParams()
-  // Guarded because this initializer also runs during the build-time prerender,
-  // where there is no localStorage. Falling back to false renders the landing
-  // page, which is the version we want in the static HTML anyway.
-  const [regionSetThisSession, setRegionSetThisSession] = useState(() => {
-    try { return !!localStorage.getItem('bikegrid_region') }
-    catch { return false }
-  })
+  // hasStoredRegion falls back to false during the build-time prerender, where
+  // there is no localStorage — so the static HTML is the landing page, which is
+  // the version we want a crawler to see. src/lib/landing.js also supplies the
+  // pre-paint gate that keeps that markup from flashing at everyone else.
+  const [regionSetThisSession, setRegionSetThisSession] = useState(hasStoredRegion)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
@@ -67,7 +66,7 @@ function MainLayout() {
   }
 
   function handleChangeRegion() {
-    localStorage.removeItem('bikegrid_region')
+    localStorage.removeItem(REGION_KEY)
     params.update({ city: [] })
     // Refresh so the landing page renders cleanly; cheaper than re-architecting state here.
     window.location.assign('/')

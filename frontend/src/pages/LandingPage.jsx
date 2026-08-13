@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { REGIONS, SIZE_ORDER } from '../constants'
 import { useFilters } from '../hooks/useFilters'
 import FlagAU from '../components/FlagAU'
+import { REGION_KEY } from '../lib/landing'
 
 const selectClass =
   'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition cursor-pointer'
@@ -36,20 +37,20 @@ export default function LandingPage({ onUpdate }) {
     if (selectedCity) {
       changes.city = [selectedCity]
       const region = REGIONS.find(r => r.cities.includes(selectedCity))
-      localStorage.setItem('bikegrid_region', region ? region.name : '__all__')
+      localStorage.setItem(REGION_KEY, region ? region.name : '__all__')
     } else {
-      localStorage.setItem('bikegrid_region', '__all__')
+      localStorage.setItem(REGION_KEY, '__all__')
     }
     onUpdate(changes)
   }
 
   function pickRegion(region) {
-    localStorage.setItem('bikegrid_region', region.name)
+    localStorage.setItem(REGION_KEY, region.name)
     onUpdate({ city: region.cities })
   }
 
   function pickAll() {
-    localStorage.setItem('bikegrid_region', '__all__')
+    localStorage.setItem(REGION_KEY, '__all__')
     onUpdate({})
   }
 
