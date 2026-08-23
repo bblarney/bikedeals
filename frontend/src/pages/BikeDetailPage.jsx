@@ -39,6 +39,13 @@ export default function BikeDetailPage() {
     const notFound = error?.status === 404
     return (
       <div className="max-w-3xl mx-auto px-6 py-16 text-center">
+        {/* Deals churn daily and the API's sitemap has already handed Google
+            these URLs, so a sold-out bike is the highest-volume soft 404 on the
+            site: the shell is served with a 200 no matter what the API says.
+            A static host cannot answer 404 here, but Googlebot executes JS and
+            honours a noindex it finds after render, which drops the dead URL
+            from the index instead of leaving a thin page in it. */}
+        {notFound && <meta name="robots" content="noindex" />}
         <h1 className="text-xl font-semibold text-slate-900 mb-2">
           {notFound ? 'Deal not found' : 'Something went wrong'}
         </h1>
