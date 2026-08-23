@@ -20,6 +20,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Joins the tailnet so this runner can reach Postgres on the VPS. The
+      # database has no public listener at all - the 100.x tailnet address is
+      # the only route to it, so this step must succeed for the run to work.
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
       - name: Run migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
