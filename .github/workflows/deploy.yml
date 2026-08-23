@@ -1,0 +1,66 @@
+name: Deploy API
+
+# Render redeployed on every push; self-hosting removed that. This restores it,
+# using the tailnet the scraper already relies on: the database has no public
+# listener, and neither does SSH to the box from here.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'migrations/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+# Never let two deploys build and restart the same container at once. Queue
+# rather than cancel: a half-finished deploy is worse than a redundant one.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+
+          # No command is passed: authorized_keys forces deploy/deploy.sh, so
+          # this key cannot be used for anything else even if the secret leaks.
+          #
+          # accept-new is defence in depth rather than the primary control - the
+          # session already runs inside WireGuard to a specific tailnet address,
+          # which is not a path an attacker can interpose on. Pin a host key via
+          # a known_hosts secret if you want the stronger guarantee.
+          ssh -i ~/.ssh/deploy \
+              -o StrictHostKeyChecking=accept-new \
+              -o ConnectTimeout=15 \
+              brett@"$DEPLOY_HOST"
+
+      - name: Verify the public endpoint
+        # The deploy script already waits for the container healthcheck. This
+        # additionally proves the path through Caddy and TLS still works, which
+        # a container-level check cannot see.
+        run: |
+          code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                  https://api.bikegrid.com.au/api/v1/health)"
+          echo "health endpoint returned $code"
+          test "$code" = "200"
