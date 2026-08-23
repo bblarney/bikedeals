@@ -5,14 +5,30 @@
 # served as a static asset. A blanket `/* /index.html 200` is deliberately not
 # used: it shadows those files on static servers that apply the fallback before
 # checking for an asset, and it also answers every unknown URL with a 200 app
-# shell — soft 404s, which Google treats as a quality signal. Unmatched paths
-# now 404 properly.
+# shell — soft 404s, which Google treats as a quality signal.
+#
+# Omitting the catch-all is necessary but NOT sufficient: "If your project does
+# not include a top-level 404.html file, Pages assumes that you are deploying a
+# single-page application" and serves / for every unmatched path, with a 200.
+# public/404.html is what actually makes an unknown URL return a 404 — do not
+# delete it thinking it is decorative.
 #
 # Adding a client route means either adding it to ROUTES in
 # scripts/prerender.js, or adding a fallback line here.
 #
-# These point at app-shell.html, not index.html: index.html is the prerendered
+# These point at the app shell, not index.html: index.html is the prerendered
 # landing page, and serving it here would hand every bike detail page a canonical
 # pointing at the homepage before JS runs. app-shell.html is the bare shell.
-/bikes/*      /app-shell.html   200
-/unsubscribe  /app-shell.html   200
+#
+# The target is `/app-shell`, WITHOUT the .html. Pages canonicalises HTML assets
+# to their extensionless path, and it applies that to a rewrite destination too:
+# with `/app-shell.html` as the target these rules stopped being 200 rewrites and
+# became 308 redirects to /app-shell, which drops the :id and lands every bike
+# detail URL on a route that does not exist. Verify with
+# `npx wrangler pages dev dist` after touching this file — `curl -sS -o /dev/null
+# -w "%{http_code}" /bikes/anything` must print 200, not 308.
+#
+# /unsubscribe sits above the splat rule deliberately: Pages evaluates in order
+# and warns about static rules placed below wildcards.
+/unsubscribe  /app-shell   200
+/bikes/*      /app-shell   200

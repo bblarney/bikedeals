@@ -1,7 +1,9 @@
 User-agent: *
 Allow: /
 # Internal SPA fallback shell (see public/_redirects). Reachable directly but
-# empty, and not a page anyone should land on.
-Disallow: /app-shell.html
+# empty, and not a page anyone should land on. No .html: Pages canonicalises the
+# file to /app-shell and 308s the .html form, so the extensionless path is the
+# one that actually serves — and as a prefix this covers both.
+Disallow: /app-shell
 
 Sitemap: https://bikegrid.com.au/sitemap.xml
