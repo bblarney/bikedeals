@@ -1,0 +1,22 @@
+# Caddy terminates TLS and proxies to the api container. Certificates are
+# obtained from Let's Encrypt automatically on first start, which requires
+# API_DOMAIN to already resolve to this server and ports 80/443 to be open.
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy api:8000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
