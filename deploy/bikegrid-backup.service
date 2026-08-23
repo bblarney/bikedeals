@@ -1,0 +1,14 @@
+[Unit]
+Description=Nightly bikegrid database backup to R2
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=brett
+WorkingDirectory=/home/brett/bikegrid
+EnvironmentFile=-/home/brett/.config/bikegrid/backup.env
+ExecStart=/home/brett/bikegrid/deploy/backup.sh
+
+# The script is idempotent and safe to retry: each run writes a new timestamped
+# archive rather than mutating an existing one.
