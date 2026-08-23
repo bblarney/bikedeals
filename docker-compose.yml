@@ -1,0 +1,69 @@
+name: bikegrid
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bikegrid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-bikegrid}
+      # initdb takes its timezone from the container. Pin UTC so timestamptz
+      # rendering and date_trunc() agree with the UTC the app always writes.
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Loopback-only until Tailscale is up. Then DB_BIND_IP becomes the tailnet
+    # address, so GitHub Actions can reach Postgres and the public internet
+    # still cannot. Never set this to 0.0.0.0.
+    ports:
+      - "${DB_BIND_IP:-127.0.0.1}:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bikegrid} -d ${POSTGRES_DB:-bikegrid}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Composed here rather than read from .env so there is exactly one place
+      # the app's database location is defined, and no stale Supabase URL in
+      # .env can silently win.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-bikegrid}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-bikegrid}
+    depends_on:
+      db:
+        condition: service_healthy
+    # expose, not ports: reachable from Caddy on the compose network only.
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.bikegrid.com.au}
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
