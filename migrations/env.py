@@ -23,7 +23,11 @@ if config.config_file_name is not None:
 # runs in async mode too.
 db_url = os.environ.get("DATABASE_URL")
 if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+    # set_main_option() stores the value in a configparser, which applies
+    # %-interpolation on read. A percent-encoded password (%2F, %2B ...) would
+    # be parsed as an interpolation token and raise ValueError, so double the
+    # percent signs here; configparser collapses them back on read.
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
