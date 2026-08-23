@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the bikegrid database backup nightly
+
+[Timer]
+# 09:00 UTC - an hour after the 08:00 UTC scrape, so the backup captures that
+# night's price_events rather than missing them by minutes.
+OnCalendar=*-*-* 09:00:00 UTC
+# If the box was off at 09:00, run once it is back rather than skipping a day.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
