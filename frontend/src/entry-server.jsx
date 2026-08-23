@@ -21,11 +21,21 @@ export function render(url) {
 
   // No StrictMode: it double-renders, which is a client-side debugging aid and
   // pure waste in a one-shot string render.
-  return renderToString(
+  const html = renderToString(
     <MemoryRouter initialEntries={[url]}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
     </MemoryRouter>,
   )
+
+  // Dispose the cache before returning. Every query created during the render
+  // schedules a garbage-collection timer when it goes inactive - useStats sets
+  // gcTime to 10 minutes - and in Node those timers keep the event loop alive
+  // long after the HTML is written. That is why `npm run build` sat for exactly
+  // ten minutes after "Prerendered 12 routes" before exiting. The client is
+  // one-shot and nothing reads from it again, so clearing it is free.
+  queryClient.clear()
+
+  return html
 }
