@@ -28,6 +28,12 @@
 # `npx wrangler pages dev dist` after touching this file — `curl -sS -o /dev/null
 # -w "%{http_code}" /bikes/anything` must print 200, not 308.
 #
+# NOTE: /bikes/* is now handled by functions/bikes/[id].js, which Pages matches
+# BEFORE both static assets and this file — it renders the real <head> (title,
+# description, canonical, Product JSON-LD) and can answer a genuine 404 for a
+# bike that no longer exists. The rule below is the fallback for a deployment
+# where Functions are unavailable, so keep it. See docs/frontend.md.
+#
 # /unsubscribe sits above the splat rule deliberately: Pages evaluates in order
 # and warns about static rules placed below wildcards.
 /unsubscribe  /app-shell   200

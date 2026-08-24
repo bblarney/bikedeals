@@ -8,7 +8,9 @@
     "build": "vite build && npm run build:ssr && node scripts/prerender.js",
     "build:ssr": "vite build --ssr src/entry-server.jsx --outDir dist-ssr",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:pages": "wrangler pages dev dist --port 8788 --compatibility-date=2026-05-01",
+    "test": "node --test test/"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
@@ -28,6 +30,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "tailwindcss": "^4.3.0",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wrangler": "^4.86.0"
   }
 }

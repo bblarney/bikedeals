@@ -11,11 +11,17 @@ const queryClient = new QueryClient({
   },
 })
 
-// Drop the canonical baked in by scripts/prerender.js. Every route's component
-// declares its own, and React appends rather than replacing static tags — so
-// leaving this one would leave two conflicting canonicals in the head after the
-// first client-side navigation.
-document.querySelector('link[rel="canonical"][data-prerendered]')?.remove()
+// Drop the head tags baked in by scripts/prerender.js and by the edge renderer
+// at functions/bikes/[id].js. Every route's component declares its own, and
+// React appends rather than replacing static tags — so leaving these would give
+// the head two conflicting canonicals, two Product nodes, and a stale robots
+// directive after the first client-side navigation.
+//
+// Everything removed here must be re-declared by the mounting component, or it
+// is simply lost once JS runs. BikeDetailPage re-declares all three.
+document
+  .querySelectorAll('[data-prerendered]')
+  .forEach((el) => el.remove())
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -21,3 +21,33 @@ jobs:
 
       - name: Run tests
         run: python -m pytest
+
+  # The edge renderer at frontend/functions/bikes/[id].js serves the pre-JS HTML
+  # for every /bikes/:id — the site's highest-volume crawlable pages. It is
+  # string-rewriting untrusted scraped text into a <head>, which is exactly the
+  # kind of code that breaks silently: the first version expanded "$100" into a
+  # regex backreference and corrupted every meta tag on the page.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      # The prerender step is load-bearing for SEO and throws rather than
+      # shipping an empty shell, so a build failure here is a real signal.
+      - name: Build
+        run: npm run build

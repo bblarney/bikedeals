@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { canonicalFor, buildBreadcrumbJsonLd } from '../../seo'
+import { canonicalFor, buildBreadcrumbJsonLd, serializeJsonLd } from '../../seo'
 import { GUIDES } from '../../content/guides'
 
 // Shared chrome for every guide page. Its real job is owning the metadata block
@@ -21,7 +21,7 @@ export default function GuideLayout({ title, description, path, heading, subline
       <link rel="canonical" href={canonicalFor(path)} />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildBreadcrumbJsonLd(trail)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbJsonLd(trail)) }}
       />
 
       <nav className="text-sm text-slate-500 mb-6 flex items-center gap-1.5 flex-wrap">
