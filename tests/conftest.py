@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 import api.main as main_module
 from api.models import Bike, PriceEvent, ScrapeLog, Subscriber
+from scrapers.models import make_product_key
 
 _SYNC_URL = f"sqlite:///./{TEST_DB_FILE}"
 
@@ -83,6 +84,10 @@ def make_bike(**overrides):
         last_seen_at=now,
     )
     data.update(overrides)
+    # Derive product_key exactly as the scraper does rather than letting tests
+    # hand-set it, so a test can't assert on a pairing production would never
+    # produce. An explicit product_key= override still wins.
+    data.setdefault("product_key", make_product_key(data["brand"], data.get("sku")))
     return Bike(**data)
 
 

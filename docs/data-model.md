@@ -30,7 +30,8 @@ class BikeRecord(BaseModel):        # scrapers/models.py — what a pipeline emi
     image_url: str | None
     scraped_at: datetime
     last_seen_at: datetime
-    sku: str | None                 # cross-shop matching key
+    sku: str | None                 # shop's own SKU (not globally unique)
+    product_key: str | None         # cross-shop matching key: <brand>:<sku>
     weight_grams: int | None
     product_updated_at: datetime | None
     tags: list[str] | None
@@ -66,12 +67,32 @@ Each component earns its place:
 
 16 hex chars is 64 bits; collision risk is negligible at this scale.
 
-### `sku` and cross-shop comparison
+### `product_key` and cross-shop comparison
 
-Where a shop publishes a manufacturer SKU, it is the join key for "the same bike
-at other shops". A *shop* is the pair **(vendor_name, city)** — `vendor_name`
-alone is not unique, because chains share one name across locations. Both the
-feed's `sku_vendor_count` and the detail page's `offers` list group on that pair.
+`product_key` is the join key for "the same bike at other shops". It is
+`<canonical brand>:<sku>`, written by the scraper
+(`scrapers.models.make_product_key`) and NULL where the shop publishes no SKU
+(~13% of listings, which then stand alone).
+
+**A raw `sku` is not an identity.** Several Australian shops run the same
+Lightspeed/Retail POS, whose auto-increment counters collide across unrelated
+stores: `210000015200` is a $1,299 Jamis Renegade at one shop and a $9,999
+AMFLOW PX Carbon at another. Grouping on `sku` merged them and quoted the Jamis
+price as the AMFLOW's `lowest_price` — in the offers table *and* in the page's
+`AggregateOffer` JSON-LD. Requiring the brand to agree removes the collisions;
+gating on price spread was tried and rejected, because it suppresses exactly the
+genuine price differences the site exists to surface.
+
+The brand is canonicalised (lowercased, stripped to alphanumerics, known
+corporate suffixes removed) so "Progear" and "Progear Bikes" are one brand.
+Substring matching is deliberately not used: "Liv" is a brand and "Live Life
+Cycling" is a shop.
+
+**A competing offer is a vendor, not a storefront.** `sku_vendor_count` and the
+`offers` list group on `vendor_name` alone. Counting `(vendor_name, city)` pairs
+inflated the badge badly — one product claimed 21 shops when it was carried by 3
+vendors, because chains list one national catalogue at one price in every city.
+Locations are not lost: each offer carries `location_count`.
 
 ### No `UNIQUE(product_url)`
 
@@ -192,6 +213,7 @@ CREATE TABLE bikes (
     last_seen_at        TIMESTAMPTZ NOT NULL,
     click_count         INTEGER NOT NULL DEFAULT 0,
     sku                 TEXT,
+    product_key         TEXT,
     weight_grams        INTEGER,
     product_updated_at  TIMESTAMPTZ,
     tags                JSON,
@@ -215,6 +237,7 @@ CREATE INDEX idx_bikes_in_stock         ON bikes(in_stock);
 CREATE INDEX idx_bikes_click_count      ON bikes(click_count);
 CREATE INDEX idx_bikes_scraped_at       ON bikes(scraped_at);
 CREATE INDEX idx_bikes_sku              ON bikes(sku);
+CREATE INDEX idx_bikes_product_key      ON bikes(product_key);
 CREATE INDEX idx_bikes_cat_size_vendor  ON bikes(category, frame_size, vendor_name);
 CREATE INDEX idx_bikes_instock_discount ON bikes(in_stock, discount_percentage);
 ```

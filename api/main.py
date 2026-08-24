@@ -58,11 +58,19 @@ def _apply_affiliate_url(vendor_name: str, product_url: str) -> str:
     return product_url
 
 
-# A shop is a (vendor_name, city) pair: vendor_name alone is not unique because
-# chain stores (e.g. Giant) share a name across cities. Used for both the
-# per-SKU shop count and the cross-shop offers list.
-def _shop_key():
-    return Bike.vendor_name + "|||" + func.coalesce(Bike.city, "")
+# A competing offer is a *vendor*, not a storefront.
+#
+# This used to key on (vendor_name, city), which is the right identity for "where
+# can I collect this" but the wrong one for "who else sells it". Chains list one
+# national catalogue at one price across every city, so counting storefronts
+# inflated the badge badly: SKU MEKI2192036 claimed 21 shops when it is 4
+# vendors — 99 Bikes and Bicycle Centre Australia each counted once per city.
+# Against the live feed that padding touched 8,097 listings (21% of the feed).
+#
+# Cities are not lost: an offer carries location_count and the city of its
+# cheapest listing, so the UI can still say "also at 7 other 99 Bikes stores".
+def _vendor_key():
+    return Bike.vendor_name
 
 
 @asynccontextmanager
@@ -145,6 +153,7 @@ def _apply_filters(
     min_price: float | None = None,
     max_price: float | None = None,
     sku: str | None = None,
+    product_key: str | None = None,
 ):
     if city:
         query = query.where(func.lower(Bike.city).in_([c.lower() for c in city]))
@@ -174,7 +183,13 @@ def _apply_filters(
         )
     if added_since:
         query = query.where(Bike.scraped_at >= _added_since_cutoff(added_since))
-    if sku:
+    # Prefer product_key: `sku` alone collides across brands (see
+    # scrapers.models.make_product_key), so "show me every shop selling this"
+    # returned unrelated bikes. `sku` is kept for back-compat with any saved or
+    # shared links.
+    if product_key:
+        query = query.where(Bike.product_key == product_key)
+    elif sku:
         query = query.where(Bike.sku == sku)
     return query
 
@@ -211,19 +226,22 @@ async def get_bikes(
     sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
     sku: str | None = None,
+    product_key: str | None = Query(default=None, max_length=200),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
-    # Single GROUP BY: count distinct (vendor_name, city) pairs per SKU.
-    shop_key = _shop_key()
-    sku_counts_q = (
-        select(Bike.sku, func.count(distinct(shop_key)).label("cnt"))
-        .where(Bike.sku.isnot(None), Bike.sku != "", Bike.in_stock == True)  # noqa: E712
-        .group_by(Bike.sku)
-        .having(func.count(distinct(shop_key)) >= 2)
+    # Single GROUP BY: count distinct vendors per product.
+    vendor_key = _vendor_key()
+    product_counts_q = (
+        select(Bike.product_key, func.count(distinct(vendor_key)).label("cnt"))
+        .where(Bike.product_key.isnot(None), Bike.in_stock == True)  # noqa: E712
+        .group_by(Bike.product_key)
+        .having(func.count(distinct(vendor_key)) >= 2)
     )
-    sku_counts_r = await db.execute(sku_counts_q)
-    sku_vendor_counts: dict[str, int] = {row.sku: row.cnt for row in sku_counts_r.all()}
+    product_counts_r = await db.execute(product_counts_q)
+    product_vendor_counts: dict[str, int] = {
+        row.product_key: row.cnt for row in product_counts_r.all()
+    }
 
     base = select(Bike)
     base = _apply_filters(
@@ -231,7 +249,7 @@ async def get_bikes(
         city=city, category=category, size=size, vendor=vendor, brand=brand,
         frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
         min_discount=min_discount, min_price=min_price, max_price=max_price,
-        q=q, added_since=added_since, sku=sku,
+        q=q, added_since=added_since, sku=sku, product_key=product_key,
     )
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
@@ -247,7 +265,9 @@ async def get_bikes(
     for bike_obj in bikes:
         br = BikeResponse.model_validate(bike_obj)
         br.sku = bike_obj.sku
-        br.sku_vendor_count = sku_vendor_counts.get(bike_obj.sku, 0) if bike_obj.sku else 0
+        br.sku_vendor_count = (
+            product_vendor_counts.get(bike_obj.product_key, 0) if bike_obj.product_key else 0
+        )
         br.product_url = _apply_affiliate_url(bike_obj.vendor_name, br.product_url)
         results.append(br)
 
@@ -267,24 +287,28 @@ async def get_bike(
     if primary is None:
         raise HTTPException(status_code=404, detail="Bike not found")
 
-    # Cross-shop offers: every in-stock listing of the same SKU, collapsed to the
-    # cheapest variant per shop. No SKU → the bike stands alone.
-    if primary.sku:
+    # Cross-shop offers: every in-stock listing of the same product, collapsed to
+    # the cheapest listing per vendor. Keyed on product_key, not sku — see
+    # _vendor_key and scrapers.models.make_product_key for why matching on the
+    # raw SKU merged unrelated bikes. No product_key → the bike stands alone.
+    if primary.product_key:
         rows = await db.execute(
             select(Bike)
-            .where(Bike.sku == primary.sku, Bike.in_stock == True)  # noqa: E712
+            .where(Bike.product_key == primary.product_key, Bike.in_stock == True)  # noqa: E712
             .order_by(Bike.price_sale.asc())
         )
         candidates = rows.scalars().all()
     else:
         candidates = [primary] if primary.in_stock else []
 
-    # Rows arrive price-ascending, so the first row seen per shop is its cheapest.
-    cheapest_per_shop: dict[tuple[str, str], Bike] = {}
+    # Rows arrive price-ascending, so the first row seen per vendor is its
+    # cheapest; the rest of that vendor's storefronts only bump location_count.
+    cheapest_per_vendor: dict[str, Bike] = {}
+    locations: dict[str, set[str]] = {}
     for b in candidates:
-        key = (b.vendor_name, b.city or "")
-        if key not in cheapest_per_shop:
-            cheapest_per_shop[key] = b
+        cheapest_per_vendor.setdefault(b.vendor_name, b)
+        if b.city:
+            locations.setdefault(b.vendor_name, set()).add(b.city)
 
     offers = [
         OfferResponse(
@@ -298,8 +322,9 @@ async def get_bike(
             in_stock=b.in_stock,
             product_url=_apply_affiliate_url(b.vendor_name, b.product_url),
             last_seen_at=b.last_seen_at,
+            location_count=len(locations.get(b.vendor_name, ())) or 1,
         )
-        for b in sorted(cheapest_per_shop.values(), key=lambda x: x.price_sale)
+        for b in sorted(cheapest_per_vendor.values(), key=lambda x: x.price_sale)
     ]
 
     # Other frame sizes of the same model, cheapest listing per size.

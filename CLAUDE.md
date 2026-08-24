@@ -63,14 +63,14 @@ A failing vendor is quarantined for that run: nothing is written, yesterday's da
 }
 ```
 
-Optional enrichment fields where the shop publishes them: `sku` (the cross-shop
-matching key), `weight_grams`, `product_updated_at`, `tags`, `frame_material`,
+Optional enrichment fields where the shop publishes them: `sku` (the shop's own,
+not globally unique — `product_key` is the cross-shop matching key), `weight_grams`, `product_updated_at`, `tags`, `frame_material`,
 `drivetrain_groupset`. `city` is nullable. See
 [`docs/data-model.md`](docs/data-model.md) for the authoritative definition.
 
 ### API endpoints
 
-- `GET /api/v1/bikes` — main feed; most filters are repeatable and OR together (`category`, `city`, `size`, `vendor`, `brand`, `frame_material`, `drivetrain_groupset`), plus `min_discount`, `min_price`/`max_price`, `in_stock`, `q`, `added_since`, `sku`, `sort`, `limit`/`offset`. Default sort `discount_desc`.
+- `GET /api/v1/bikes` — main feed; most filters are repeatable and OR together (`category`, `city`, `size`, `vendor`, `brand`, `frame_material`, `drivetrain_groupset`), plus `min_discount`, `min_price`/`max_price`, `in_stock`, `q`, `added_since`, `product_key`, `sort`, `limit`/`offset`. Default sort `discount_desc`.
 - `GET /api/v1/bikes/{id}` — detail, with cross-shop offers for the same SKU and other size variants
 - `GET /api/v1/bikes/{id}/price-history` · `POST /api/v1/bikes/{id}/click`
 - `GET /api/v1/meta/filters` — faceted dropdown options (each facet excludes itself)

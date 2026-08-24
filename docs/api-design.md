@@ -59,7 +59,8 @@ and ORs them** (`?category=Road&category=Gravel`).
 | `in_stock` | bool | `true` | `false` includes out-of-stock |
 | `q` | string (≤100 chars) | — | Case-insensitive `LIKE` on brand **or** model_name |
 | `added_since` | enum | — | `day` \| `week` \| `month` \| `year`, on `scraped_at` |
-| `sku` | string | — | Exact SKU match |
+| `product_key` | string | — | Every listing of one product, across shops |
+| `sku` | string | — | Exact SKU match. Deprecated: collides across brands — prefer `product_key` |
 | `sort` | enum | `discount_desc` | `discount_desc` \| `price_asc` \| `price_desc` \| `clicks_desc` |
 | `limit` | int 1–200 | 50 | |
 | `offset` | int ≥ 0 | 0 | |
@@ -105,10 +106,15 @@ an hour share a cache key and a query plan.
 }
 ```
 
-`sku_vendor_count` is the number of distinct **(vendor_name, city)** shops
-carrying that SKU in stock, and is `0` unless at least two shops carry it — it
-drives the "available at N shops" badge. `vendor_name` alone is not a shop
-identity, because chains share one name across cities.
+`sku_vendor_count` is the number of distinct **vendors** (not storefronts)
+carrying that product in stock, and is `0` unless at least two vendors carry it
+— it drives the "available at N shops" badge. Grouping is on `product_key`, not
+`sku`; counting is per vendor, not per storefront. See
+[`data-model.md`](data-model.md) for why both matter.
+
+Each entry in `offers` carries `location_count`: how many of that vendor's
+storefronts stock the product. Chains collapse to one row (one catalogue, one
+price) but still report their reach.
 
 **Affiliate links:** `product_url` is rewritten for vendors configured in
 `_AFFILIATE_URLS` (currently Bikes Online, via `IMPACT_BIKESONLINE_URL`). The

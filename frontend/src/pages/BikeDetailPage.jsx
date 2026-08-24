@@ -307,7 +307,16 @@ export default function BikeDetailPage() {
                     <tr key={offer.bike_id} className={best ? 'bg-emerald-50/60' : 'bg-white'}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-800">{offer.vendor_name}</div>
-                        {offer.city && <div className="text-xs text-slate-400">{offer.city}</div>}
+                        {offer.city && (
+                          <div className="text-xs text-slate-400">
+                            {offer.city}
+                            {/* Chains list one national catalogue at one price, so
+                                they collapse to a single row — say where the rest
+                                of the stock is rather than dropping it. */}
+                            {offer.location_count > 1 &&
+                              ` + ${offer.location_count - 1} other location${offer.location_count > 2 ? 's' : ''}`}
+                          </div>
+                        )}
                         {best && bike.offers.length >= 2 && (
                           <span className="inline-block mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                             Best price

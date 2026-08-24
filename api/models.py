@@ -44,6 +44,11 @@ class Bike(Base):
     drivetrain_groupset = Column(Text, nullable=True)
     price_drop_at = Column(DateTime(timezone=True), nullable=True)
     discount_started_at = Column(DateTime(timezone=True), nullable=True)
+    # Cross-shop product identity: "<normalised brand>:<sku>", NULL when the
+    # shop publishes no SKU. Grouping on this instead of sku is what keeps two
+    # unrelated products that share a POS counter from being merged into one
+    # listing. Written by the scraper — see scrapers.models.make_product_key.
+    product_key = Column(Text, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -67,6 +72,7 @@ class Bike(Base):
         # Cross-shop comparison: grouped per /bikes call and filtered by the
         # detail/offers endpoint.
         Index("idx_bikes_sku", "sku"),
+        Index("idx_bikes_product_key", "product_key"),
         # Composite indexes for the common multi-filter feed query
         # (CLAUDE.md: filter by category/size/vendor, sort by discount desc).
         Index("idx_bikes_cat_size_vendor", "category", "frame_size", "vendor_name"),
