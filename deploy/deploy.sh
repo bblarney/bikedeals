@@ -7,6 +7,20 @@
 # regardless of what it asks for. That keeps a compromised CI secret from being
 # a shell on the box.
 
+# FIRST-TIME SETUP IS MANUAL, and not optional. CI runs this script *on the
+# server*, so the server must already have it — but the only thing that
+# updates the server's checkout is this script. A box that has never been
+# deployed to therefore cannot be deployed to; bootstrap it once by hand:
+#
+#     cd /home/brett/bikegrid && git pull --ff-only origin main
+#
+# The same applies after any change to this file's path or name.
+#
+# This file is committed 100755 on purpose. sshd execs the forced command
+# directly, so a non-executable checkout fails with 'Permission denied' —
+# and running `chmod +x` on the box instead makes the working tree dirty,
+# which makes the `git checkout` below abort on every subsequent deploy.
+
 set -euo pipefail
 
 cd /home/brett/bikegrid
