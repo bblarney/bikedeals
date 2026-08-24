@@ -39,6 +39,13 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
+          # Fail with a sentence rather than `ssh: Could not resolve hostname :`.
+          # Both secrets were absent for the first two days this workflow
+          # existed, and an empty DEPLOY_HOST expands to `brett@`, which reads
+          # as a DNS failure rather than a missing secret.
+          : "${DEPLOY_HOST:?DEPLOY_HOST secret is not set (Settings > Secrets and variables > Actions)}"
+          : "${DEPLOY_SSH_KEY:?DEPLOY_SSH_KEY secret is not set (Settings > Secrets and variables > Actions)}"
+
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
