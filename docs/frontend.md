@@ -81,6 +81,59 @@ initializers are not.
 
 ---
 
+## Edge rendering `/bikes/:id`
+
+`functions/bikes/[id].js` is a Cloudflare Pages Function that renders the `<head>`
+of a bike detail page at the edge, before any JavaScript runs.
+
+Detail pages are the one route the prerender cannot cover — there are 38k+ of
+them and they change daily — so they were served as `app-shell.html`: no title,
+no description, no canonical, no Product JSON-LD. The API's `sitemap.xml`
+advertises every one of them, so the site's entire long tail looked like the
+same empty document to a crawler. Google does render JavaScript, but render
+budget is the constraint on a young domain with tens of thousands of URLs, and
+merchant/rich results are driven by that JSON-LD specifically.
+
+A Pages Function is matched **before** static assets and `_redirects`, so this
+intercepts the route. The `/bikes/*` line in `public/_redirects` stays as the
+fallback for a deployment where Functions are unavailable.
+
+Four things are load-bearing:
+
+- **It fails open.** Any timeout, non-200 or malformed response returns the
+  unmodified shell with a 200 — today's behaviour. Only an explicit 404 from the
+  API produces a 404, because an API outage must not de-index the catalogue.
+- **404 means 404.** A missing bike returns a real 404 status. This is the
+  proper fix for the soft 404s that `BikeDetailPage` previously handled by
+  rendering a client-side `noindex` and hoping Googlebot executed it. That
+  fallback is still there; a crawler now also gets the status on the first byte.
+- **Everything injected is escaped.** Titles come from 97 scraped shops.
+  Attributes go through `escapeAttr`, and the JSON-LD through `serializeJsonLd`,
+  which neutralises `<` so a product title containing `</script>` cannot break
+  out of the block.
+- **Injection uses replacer functions, never replacement strings.** `$1`–`$9`
+  and `$&` are substitution patterns inside a `String.replace` replacement, and
+  bike descriptions contain prices. The first version expanded `$100` into
+  capture group 1 and spliced the matched tag into its own content.
+
+Meta and JSON-LD come from `src/lib/bikeMeta.js`, which the React page uses too,
+so the pre-JS head and the client-rendered head cannot drift. That module carries
+the same constraint as `content/guides.js` and `lib/landing.js` — no JSX, no
+imports, no `import.meta.env` — because it also runs in the Workers runtime, and
+it must be imported with an explicit `.js` extension so bare `node` can load it
+in `test/`.
+
+Tags injected here are marked `data-prerendered` and stripped by `main.jsx` on
+mount, so React's own tags do not end up duplicated. **Anything stripped must be
+re-declared by the mounting component** — including in `BikeDetailPage`'s error
+branch, which would otherwise leave the page with no canonical at all after a
+transient API failure.
+
+Run it locally with `npm run preview:pages` (wrangler, port 8788) after a build;
+`npm test` covers the function without a server.
+
+---
+
 ## State management
 
 Keep it simple. At this scale, **React Query (TanStack Query)** handles all server state:

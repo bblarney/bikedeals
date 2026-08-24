@@ -207,3 +207,94 @@ def test_sitemap_lists_bike_urls(client, seed):
     assert r.status_code == 200
     assert "application/xml" in r.headers["content-type"]
     assert "/bikes/mapme" in r.text
+
+
+# --- cross-shop matching: the two ways it used to lie -----------------------
+#
+# Both of these are regressions against real data in the live feed, not
+# hypotheticals. See scrapers.models.make_product_key.
+
+def test_same_sku_different_brand_is_not_the_same_product(client, seed):
+    """A SKU shared by two brands must never merge into one product.
+
+    Shops running the same Lightspeed/Retail POS emit colliding auto-increment
+    SKUs. Live example: 210000015200 is a $1,299 Jamis Renegade at one shop and
+    a $9,999 AMFLOW PX Carbon at another. Matching on sku alone quoted the Jamis
+    price as the AMFLOW's lowest_price, on the page and in its JSON-LD.
+    """
+    seed(
+        make_bike(id="jamis", sku="210000015200", brand="Jamis",
+                  model_name="Renegade A1", vendor_name="Melbourne Bicycles",
+                  city="Melbourne", price_sale=1299.0, product_url="https://x/j"),
+        make_bike(id="amflow", sku="210000015200", brand="Amflow",
+                  model_name="PX Carbon", vendor_name="Summit Cycles",
+                  city="Sydney", price_sale=9999.0, product_url="https://x/a"),
+    )
+    body = client.get("/api/v1/bikes/amflow").json()
+    assert body["shop_count"] == 1
+    assert body["lowest_price"] == 9999.0, "the Jamis price must not leak in"
+    assert [o["vendor_name"] for o in body["offers"]] == ["Summit Cycles"]
+    assert body["sku_vendor_count"] == 0
+
+    # And the feed must not badge either one as comparable.
+    feed = client.get("/api/v1/bikes").json()
+    assert {b["sku_vendor_count"] for b in feed["results"]} == {0}
+
+
+def test_one_chain_across_cities_counts_as_one_vendor(client, seed):
+    """Storefronts are not competing offers.
+
+    A chain lists one national catalogue at one price, so counting (vendor, city)
+    pairs claimed "available at 21 shops" for a product carried by 4 vendors.
+    """
+    seed(
+        *[
+            make_bike(id=f"99-{c}", sku="MEKI2192036", brand="Merida",
+                      vendor_name="99 Bikes", city=c, price_sale=1200.0,
+                      product_url=f"https://x/99/{c}")
+            for c in ("Sydney", "Melbourne", "Brisbane", "Hobart")
+        ],
+        make_bike(id="indie", sku="MEKI2192036", brand="Merida",
+                  vendor_name="Fitzroy Cycles", city="Melbourne",
+                  price_sale=1150.0, product_url="https://x/fitz"),
+    )
+    body = client.get("/api/v1/bikes/99-Sydney").json()
+
+    # Two vendors, not five storefronts.
+    assert body["shop_count"] == 2
+    assert [o["vendor_name"] for o in body["offers"]] == ["Fitzroy Cycles", "99 Bikes"]
+    assert body["lowest_price"] == 1150.0
+    assert body["sku_vendor_count"] == 2
+
+    # The collapsed chain row still reports where the rest of the stock is.
+    chain = next(o for o in body["offers"] if o["vendor_name"] == "99 Bikes")
+    assert chain["location_count"] == 4
+    assert next(o for o in body["offers"] if o["vendor_name"] == "Fitzroy Cycles")["location_count"] == 1
+
+
+def test_product_key_filter_beats_sku_filter_on_collisions(client, seed):
+    seed(
+        make_bike(id="jamis", sku="COLLIDE", brand="Jamis", model_name="Renegade",
+                  vendor_name="Shop A", price_sale=1299.0, product_url="https://x/j"),
+        make_bike(id="amflow", sku="COLLIDE", brand="Amflow", model_name="PX",
+                  vendor_name="Shop B", price_sale=9999.0, product_url="https://x/a"),
+    )
+    # The legacy sku filter still returns both (kept for shared links).
+    assert client.get("/api/v1/bikes?sku=COLLIDE").json()["total"] == 2
+    # product_key separates them.
+    body = client.get("/api/v1/bikes?product_key=jamis:COLLIDE").json()
+    assert body["total"] == 1
+    assert body["results"][0]["id"] == "jamis"
+
+
+def test_listing_without_sku_has_no_product_key_and_stands_alone(client, seed):
+    seed(
+        make_bike(id="n1", sku=None, vendor_name="Shop A", price_sale=1000.0,
+                  product_url="https://x/1"),
+        make_bike(id="n2", sku=None, vendor_name="Shop B", price_sale=900.0,
+                  product_url="https://x/2"),
+    )
+    body = client.get("/api/v1/bikes/n1").json()
+    assert body["product_key"] is None
+    assert body["shop_count"] == 1
+    assert body["sku_vendor_count"] == 0

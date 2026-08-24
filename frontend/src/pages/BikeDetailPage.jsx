@@ -7,7 +7,7 @@ import { recencyFlags } from '../lib/badges'
 import { formatTimeAgo, formatShortDate } from '../lib/time'
 import { usePins } from '../hooks/usePins'
 import { useStats } from '../hooks/useStats'
-import { buildBikeMeta, buildBikeJsonLd } from '../seo'
+import { buildBikeMeta, buildBikeJsonLd, serializeJsonLd, canonicalFor } from '../seo'
 import RelatedBikes from '../components/RelatedBikes'
 import PriceHistoryChart from '../components/PriceHistoryChart'
 
@@ -46,6 +46,12 @@ export default function BikeDetailPage() {
             honours a noindex it finds after render, which drops the dead URL
             from the index instead of leaving a thin page in it. */}
         {notFound && <meta name="robots" content="noindex" />}
+        {/* main.jsx strips the canonical that functions/bikes/[id].js injected,
+            on the assumption that the mounting component re-declares it. This
+            branch is the one place that would otherwise render none at all —
+            leaving a JS-executing crawler with a head we just emptied. A
+            transient API failure must not cost the page its canonical. */}
+        {!notFound && <link rel="canonical" href={canonicalFor(`/bikes/${id}`)} />}
         <h1 className="text-xl font-semibold text-slate-900 mb-2">
           {notFound ? 'Deal not found' : 'Something went wrong'}
         </h1>
@@ -110,9 +116,15 @@ export default function BikeDetailPage() {
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
       <link rel="canonical" href={meta.canonical} />
+      {/* A sold-out listing still renders (the price history is worth keeping)
+          but must not stay in the index advertising a bike nobody can buy.
+          functions/bikes/[id].js emits the same tag before JS runs; main.jsx
+          strips that one on mount, so this is what keeps it there for a
+          JS-executing crawler. Change one and change the other. */}
+      {bike.in_stock === false && <meta name="robots" content="noindex" />}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       {/* Breadcrumb */}
@@ -307,7 +319,16 @@ export default function BikeDetailPage() {
                     <tr key={offer.bike_id} className={best ? 'bg-emerald-50/60' : 'bg-white'}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-800">{offer.vendor_name}</div>
-                        {offer.city && <div className="text-xs text-slate-400">{offer.city}</div>}
+                        {offer.city && (
+                          <div className="text-xs text-slate-400">
+                            {offer.city}
+                            {/* Chains list one national catalogue at one price, so
+                                they collapse to a single row — say where the rest
+                                of the stock is rather than dropping it. */}
+                            {offer.location_count > 1 &&
+                              ` + ${offer.location_count - 1} other location${offer.location_count > 2 ? 's' : ''}`}
+                          </div>
+                        )}
                         {best && bike.offers.length >= 2 && (
                           <span className="inline-block mt-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                             Best price

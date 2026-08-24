@@ -31,7 +31,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     image_url,
     frame_material,
     drivetrain_groupset,
-    sku,
+    product_key,
     sku_vendor_count,
   } = bike
 
@@ -187,7 +187,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
               <path d="M2.5 6h7M6.5 3l3 3-3 3" />
             </svg>
           </a>
-          {sku && sku_vendor_count >= 2 && (
+          {product_key && sku_vendor_count >= 2 && (
             <Link
               to={`/bikes/${bike.id}`}
               onClick={(e) => e.stopPropagation()}

@@ -23,8 +23,10 @@ export function useBikeParams() {
     })
   }
 
-  function filterBySku(sku) {
-    setParams(new URLSearchParams({ sku }))
+  // Narrow the feed to one product across every shop. Keyed on product_key, not
+  // sku: shop SKUs collide across brands, so ?sku= pulled in unrelated bikes.
+  function filterByProduct(product_key) {
+    setParams(new URLSearchParams({ product_key }))
   }
 
   return {
@@ -44,13 +46,14 @@ export function useBikeParams() {
     offset: getInt('offset', 0),
     limit: 48,
     sku: get('sku'),
+    product_key: get('product_key'),
     update,
-    filterBySku,
+    filterByProduct,
   }
 }
 
 export function useBikes(bikeParams) {
-  const { update: _update, filterBySku: _filterBySku, ...queryParams } = bikeParams
+  const { update: _update, filterByProduct: _filterByProduct, ...queryParams } = bikeParams
   return useQuery({
     queryKey: ['bikes', queryParams],
     queryFn: () => api.getBikes(queryParams),

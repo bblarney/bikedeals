@@ -96,6 +96,10 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
                 "sku": stmt.excluded.sku,
+                # Derived from brand + sku, so it has to be refreshed whenever
+                # either of those is — a shop correcting a brand name otherwise
+                # leaves the listing keyed to the old one and unmatchable.
+                "product_key": stmt.excluded.product_key,
                 "weight_grams": stmt.excluded.weight_grams,
                 "product_updated_at": stmt.excluded.product_updated_at,
                 "tags": stmt.excluded.tags,
