@@ -11,6 +11,7 @@ from scrapers.pipelines.giant import scrape_giant
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
 from scrapers.pipelines.woocommerce_api import scrape_woocommerce_api
+from scrapers.product_filter import drop_non_bikes
 from scrapers.utils import redact_proxy
 
 logger = logging.getLogger(__name__)
@@ -45,10 +46,23 @@ async def scrape_vendor(
                 bikes, invalid_count = await scrape_canyon(config, client)
             else:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
+            # Every pipeline funnels through here, so the not-a-bike gate lives
+            # at this single boundary rather than in six places.
+            bikes, non_bike_reasons = drop_non_bikes(bikes)
+            non_bike_count = sum(non_bike_reasons.values())
+            if non_bike_count:
+                logger.info(
+                    "[%s] Dropped %d non-bike listing(s): %s",
+                    config.vendor_name,
+                    non_bike_count,
+                    ", ".join(f"{r}={n}" for r, n in sorted(non_bike_reasons.items())),
+                )
             return ScrapeResult(
                 vendor_name=config.vendor_name,
                 bikes=bikes,
                 invalid_count=invalid_count,
+                non_bike_count=non_bike_count,
+                non_bike_reasons=non_bike_reasons,
             )
         except Exception as exc:
             # ScrapeResult.error travels into scrape_summary.json and the daily

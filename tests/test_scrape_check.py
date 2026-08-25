@@ -42,9 +42,15 @@ def test_find_vendor_no_match_lists_options():
 
 # --- _verdict mirrors production ----------------------------------------------
 
-def _result(bikes=0, invalid=0, error=None):
-    # _verdict only reads len(bikes), invalid_count and error.
-    return SimpleNamespace(bikes=[None] * bikes, invalid_count=invalid, error=error)
+def _result(bikes=0, invalid=0, error=None, non_bikes=0):
+    # _verdict only reads len(bikes), invalid_count, non_bike_count and error.
+    return SimpleNamespace(
+        bikes=[None] * bikes,
+        invalid_count=invalid,
+        non_bike_count=non_bikes,
+        non_bike_reasons={},
+        error=error,
+    )
 
 
 def test_verdict_pass():
@@ -73,3 +79,14 @@ def test_verdict_low_invalid_ratio_passes():
     # 99 valid + 1 invalid = 1% invalid, under the threshold.
     _, code = _verdict(_result(bikes=99, invalid=1))
     assert code == 0
+
+
+def test_dropped_non_bikes_do_not_push_a_vendor_into_quarantine():
+    """The gate runs before the verdict, so its rejects stay in the denominator.
+
+    A shop listing 40 accessories alongside 60 bikes, with 2 genuine parse
+    failures, is a 2% invalid rate — not 3.2%, and nowhere near quarantine.
+    Dropping the accessories must not be what quarantines the vendor.
+    """
+    label, code = _verdict(_result(bikes=60, invalid=2, non_bikes=40))
+    assert code == 0, label

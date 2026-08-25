@@ -140,4 +140,10 @@ class ScrapeResult(BaseModel):
     vendor_name: str
     bikes: list[BikeRecord]
     invalid_count: int = 0
+    # Records that parsed fine but are not bicycles (see scrapers.product_filter).
+    # Kept separate from invalid_count on purpose: that one feeds the 5%
+    # quarantine ratio, and a shop legitimately listing accessories in its bike
+    # collection would quarantine itself every night.
+    non_bike_count: int = 0
+    non_bike_reasons: dict[str, int] = {}
     error: str | None = None

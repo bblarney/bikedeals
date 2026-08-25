@@ -93,6 +93,9 @@ async def main() -> None:
     log_collector = _LogCollector()
     logging.getLogger().addHandler(log_collector)
 
+    non_bikes_by_reason: Counter = Counter()
+    non_bikes_by_vendor: Counter = Counter()
+
     vendors = load_registry()
     # Randomise order so the same vendors aren't always the ones scraped first
     # (and so no vendor is permanently starved if we get throttled mid-run).
@@ -134,6 +137,10 @@ async def main() -> None:
         for coro in asyncio.as_completed(tasks):
             result = await coro
 
+            if result.non_bike_count:
+                non_bikes_by_reason.update(result.non_bike_reasons)
+                non_bikes_by_vendor[result.vendor_name] += result.non_bike_count
+
             if result.error:
                 logging.error("Vendor %r failed: %s", result.vendor_name, result.error)
                 failures.append({"vendor": result.vendor_name, "error": result.error})
@@ -149,7 +156,11 @@ async def main() -> None:
                         )
                 continue
 
-            seen = len(result.bikes) + result.invalid_count
+            # non_bike_count stays in the denominator. The gate runs before this
+            # check, so leaving it out would shrink `seen` and inflate the ratio
+            # — a vendor could be quarantined for listing accessories, which is
+            # the opposite of what dropping them is for.
+            seen = len(result.bikes) + result.invalid_count + result.non_bike_count
             invalid_ratio = result.invalid_count / seen if seen else 0.0
             if seen > 0 and invalid_ratio > QUARANTINE_INVALID_RATIO:
                 msg = (
@@ -231,6 +242,12 @@ async def main() -> None:
         "vendors_ok": ok,
         "vendors_failed": failed,
         "total_bikes_upserted": total_bikes,
+        # Reported so a mis-tuned rule shows up as a spike in the daily email
+        # rather than as silent catalogue shrinkage. A term that starts eating
+        # real bikes will announce itself here first.
+        "non_bikes_dropped": sum(non_bikes_by_reason.values()),
+        "non_bikes_by_reason": dict(non_bikes_by_reason.most_common()),
+        "non_bikes_by_vendor": dict(non_bikes_by_vendor.most_common(10)),
         "failures": failures,
         "warnings": warnings,
     }
