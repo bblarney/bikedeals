@@ -47,44 +47,17 @@ _ACCESSORY_WORDS = {
     "frameset", "framesets", "scooter", "scooters",
 }
 
-# Canonical brand names — maps any known variant (different casing, store suffix)
-# to the single name used in the DB. Add entries here as new variants are found.
-_BRAND_ALIASES: dict[str, str] = {
-    # Giant variants
-    "GIANT": "Giant",
-    "Giant Bicycles": "Giant",
-    "Giant Brisbane": "Giant",
-    "Giant Sydney": "Giant",
-    "Giant Gold Coast": "Giant",
-    "Giant Sunshine Coast": "Giant",
-    "Giant Wollongong": "Giant",
-    "Giant Bikes Wollongong": "Giant",
-    "Giant Bicycles": "Giant",
-    "Giant Australia": "Giant",
-    "Giant Melbourne": "Giant",
-    "Giant Lygon St": "Giant",
-    "Giant South Yarra": "Giant",
-    # Full-company vendor strings used by multi-brand stores
-    "Specialized Bicycles": "Specialized",
-    # Liv variants
-    "LIV": "Liv",
-    # Other common case variants
-    "TREK": "Trek",
-    "SPECIALIZED": "Specialized",
-    "CANNONDALE": "Cannondale",
-    "SCOTT": "Scott",
-    "MERIDA": "Merida",
-    "CUBE": "Cube",
-    "NORCO": "Norco",
-    "norco": "Norco",
-    "KONA": "Kona",
-}
-
-
+# Per-vendor brand overrides from the YAML, and nothing else.
+#
+# The global alias table that used to live here (GIANT -> Giant, Giant Brisbane
+# -> Giant, SPECIALIZED -> Specialized, ...) moved to scrapers/brands.py, which
+# runs as a BikeRecord validator and therefore covers all six pipelines rather
+# than this one. Keeping a second table here would mean two places to add a
+# brand and five pipelines that only get one of them.
 def _normalize_brand(brand: str, brand_map: dict[str, str] | None = None) -> str:
     if brand_map and brand in brand_map:
         return brand_map[brand]
-    return _BRAND_ALIASES.get(brand, brand)
+    return brand
 
 
 _COLOUR_KEYWORDS = {
@@ -94,10 +67,23 @@ _COLOUR_KEYWORDS = {
 }
 
 
-def _is_accessory(product_type: str, title: str = "") -> bool:
-    def _words(s: str) -> set[str]:
-        return set(s.lower().replace(":", " ").replace("/", " ").replace("-", " ").split())
-    return bool((_words(product_type) | _words(title)) & _ACCESSORY_WORDS)
+def _is_accessory(product_type: str) -> bool:
+    """Reject on Shopify's own `product_type`, which is category metadata.
+
+    This deliberately no longer looks at the product *title*. Aggressive word
+    matching is safe against a category field — a product_type of "Brakes" or
+    "Chargers" is unambiguously a part — and unsafe against free text, where
+    "Malvern Star Attitude (Disc brake) 24\"" is a real kids' bike and
+    "Riese & Muller Charger5" is a real e-bike.
+
+    Titles are now screened by scrapers.product_filter at the orchestrator,
+    which applies to all six pipelines rather than this one, and whose terms are
+    tuned against the live catalogue to avoid exactly those false positives.
+    """
+    words = set(
+        product_type.lower().replace(":", " ").replace("/", " ").replace("-", " ").split()
+    )
+    return bool(words & _ACCESSORY_WORDS)
 
 
 def _is_size_variant(title: str) -> bool:
@@ -215,7 +201,7 @@ async def _scrape_collection(
             images = product.get("images", [])
             image_url = images[0]["src"] if images else None
 
-            if _is_accessory(product_type, model_name):
+            if _is_accessory(product_type):
                 continue
 
             body_html = product.get("body_html") or ""

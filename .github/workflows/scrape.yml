@@ -73,6 +73,29 @@ jobs:
                   f"Vendors failed: {s['vendors_failed']}",
                   f"Bikes upserted: {s['total_bikes_upserted']}",
               ]
+              # Listings we refused to publish, by kind. Both are shown every
+              # run: a mis-tuned rule announces itself as a number that suddenly
+              # jumps, and the default sort is discount_desc, so a shop's price
+              # typo is the first thing a visitor sees.
+              #
+              # One loop rather than two near-identical blocks — they differ
+              # only in the summary key and the label.
+              for label, prefix in (
+                  ("Non-bikes dropped", "non_bikes"),
+                  ("Implausible RRPs dropped", "implausible_rrp"),
+              ):
+                  count = s.get(f"{prefix}_dropped", 0)
+                  if not count:
+                      continue
+                  lines += ["", f"{label}: {count}"]
+                  for reason, n in s.get(f"{prefix}_by_reason", {}).items():
+                      lines.append(f"  - {clean(reason)}: {n}")
+                  by_vendor = s.get(f"{prefix}_by_vendor", {})
+                  if by_vendor:
+                      lines.append("  top vendors: " + ", ".join(
+                          f"{clean(v)} ({n})" for v, n in by_vendor.items()
+                      ))
+
               if s["failures"]:
                   lines += ["", "Failures:"]
                   for f in s["failures"]:

@@ -21,6 +21,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     brand,
     model_name,
     frame_size,
+    frame_size_canonical,
     category,
     price_sale,
     price_original,
@@ -33,6 +34,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     drivetrain_groupset,
     product_key,
     sku_vendor_count,
+    location_count = 1,
   } = bike
 
   const navigate = useNavigate()
@@ -165,12 +167,17 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
           </svg>
+          {/* A chain's storefronts collapse to one card, so name the city shown
+              and count the rest rather than repeating the listing per city. */}
           <span className="truncate">
             {vendor_name}{city ? ` · ${city}` : ''}
+            {location_count > 1 ? ` +${location_count - 1} more` : ''}
           </span>
         </div>
         <p className="text-xs text-slate-400 mt-0.5 truncate">
-          {[category, frame_size && `Size ${frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
+          {/* The canonical size is the one that matches the filter the visitor
+              just used; the shop's own wording is on the detail page. */}
+          {[category, (frame_size_canonical || frame_size) && `Size ${frame_size_canonical || frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
         </p>
 
         {/* CTA pinned to bottom */}
