@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import distinct, func, select, text, update
+from sqlalchemy import distinct, func, literal, select, text, union_all, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -432,8 +432,13 @@ async def get_filters(
         q=q, added_since=added_since,
     )
 
-    def facet_query(col, ignored: str):
-        base = select(col).distinct().where(Bike.in_stock == True).order_by(col)  # noqa: E712
+    def facet_select(name: str, col, ignored: str, *extra_where):
+        """One facet's options, labelled so several can share a round trip."""
+        base = (
+            select(literal(name).label("facet"), col.label("value"))
+            .distinct()
+            .where(Bike.in_stock == True, *extra_where)  # noqa: E712
+        )
         overrides = f.copy()
         overrides[ignored] = [] if isinstance(f[ignored], list) else (0 if ignored == "min_discount" else None)
         # Range filters don't narrow discrete facet options — an out-of-range
@@ -443,46 +448,78 @@ async def get_filters(
         overrides["min_discount"] = 0
         return _apply_filters(base, **overrides)
 
-    # NOTE: SQLAlchemy's async session serializes within a single connection,
-    # so asyncio.gather here would raise InvalidRequestError. Real concurrency
-    # needs separate sessions from the pool; that's a larger refactor.
+    # The seven facets go to the database as ONE statement.
+    #
+    # They used to be seven separate awaits, and a note here explained that
+    # asyncio.gather could not parallelise them because an async session
+    # serializes within its connection. That framing had the wrong target:
+    # against a remote Postgres the cost is not scan time, it is eleven
+    # sequential round trips. In production this endpoint took ~0.8s while
+    # /bikes — which does real work over the same table — took ~0.28s.
+    #
+    # UNION ALL removes the round trips instead of trying to overlap them, and
+    # needs no extra connections from the pool. Each branch still filters
+    # independently, so the facet-excludes-itself rule is unchanged; the label
+    # column is what lets one result set be split back apart.
     in_stock_clause = Bike.in_stock == True  # noqa: E712
-    categories_r    = await db.execute(facet_query(Bike.category,    "category"))
-    cities_r        = await db.execute(facet_query(Bike.city,        "city").where(Bike.city.isnot(None)))
-    sizes_r         = await db.execute(facet_query(Bike.frame_size,  "size"))
-    vendors_r       = await db.execute(facet_query(Bike.vendor_name, "vendor"))
-    brands_r        = await db.execute(facet_query(Bike.brand,       "brand"))
-    materials_r     = await db.execute(
-        facet_query(Bike.frame_material, "frame_material").where(Bike.frame_material.isnot(None))
+    facets_stmt = union_all(
+        facet_select("categories", Bike.category, "category"),
+        facet_select("cities", Bike.city, "city", Bike.city.isnot(None)),
+        facet_select("sizes", Bike.frame_size, "size"),
+        facet_select("vendors", Bike.vendor_name, "vendor"),
+        facet_select("brands", Bike.brand, "brand"),
+        facet_select("frame_materials", Bike.frame_material, "frame_material",
+                     Bike.frame_material.isnot(None)),
+        facet_select("drivetrain_groupsets", Bike.drivetrain_groupset, "drivetrain_groupset",
+                     Bike.drivetrain_groupset.isnot(None)),
     )
-    groupsets_r     = await db.execute(
-        facet_query(Bike.drivetrain_groupset, "drivetrain_groupset").where(Bike.drivetrain_groupset.isnot(None))
+    facet_rows = await db.execute(facets_stmt)
+    facets: dict[str, list[str]] = {
+        "categories": [], "cities": [], "sizes": [], "vendors": [],
+        "brands": [], "frame_materials": [], "drivetrain_groupsets": [],
+    }
+    for name, value in facet_rows.all():
+        facets[name].append(value)
+    # Sorted here rather than with a per-branch ORDER BY, which UNION ALL would
+    # not preserve anyway. These are a few hundred strings.
+    for values in facets.values():
+        values.sort()
+
+    # Discount range and the total share a WHERE clause, so they share a query.
+    totals_r = await db.execute(
+        select(
+            func.min(Bike.discount_percentage),
+            func.max(Bike.discount_percentage),
+            func.count(),
+        ).where(in_stock_clause)
     )
-    discount_r      = await db.execute(select(func.min(Bike.discount_percentage), func.max(Bike.discount_percentage)).where(in_stock_clause))
-    # Price range computed with all non-price filters applied
-    price_base = _apply_filters(
-        select(func.min(Bike.price_sale), func.max(Bike.price_sale)).where(in_stock_clause),
-        **{**f, "min_price": None, "max_price": None},
+    # Price range is separate because it alone applies the active non-price
+    # filters — the number drives the price slider's bounds.
+    price_r = await db.execute(
+        _apply_filters(
+            select(func.min(Bike.price_sale), func.max(Bike.price_sale)).where(in_stock_clause),
+            **{**f, "min_price": None, "max_price": None},
+        )
     )
-    price_r         = await db.execute(price_base)
-    total_r         = await db.execute(select(func.count()).where(in_stock_clause))
-    last_scraped_r  = await db.execute(select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok"))
-    discount_row = discount_r.one()
+    last_scraped_r = await db.execute(
+        select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok")
+    )
+    discount_min, discount_max, total_bikes = totals_r.one()
     price_row = price_r.one()
 
     response.headers["Cache-Control"] = CACHE_FILTERS
 
     return FiltersResponse(
-        categories=[r[0] for r in categories_r.all()],
-        cities=[r[0] for r in cities_r.all()],
-        sizes=[r[0] for r in sizes_r.all()],
-        vendors=[r[0] for r in vendors_r.all()],
-        brands=[r[0] for r in brands_r.all()],
-        frame_materials=[r[0] for r in materials_r.all()],
-        drivetrain_groupsets=[r[0] for r in groupsets_r.all()],
-        discount_range={"min": discount_row[0] or 0, "max": discount_row[1] or 0},
+        categories=facets["categories"],
+        cities=facets["cities"],
+        sizes=facets["sizes"],
+        vendors=facets["vendors"],
+        brands=facets["brands"],
+        frame_materials=facets["frame_materials"],
+        drivetrain_groupsets=facets["drivetrain_groupsets"],
+        discount_range={"min": discount_min or 0, "max": discount_max or 0},
         price_range={"min": float(price_row[0] or 0), "max": float(price_row[1] or 0)},
-        total_bikes=total_r.scalar_one(),
+        total_bikes=total_bikes,
         last_scraped_at=last_scraped_r.scalar_one(),
     )
 

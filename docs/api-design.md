@@ -161,7 +161,22 @@ but leaves the brand list intact. Accepts the same filter params as `/bikes`
 
 Range filters (`min_price`, `max_price`, `min_discount`) deliberately do **not**
 narrow the discrete facets — an out-of-range price shouldn't wipe out the
-category list.
+category list. `price_range` is the slider's *bounds* and likewise ignores
+`min_price`/`max_price`, or a narrowed selection could never be widened again.
+
+**All seven facets are one `UNION ALL` statement**, labelled per branch and
+split apart in Python. This endpoint is round-trip bound, not scan bound: it
+issued eleven sequential statements and took ~0.8s in production against a
+remote Postgres, while `/bikes` — doing real work over the same table — took
+~0.28s. Four round trips remain (facets, the discount range plus total, the
+price range, and the last scrape time), and `/bikes` and `/meta/filters` are
+now within ~40ms of each other.
+
+An earlier note here explained that `asyncio.gather` could not parallelise the
+facets because an async session serializes within its connection. True, but the
+wrong target: removing the round trips beats overlapping them, and it needs no
+extra connections from the pool. `tests/test_api.py` asserts the round-trip
+budget so a future facet cannot quietly add a query.
 
 ```json
 {
