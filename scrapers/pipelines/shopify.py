@@ -47,44 +47,17 @@ _ACCESSORY_WORDS = {
     "frameset", "framesets", "scooter", "scooters",
 }
 
-# Canonical brand names — maps any known variant (different casing, store suffix)
-# to the single name used in the DB. Add entries here as new variants are found.
-_BRAND_ALIASES: dict[str, str] = {
-    # Giant variants
-    "GIANT": "Giant",
-    "Giant Bicycles": "Giant",
-    "Giant Brisbane": "Giant",
-    "Giant Sydney": "Giant",
-    "Giant Gold Coast": "Giant",
-    "Giant Sunshine Coast": "Giant",
-    "Giant Wollongong": "Giant",
-    "Giant Bikes Wollongong": "Giant",
-    "Giant Bicycles": "Giant",
-    "Giant Australia": "Giant",
-    "Giant Melbourne": "Giant",
-    "Giant Lygon St": "Giant",
-    "Giant South Yarra": "Giant",
-    # Full-company vendor strings used by multi-brand stores
-    "Specialized Bicycles": "Specialized",
-    # Liv variants
-    "LIV": "Liv",
-    # Other common case variants
-    "TREK": "Trek",
-    "SPECIALIZED": "Specialized",
-    "CANNONDALE": "Cannondale",
-    "SCOTT": "Scott",
-    "MERIDA": "Merida",
-    "CUBE": "Cube",
-    "NORCO": "Norco",
-    "norco": "Norco",
-    "KONA": "Kona",
-}
-
-
+# Per-vendor brand overrides from the YAML, and nothing else.
+#
+# The global alias table that used to live here (GIANT -> Giant, Giant Brisbane
+# -> Giant, SPECIALIZED -> Specialized, ...) moved to scrapers/brands.py, which
+# runs as a BikeRecord validator and therefore covers all six pipelines rather
+# than this one. Keeping a second table here would mean two places to add a
+# brand and five pipelines that only get one of them.
 def _normalize_brand(brand: str, brand_map: dict[str, str] | None = None) -> str:
     if brand_map and brand in brand_map:
         return brand_map[brand]
-    return _BRAND_ALIASES.get(brand, brand)
+    return brand
 
 
 _COLOUR_KEYWORDS = {

@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
+from scrapers.brands import canonical_brand_name
 from scrapers.utils import canonical_frame_size
 
 
@@ -131,6 +132,15 @@ class BikeRecord(BaseModel):
         # Always recomputed for the same reason product_key is: a pipeline that
         # hand-set this would put a size in the filter that no shop published.
         self.frame_size_canonical = canonical_frame_size(self.frame_size)
+        return self
+
+    @model_validator(mode="after")
+    def normalise_brand(self) -> "BikeRecord":
+        # Declared BEFORE derive_product_key on purpose: after-validators run in
+        # declaration order, and product_key is <canonical brand>:<sku>. If the
+        # brand were normalised afterwards, two shops spelling it differently
+        # would still key differently and never be compared.
+        self.brand = canonical_brand_name(self.brand, self.model_name, self.vendor_name)
         return self
 
     @model_validator(mode="after")
