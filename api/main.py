@@ -19,6 +19,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy import distinct, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from api.db import get_db, get_engine
 from api.models import Base, Bike, PriceEvent, ScrapeLog, Subscriber
@@ -73,6 +74,72 @@ def _vendor_key():
     return Bike.vendor_name
 
 
+# A chain's storefronts are one listing, not N.
+#
+# A vendor with a `cities:` list in its YAML gets one row per city, because
+# bikes.id hashes the city in (scrapers.models.make_bike_id). For a chain that
+# publishes one national catalogue at one price, those rows are the *same
+# listing* seen from N shopfronts, and the feed showed every one of them:
+# 99 Bikes was 8,616 of 38,724 in-stock rows (~1,077 products x 8 cities),
+# Bicycle Centre 5,643 (~513 x 11), Bikes Online 2,875 (575 x 5). Three chains
+# alone were 44% of the catalogue, and the duplicates sat next to each other in
+# the grid because they sort identically.
+#
+# The detail endpoint already resolved the same problem for cross-shop offers
+# ("a competing offer is a vendor, not a storefront", see _vendor_key). This is
+# that rule applied to the feed itself: collapse to one row and carry a
+# location_count so the UI can still say "at 8 stores".
+#
+# Grouping on product_url rather than sku is deliberate — 13% of listings have
+# no SKU, and the URL is what actually distinguishes two products at one vendor.
+# frame_size stays in the key so a chain's S/M/L remain separate listings.
+_STOREFRONT_GROUP = (Bike.vendor_name, Bike.product_url, Bike.frame_size)
+
+# Which storefront represents the group. Cheapest first (chains price nationally,
+# but if one city undercuts, that is the honest row to show), then city, then id
+# as a deterministic tiebreak so the choice is stable across requests and
+# backends. The sitemap MUST order identically or it advertises a different URL
+# than the feed links to.
+_STOREFRONT_PICK = (Bike.price_sale.asc(), Bike.city.asc(), Bike.id.asc())
+
+
+def _storefront_rank():
+    return func.row_number().over(
+        partition_by=_STOREFRONT_GROUP, order_by=_STOREFRONT_PICK
+    ).label("storefront_rank")
+
+
+def _storefront_count():
+    return func.count().over(partition_by=_STOREFRONT_GROUP).label("location_count")
+
+
+def _collapse_storefronts(query):
+    """One row per (vendor, product, size), with a location_count.
+
+    Window functions run after WHERE, so any filter — notably ?city= — narrows
+    the rows *before* the collapse. Filtering to one city therefore leaves each
+    chain listing with location_count 1, which is correct: in that city it is
+    one shop.
+    """
+    ranked = query.add_columns(_storefront_rank(), _storefront_count()).subquery()
+    return aliased(Bike, ranked), ranked
+
+
+def _distinct_listing_count(*where_clauses):
+    """COUNT of listings after chain collapse, for the trust-facing totals.
+
+    GROUP BY rather than COUNT(DISTINCT a, b, c): the multi-column form is
+    Postgres-only and the test suite runs on SQLite.
+    """
+    grouped = (
+        select(Bike.vendor_name, Bike.product_url, Bike.frame_size)
+        .where(*where_clauses)
+        .group_by(Bike.vendor_name, Bike.product_url, Bike.frame_size)
+        .subquery()
+    )
+    return select(func.count()).select_from(grouped)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # create_all is a zero-setup dev convenience only. On Postgres (prod) Alembic
@@ -116,12 +183,26 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
         content={"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred."}},
     )
 
+# (attribute, descending?) rather than a bound Bike column, because the feed
+# orders the *collapsed* subquery alias, not the base table.
 _SORT_COLUMNS = {
-    "discount_desc": Bike.discount_percentage.desc(),
-    "price_asc": Bike.price_sale.asc(),
-    "price_desc": Bike.price_sale.desc(),
-    "clicks_desc": Bike.click_count.desc(),
+    "discount_desc": ("discount_percentage", True),
+    "price_asc": ("price_sale", False),
+    "price_desc": ("price_sale", True),
+    "clicks_desc": ("click_count", True),
 }
+
+
+def _order_by(entity, sort: str):
+    """Sort expression plus a deterministic tiebreak.
+
+    Every sort key has enormous ties — half the feed sits at 0% discount — and
+    without a unique tiebreak the DB is free to return them in a different order
+    per query. That silently drops and repeats rows across LIMIT/OFFSET pages.
+    """
+    name, descending = _SORT_COLUMNS.get(sort, _SORT_COLUMNS["discount_desc"])
+    col = getattr(entity, name)
+    return [col.desc() if descending else col.asc(), entity.id.asc()]
 
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
 CACHE_FILTERS = "max-age=60"  # 1 min — filters change when vendors are added
@@ -254,20 +335,28 @@ async def get_bikes(
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
 
-    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
+    # One row per chain listing rather than one per storefront.
+    listing, ranked = _collapse_storefronts(base)
+    collapsed = (
+        select(listing, ranked.c.location_count)
+        .where(ranked.c.storefront_rank == 1)
+    )
+
+    count_result = await db.execute(select(func.count()).select_from(collapsed.subquery()))
     total = count_result.scalar_one()
 
-    order_col = _SORT_COLUMNS.get(sort, Bike.discount_percentage.desc())
-    rows = await db.execute(base.order_by(order_col).limit(limit).offset(offset))
-    bikes = rows.scalars().all()
+    rows = await db.execute(
+        collapsed.order_by(*_order_by(listing, sort)).limit(limit).offset(offset)
+    )
 
     results = []
-    for bike_obj in bikes:
+    for bike_obj, location_count in rows.all():
         br = BikeResponse.model_validate(bike_obj)
         br.sku = bike_obj.sku
         br.sku_vendor_count = (
             product_vendor_counts.get(bike_obj.product_key, 0) if bike_obj.product_key else 0
         )
+        br.location_count = location_count
         br.product_url = _apply_affiliate_url(bike_obj.vendor_name, br.product_url)
         results.append(br)
 
@@ -465,7 +554,8 @@ async def get_filters(
         **{**f, "min_price": None, "max_price": None},
     )
     price_r         = await db.execute(price_base)
-    total_r         = await db.execute(select(func.count()).where(in_stock_clause))
+    # Chain-collapsed, so the header's "N bikes" matches what the feed returns.
+    total_r         = await db.execute(_distinct_listing_count(in_stock_clause))
     last_scraped_r  = await db.execute(select(func.max(ScrapeLog.run_at)).where(ScrapeLog.status == "ok"))
     discount_row = discount_r.one()
     price_row = price_r.one()
@@ -536,7 +626,7 @@ async def get_stats(
     in_stock = Bike.in_stock == True  # noqa: E712
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
-    new_today_r        = await db.execute(select(func.count()).where(in_stock, Bike.scraped_at >= cutoff))
+    new_today_r        = await db.execute(_distinct_listing_count(in_stock, Bike.scraped_at >= cutoff))
     shops_r            = await db.execute(select(func.count(Bike.vendor_name.distinct())).where(in_stock))
     biggest_discount_r = await db.execute(select(func.max(Bike.discount_percentage)).where(in_stock))
     avg_discount_r     = await db.execute(
@@ -561,10 +651,21 @@ async def sitemap(
 ):
     # One <url> per in-stock bike detail page so Google can discover them, plus
     # the core landing pages. Without this the detail pages never get crawled.
-    rows = await db.execute(
-        select(Bike.id, Bike.last_seen_at)
+    #
+    # Chain storefronts are collapsed with the same rule (and the same pick
+    # order) the feed uses, so we advertise exactly the URL the feed links to.
+    # Previously this listed all 38,725 rows — ~44% of them near-identical pages
+    # for one chain product in 8-11 cities, which is duplicate content pointed
+    # at Google on purpose, on a domain that also has a finite crawl budget.
+    ranked = (
+        select(Bike.id, Bike.last_seen_at, _storefront_rank())
         .where(Bike.in_stock == True)  # noqa: E712
-        .order_by(Bike.last_seen_at.desc())
+        .subquery()
+    )
+    rows = await db.execute(
+        select(ranked.c.id, ranked.c.last_seen_at)
+        .where(ranked.c.storefront_rank == 1)
+        .order_by(ranked.c.last_seen_at.desc())
     )
 
     def url_entry(loc: str, lastmod: datetime | None = None) -> str:
