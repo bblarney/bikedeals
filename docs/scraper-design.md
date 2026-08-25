@@ -135,6 +135,45 @@ variant title: colour names like "Forge Grey" or "DISRUPT Camo" share no word wi
 the size vocabulary and end up in the size filter. A product with no size axis
 records `"N/A"` and is kept, not dropped.
 
+### Frame size, canonicalised
+
+Picking the right *segment* does not make two shops agree on what it says. The
+live facet served **536 distinct values** for roughly fifty real sizes — thirty
+spellings of Large alone ("L", "Lg", "LGE", "LRG", "LARGE - 56",
+"Large 29in Wheels", "L (Large 170cm - 185cm)"), plus colours that leaked
+through the fallback, tyre widths, and top-tube lengths. Choosing "M" could not
+return every medium.
+
+`canonical_frame_size()` maps the raw value onto one of four outcomes:
+
+| Family | Examples | From |
+|---|---|---|
+| alpha | `XS` `S` `S/M` `M` `M/L` `L` `XL` `XXL` | `LRG`, `MEDIUM - 54`, `56 (L)`, `S3` (Specialized S-Sizing) |
+| cm | `54cm` | `54`, `54 CM`, `54cm 700c`, `560` (millimetres) |
+| inch | `16"` | `16 inch`, `16in`, `24inch - G` |
+| `None` | — | `N/A`, `One Size`, `Chrome Blue`, `Frameset only`, `28mm`, `29` |
+
+Three rules are load-bearing:
+
+- **The raw value is never overwritten.** `make_bike_id` hashes `frame_size`, so
+  rewriting it would change every bike's ID — breaking every detail URL, every
+  shared link, the sitemap, and the `bike_id` that `price_events` joins on. The
+  canonical value lives in `frame_size_canonical`, and the API filters and
+  facets on that while still returning the raw one for display.
+- **Wheel diameters are not frame sizes.** `26`/`27.5`/`29` alone canonicalise
+  to `None`. Treating them as sizes is what put "Large 29in" and "29" in the
+  dropdown as two different options. Inch sizes ≤24" are kept, because that is
+  genuinely how kids' bikes and inch-numbered MTB frames are sold.
+- **Alpha beats a measurement in the same string,** so "51cm - Small" and
+  "54 (M)" file under `S` and `M`. The exact centimetres survive in the raw
+  value, which the detail page shows as "Size M (listed as 54)".
+
+Two traps found by running it over all 536 live values: `"20.50 TT"` through
+`"21.50 TT"` are top-tube lengths whose digits look like sizes (an early draft
+turned them into 50cm and 65cm frames), and bare `"SM"` is the Small in
+Small/Medium/Large — it appears 197 times beside `MD` (211) and `LG` (199), so
+only an explicit separator (`S\M`, `Small/Medium`) reads as the intermediate.
+
 ### Accessory filtering
 
 Shops file frames, scooters, chargers and helmets under a bike `product_type`.
