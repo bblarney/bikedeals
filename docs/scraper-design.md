@@ -135,6 +135,45 @@ variant title: colour names like "Forge Grey" or "DISRUPT Camo" share no word wi
 the size vocabulary and end up in the size filter. A product with no size axis
 records `"N/A"` and is kept, not dropped.
 
+### Frame size, canonicalised
+
+Picking the right *segment* does not make two shops agree on what it says. The
+live facet served **536 distinct values** for roughly fifty real sizes — thirty
+spellings of Large alone ("L", "Lg", "LGE", "LRG", "LARGE - 56",
+"Large 29in Wheels", "L (Large 170cm - 185cm)"), plus colours that leaked
+through the fallback, tyre widths, and top-tube lengths. Choosing "M" could not
+return every medium.
+
+`canonical_frame_size()` maps the raw value onto one of four outcomes:
+
+| Family | Examples | From |
+|---|---|---|
+| alpha | `XS` `S` `S/M` `M` `M/L` `L` `XL` `XXL` | `LRG`, `MEDIUM - 54`, `56 (L)`, `S3` (Specialized S-Sizing) |
+| cm | `54cm` | `54`, `54 CM`, `54cm 700c`, `560` (millimetres) |
+| inch | `16"` | `16 inch`, `16in`, `24inch - G` |
+| `None` | — | `N/A`, `One Size`, `Chrome Blue`, `Frameset only`, `28mm`, `29` |
+
+Three rules are load-bearing:
+
+- **The raw value is never overwritten.** `make_bike_id` hashes `frame_size`, so
+  rewriting it would change every bike's ID — breaking every detail URL, every
+  shared link, the sitemap, and the `bike_id` that `price_events` joins on. The
+  canonical value lives in `frame_size_canonical`, and the API filters and
+  facets on that while still returning the raw one for display.
+- **Wheel diameters are not frame sizes.** `26`/`27.5`/`29` alone canonicalise
+  to `None`. Treating them as sizes is what put "Large 29in" and "29" in the
+  dropdown as two different options. Inch sizes ≤24" are kept, because that is
+  genuinely how kids' bikes and inch-numbered MTB frames are sold.
+- **Alpha beats a measurement in the same string,** so "51cm - Small" and
+  "54 (M)" file under `S` and `M`. The exact centimetres survive in the raw
+  value, which the detail page shows as "Size M (listed as 54)".
+
+Two traps found by running it over all 536 live values: `"20.50 TT"` through
+`"21.50 TT"` are top-tube lengths whose digits look like sizes (an early draft
+turned them into 50cm and 65cm frames), and bare `"SM"` is the Small in
+Small/Medium/Large — it appears 197 times beside `MD` (211) and `LG` (199), so
+only an explicit separator (`S\M`, `Small/Medium`) reads as the intermediate.
+
 ### Brand normalisation
 
 The brand facet had **246 entries for about 190 real brands** — every kind of
@@ -190,9 +229,53 @@ so the catalogue converges on the next nightly scrape.
 
 ### Accessory filtering
 
-Shops file frames, scooters, chargers and helmets under a bike `product_type`.
-`_is_accessory()` matches an accessory-word set against both `product_type` and
-the title, and those products are skipped before validation.
+Shops file frames, scooters, chargers and helmets under a bike `product_type`,
+so two screens run at different altitudes.
+
+**Category metadata — `_is_accessory()` in the Shopify pipeline.** Matches an
+accessory-word set against `product_type` only, and skips the product before
+validation. Aggressive matching is safe here: a `product_type` of "Brakes" or
+"Chargers" is unambiguously a part.
+
+**Product titles — `scrapers/product_filter.py`, applied in the orchestrator.**
+Runs for all six pipelines, not just Shopify, and screens on the title, the
+frame size and the price. Three rules, each independently defensible:
+
+1. An accessory noun in the name, word-bounded so "Ultralite" is not a light and
+   "tubeless" is not a tube.
+2. A frame size that is a tyre width — a frame is never `28mm`.
+3. A price floor of $80. The cheapest genuine complete bike in the live
+   catalogue is an $89 kids' bike; below that, everything was an accessory.
+
+Titles are deliberately screened more conservatively than `product_type`. The
+terms are tuned against the live catalogue, and the failure mode that matters is
+deleting a real bike, not missing an accessory. Measured false positives that
+shaped the list:
+
+| Term | Real bikes it deleted |
+|---|---|
+| `battery` | 84 e-bikes advertising "630Wh Battery" in the name |
+| `charger` | Norco Charger, Riese & Müller Charger5 |
+| `wheel` / `wheelset` | "3 Wheel E-Trike", "Tero X 4.0 (29/27.5 Wheelset…)" |
+| `rim` | "Merida Scultura Rim 100", a rim-brake road bike |
+| `brake` | "Malvern Star Attitude (Disc brake) 24\"" |
+| `\d{2,3}x\d` | ByK's kids bikes, whose model names *are* "E-450x8" |
+| brand `ENVE` | "ENVE Melee" complete build, $13,500 |
+| brand `Hornit` | the Hornit AIRO balance bike |
+
+Moving title screening off the Shopify word set is not only a safety change, it
+recovers stock. Two pages of one vendor (Crooze) returned 34 more bikes, and
+every recovered title was real: five BYK "9 Speed Disc Brake" kids bikes, five
+FirstBIKE and four Kids Ride Shotgun balance bikes "with Brake", the Early Rider
+Charger, and two Shogun e-bikes whose colour is "Light Grey".
+
+Rejections are counted by reason and reported in the daily email, so a
+mis-tuned rule shows up as a spike rather than as silent catalogue shrinkage.
+
+They are **not** counted in `invalid_count`: that feeds the 5% quarantine ratio,
+and a shop that legitimately lists accessories in its bike collection would
+otherwise quarantine itself every night. `run.py` and `scrape_check.py` both
+keep them in the ratio's *denominator* for the same reason.
 
 ---
 

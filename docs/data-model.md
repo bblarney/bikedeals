@@ -21,7 +21,8 @@ class BikeRecord(BaseModel):        # scrapers/models.py — what a pipeline emi
     brand: str
     model_name: str
     category: Literal["Road", "Mountain", "Gravel", "E-Bike", "Commuter"]
-    frame_size: str                 # one row per size variant; "N/A" if the shop declares none
+    frame_size: str                 # AS THE SHOP WROTE IT; one row per size variant, "N/A" if none
+    frame_size_canonical: str|None   # that size on a shared scale, or None if it names no size
     price_original: float | None    # AUD; None if never listed at a compare_at price
     price_sale: float               # AUD
     discount_percentage: int        # recomputed on every UPSERT, stored for indexing
@@ -61,7 +62,10 @@ Each component earns its place:
 
 - **`product_url`** rather than `model_name` — URLs are canonical per shop, model
   names drift with typos, casing and punctuation.
-- **`frame_size`** — one row per size variant, so sizes must not collide.
+- **`frame_size`** — one row per size variant, so sizes must not collide. Note
+  this is the **raw** value, not `frame_size_canonical`: two variants a shop
+  spells differently are still two variants, and canonicalising the hashed value
+  would change every existing bike's ID.
 - **`city`** — a national chain fans one product out to one record per city; without
   city in the key those rows would collapse onto a single ID.
 
@@ -203,6 +207,7 @@ CREATE TABLE bikes (
     model_name          TEXT NOT NULL,
     category            TEXT NOT NULL,
     frame_size          TEXT NOT NULL,
+    frame_size_canonical TEXT,
     price_original      REAL,
     price_sale          REAL NOT NULL,
     discount_percentage INTEGER NOT NULL DEFAULT 0,
@@ -229,6 +234,7 @@ CREATE TABLE bikes (
 
 CREATE INDEX idx_bikes_category         ON bikes(category);
 CREATE INDEX idx_bikes_frame_size       ON bikes(frame_size);
+CREATE INDEX idx_bikes_frame_size_canonical ON bikes(frame_size_canonical);
 CREATE INDEX idx_bikes_vendor           ON bikes(vendor_name);
 CREATE INDEX idx_bikes_city             ON bikes(city);
 CREATE INDEX idx_bikes_brand            ON bikes(brand);
@@ -238,7 +244,7 @@ CREATE INDEX idx_bikes_click_count      ON bikes(click_count);
 CREATE INDEX idx_bikes_scraped_at       ON bikes(scraped_at);
 CREATE INDEX idx_bikes_sku              ON bikes(sku);
 CREATE INDEX idx_bikes_product_key      ON bikes(product_key);
-CREATE INDEX idx_bikes_cat_size_vendor  ON bikes(category, frame_size, vendor_name);
+CREATE INDEX idx_bikes_cat_size_vendor  ON bikes(category, frame_size_canonical, vendor_name);
 CREATE INDEX idx_bikes_instock_discount ON bikes(in_stock, discount_percentage);
 ```
 

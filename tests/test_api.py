@@ -167,9 +167,10 @@ def test_bike_detail_lists_size_variants(client, seed):
                   vendor_name="Other Cycles", price_sale=1550.0, product_url="https://x/m2"),
     )
     body = client.get("/api/v1/bikes/m1").json()
-    # One entry per size (cheapest), current size included.
+    # One entry per size (cheapest), current size included, ordered on the size
+    # scale. Sorting these alphabetically listed a size picker as L, M, S, XL.
     assert [(v["frame_size"], v["bike_id"]) for v in body["variants"]] == [
-        ("L", "l1"), ("M", "m1"),
+        ("M", "m1"), ("L", "l1"),
     ]
 
 
@@ -298,3 +299,157 @@ def test_listing_without_sku_has_no_product_key_and_stands_alone(client, seed):
     assert body["product_key"] is None
     assert body["shop_count"] == 1
     assert body["sku_vendor_count"] == 0
+
+
+# --- the size filter works on the canonical scale ---------------------------
+
+def test_size_filter_matches_every_spelling_of_one_size(client, seed):
+    """The live facet had thirty spellings of Large. Picking one must return all."""
+    seed(
+        make_bike(id="a", frame_size="L", product_url="https://x/a"),
+        make_bike(id="b", frame_size="LARGE - 56", product_url="https://x/b"),
+        make_bike(id="c", frame_size="Large 29\" Wheels", product_url="https://x/c"),
+        make_bike(id="d", frame_size="LRG", product_url="https://x/d"),
+        make_bike(id="e", frame_size="M", product_url="https://x/e"),
+    )
+    body = client.get("/api/v1/bikes", params={"size": "L"}).json()
+    assert body["total"] == 4
+    assert {b["id"] for b in body["results"]} == {"a", "b", "c", "d"}
+
+
+def test_size_filter_still_honours_a_bookmarked_raw_value(client, seed):
+    # A link shared before sizes were normalised said ?size=Large.
+    seed(make_bike(id="a", frame_size="LARGE - 56"))
+    assert client.get("/api/v1/bikes", params={"size": "Large"}).json()["total"] == 1
+
+
+def test_size_filter_on_a_non_size_matches_nothing(client, seed):
+    seed(make_bike(id="a", frame_size="L"))
+    body = client.get("/api/v1/bikes", params={"size": "Chrome Blue"}).json()
+    assert body["total"] == 0, "must not silently ignore the filter and return everything"
+
+
+def test_size_facet_is_deduped_and_ordered_on_the_scale(client, seed):
+    seed(
+        make_bike(id="a", frame_size="LARGE", product_url="https://x/a"),
+        make_bike(id="b", frame_size="Lg", product_url="https://x/b"),
+        make_bike(id="c", frame_size="XS", product_url="https://x/c"),
+        make_bike(id="d", frame_size="MEDIUM", product_url="https://x/d"),
+        make_bike(id="e", frame_size="54cm", product_url="https://x/e"),
+        make_bike(id="f", frame_size="16 inch", product_url="https://x/f"),
+        # Neither of these names a size, so neither should pad the dropdown.
+        make_bike(id="g", frame_size="N/A", product_url="https://x/g"),
+        make_bike(id="h", frame_size="Chrome Blue", product_url="https://x/h"),
+    )
+    sizes = client.get("/api/v1/meta/filters").json()["sizes"]
+    assert sizes == ["XS", "M", "L", "54cm", '16"']
+
+
+def test_raw_size_is_still_returned_for_display(client, seed):
+    seed(make_bike(id="a", frame_size="LARGE - 56"))
+    bike = client.get("/api/v1/bikes").json()["results"][0]
+    assert bike["frame_size"] == "LARGE - 56"
+    assert bike["frame_size_canonical"] == "L"
+
+# --- chain storefronts are one listing, not N ------------------------------
+#
+# scrapers/pipelines/shopify.py fans a national chain out to one record per
+# city, copying product_url and frame_size and varying only city and id. The
+# feed showed every copy: three chains alone (99 Bikes x8, Bicycle Centre x11,
+# Bikes Online x5) were 44% of the live catalogue. These seed rows mirror that
+# fan-out exactly.
+
+def _chain_rows(cities, *, product_url="https://x/chain/propel", **overrides):
+    # id mirrors make_bike_id's inputs (vendor, url, size, city) closely enough
+    # to stay unique per storefront, which is the whole point of the fan-out.
+    tag = f"{product_url.rsplit('/', 1)[-1]}-{overrides.get('frame_size', 'M')}"
+    return [
+        make_bike(
+            id=f"chain-{tag}-{c}", vendor_name="99 Bikes", city=c,
+            product_url=product_url, **overrides,
+        )
+        for c in cities
+    ]
+
+
+def test_chain_storefronts_collapse_to_one_feed_row(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 1, "one listing at four shopfronts is one listing"
+    assert len(body["results"]) == 1
+    assert body["results"][0]["location_count"] == 4
+
+
+def test_collapsed_row_is_the_cheapest_storefront(client, seed):
+    rows = _chain_rows(["Sydney", "Melbourne"])
+    rows[0].price_sale = 1400.0   # Sydney
+    rows[1].price_sale = 1200.0   # Melbourne undercuts
+    seed(*rows)
+
+    result = client.get("/api/v1/bikes").json()["results"][0]
+    assert result["price_sale"] == 1200.0
+    assert result["city"] == "Melbourne"
+
+
+def test_city_filter_narrows_before_collapsing(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane"]))
+    body = client.get("/api/v1/bikes", params={"city": "Brisbane"}).json()
+
+    assert body["total"] == 1
+    assert body["results"][0]["city"] == "Brisbane"
+    # In Brisbane it really is one shop, so there is no "+N more" to show.
+    assert body["results"][0]["location_count"] == 1
+
+
+def test_collapse_keeps_distinct_products_and_sizes_apart(client, seed):
+    seed(
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="M"),
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="L"),
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/b", frame_size="M"),
+    )
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 3, "two sizes of one product plus a second product"
+    assert {b["location_count"] for b in body["results"]} == {2}
+
+
+def test_same_product_at_two_vendors_is_not_collapsed(client, seed):
+    seed(
+        make_bike(id="a", vendor_name="Shop A", product_url="https://x/p"),
+        make_bike(id="b", vendor_name="Shop B", product_url="https://x/p"),
+    )
+    assert client.get("/api/v1/bikes").json()["total"] == 2
+
+
+def test_total_bikes_matches_the_collapsed_feed(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    # The header's trust number and the feed must not disagree.
+    assert client.get("/api/v1/meta/filters").json()["total_bikes"] == 1
+    assert client.get("/api/v1/meta/stats").json()["new_today"] == 1
+
+
+def test_sitemap_advertises_one_url_per_listing(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    sitemap = client.get("/sitemap.xml").text
+    feed_id = client.get("/api/v1/bikes").json()["results"][0]["id"]
+
+    assert sitemap.count("/bikes/") == 1
+    # Same pick order as the feed, or we advertise a URL the site doesn't link.
+    assert f"/bikes/{feed_id}" in sitemap
+
+
+def test_pagination_does_not_repeat_rows_across_pages(client, seed):
+    # Every row ties on the sort key, which is the shape half the live feed has
+    # (0% discount). Without a unique tiebreak the DB may order ties differently
+    # per query, dropping and repeating rows between pages.
+    seed(*[
+        make_bike(id=f"tie-{i}", discount_percentage=0, price_original=None,
+                  product_url=f"https://x/tie/{i}")
+        for i in range(10)
+    ])
+    page1 = client.get("/api/v1/bikes", params={"limit": 5, "offset": 0}).json()["results"]
+    page2 = client.get("/api/v1/bikes", params={"limit": 5, "offset": 5}).json()["results"]
+
+    ids = [b["id"] for b in page1] + [b["id"] for b in page2]
+    assert len(set(ids)) == 10

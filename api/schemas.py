@@ -10,7 +10,11 @@ class BikeResponse(BaseModel):
     brand: str
     model_name: str
     category: str
+    # frame_size is the shop's own wording; frame_size_canonical is that size on
+    # a shared scale, or null when the shop published nothing usable. Clients
+    # should show the canonical one and fall back to the raw.
     frame_size: str
+    frame_size_canonical: str | None = None
     price_original: float | None
     price_sale: float
     discount_percentage: int
@@ -31,6 +35,11 @@ class BikeResponse(BaseModel):
     # Distinct *vendors* carrying this product, not storefronts — 0 when there
     # is no cross-shop match to show.
     sku_vendor_count: int = 0
+    # How many of *this* vendor's storefronts carry the listing. A chain lists
+    # one national catalogue per city, so those rows collapse to a single result
+    # and this is what lets the card still say "at 8 stores". Always 1 once the
+    # feed is filtered to a city.
+    location_count: int = 1
 
     model_config = {"from_attributes": True}
 

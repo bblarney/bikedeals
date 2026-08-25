@@ -26,7 +26,14 @@ class Bike(Base):
     brand = Column(Text, nullable=False)
     model_name = Column(Text, nullable=False)
     category = Column(Text, nullable=False)
+    # What the shop called the size, verbatim. Stays the id-bearing value —
+    # make_bike_id hashes it — so normalising sizes cannot change a bike's id.
     frame_size = Column(Text, nullable=False)
+    # The same size on a shared scale ("L", "54cm", "16\""), or NULL when the
+    # raw value names no usable size ("N/A", "One Size", "Chrome Blue"). This is
+    # what the size filter and the size facet read; see
+    # scrapers.utils.canonical_frame_size.
+    frame_size_canonical = Column(Text, nullable=True)
     price_original = Column(Float, nullable=True)
     price_sale = Column(Float, nullable=False)
     discount_percentage = Column(Integer, nullable=False, default=0)
@@ -62,6 +69,7 @@ class Bike(Base):
         ),
         Index("idx_bikes_category", "category"),
         Index("idx_bikes_frame_size", "frame_size"),
+        Index("idx_bikes_frame_size_canonical", "frame_size_canonical"),
         Index("idx_bikes_vendor", "vendor_name"),
         Index("idx_bikes_city", "city"),
         Index("idx_bikes_brand", "brand"),
@@ -75,7 +83,7 @@ class Bike(Base):
         Index("idx_bikes_product_key", "product_key"),
         # Composite indexes for the common multi-filter feed query
         # (CLAUDE.md: filter by category/size/vendor, sort by discount desc).
-        Index("idx_bikes_cat_size_vendor", "category", "frame_size", "vendor_name"),
+        Index("idx_bikes_cat_size_vendor", "category", "frame_size_canonical", "vendor_name"),
         Index("idx_bikes_instock_discount", "in_stock", "discount_percentage"),
     )
 
