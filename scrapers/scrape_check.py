@@ -121,7 +121,7 @@ def _verdict(result) -> tuple[str, int]:
     """Mirror production's per-vendor decision. Returns (label, exit_code)."""
     if result.error:
         return "FAIL — scrape errored (would be quarantined)", 1
-    seen = len(result.bikes) + result.invalid_count
+    seen = len(result.bikes) + result.invalid_count + result.non_bike_count
     ratio = result.invalid_count / seen if seen else 0.0
     if seen > 0 and ratio > QUARANTINE_INVALID_RATIO:
         return (
@@ -181,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
                 "passed": code == 0,
                 "bike_count": len(result.bikes),
                 "invalid_count": result.invalid_count,
+                "non_bike_count": result.non_bike_count,
+                "non_bike_reasons": result.non_bike_reasons,
                 "error": result.error,
                 "bikes": [b.model_dump(mode="json") for b in result.bikes],
             },

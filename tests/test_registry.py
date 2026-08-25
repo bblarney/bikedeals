@@ -4,6 +4,7 @@ import pytest
 from scrapers.models import VendorConfig
 from scrapers.pipelines import shopify as shopify_pipeline
 from scrapers.pipelines.shopify import _size_option_key, scrape_shopify
+from scrapers.product_filter import drop_non_bikes
 from scrapers.registry import load_registry
 
 
@@ -244,8 +245,19 @@ async def test_framesets_and_scooters_are_not_bikes(_patch_shopify, monkeypatch)
         category_map={"road race bikes": "Road", "childrens bikes & scooters": "Commuter"},
         collection="all-bikes",
     )
+    # The scooter goes on product_type, which the pipeline still screens. The
+    # frameset's product_type is "Road Race Bikes" — only its title gives it
+    # away — and title screening now lives in the shared gate at the
+    # orchestrator, so this asserts against the boundary production uses.
     bikes, _ = await scrape_shopify(config, client=None)
-    assert [b.model_name for b in bikes] == ["Factor Ostro VAM"]
+    assert [b.model_name for b in bikes] == [
+        "Safi Works Form R32.1 Road Frameset",
+        "Factor Ostro VAM",
+    ]
+
+    kept, rejected = drop_non_bikes(bikes)
+    assert [b.model_name for b in kept] == ["Factor Ostro VAM"]
+    assert rejected == {"accessory:frameset": 1}
 
 
 async def test_collection_pagination_uses_page_not_since_id(_patch_shopify, monkeypatch):

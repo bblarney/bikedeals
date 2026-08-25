@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 import api.main as main_module
 from api.models import Bike, PriceEvent, ScrapeLog, Subscriber
 from scrapers.models import make_product_key
+from scrapers.utils import canonical_frame_size
 
 _SYNC_URL = f"sqlite:///./{TEST_DB_FILE}"
 
@@ -88,6 +89,9 @@ def make_bike(**overrides):
     # hand-set it, so a test can't assert on a pairing production would never
     # produce. An explicit product_key= override still wins.
     data.setdefault("product_key", make_product_key(data["brand"], data.get("sku")))
+    # Same reasoning as product_key: derive it the way the scraper does, so a
+    # test cannot assert on a size pairing production would never produce.
+    data.setdefault("frame_size_canonical", canonical_frame_size(data["frame_size"]))
     return Bike(**data)
 
 

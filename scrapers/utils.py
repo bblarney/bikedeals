@@ -349,6 +349,152 @@ def _looks_like_size(segment: str) -> bool:
     )
 
 
+# --- canonical frame sizes ---------------------------------------------------
+#
+# `extract_frame_size` picks the size *segment* out of a variant title. It does
+# not make two shops agree on what that segment says, and they do not: the live
+# size facet had 536 distinct values, including thirty spellings of Large
+# ("L", "Lg", "LGE", "LRG", "LARGE - 56", "Large 29\" Wheels",
+# "L (Large 170cm - 185cm)"), colours that leaked through as a fallback
+# ("Chrome Blue", "Light Blue"), tyre widths ("28mm"), top-tube measurements
+# ("20.50 TT RSD"), and "Frameset only". Picking "M" from a dropdown could not
+# return every medium, which for a bike shopper is the filter that matters most.
+#
+# The canonical value goes in `frame_size`; the shop's own wording is kept in
+# `frame_size_raw` and is what `make_bike_id` hashes, so canonicalising cannot
+# change a single bike's id — no broken detail URLs, no orphaned price history.
+#
+# Four families are emitted, and anything else canonicalises to None so it drops
+# out of the facet instead of padding it:
+#
+#   alpha   XXXS..XXXL, plus the M/L-style intermediates some brands ship
+#   cm      road sizing, "54cm"
+#   inch    12"-24", how kids' bikes and inch-sized MTB frames are sold
+#   None    unknown ("N/A", "One Size"), or not a size at all
+#
+# 26"/27.5"/29" alone are deliberately None: those are *wheel* diameters, not
+# frame sizes, and treating them as sizes is what put "Large 29\"" and "29" in
+# the same dropdown as two different options.
+
+_ALPHA_SCALE = ("XXXS", "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL")
+
+# Ordered longest/most-specific first: "xx-large" must be tried before "large",
+# or every XXL collapses to L. Same trick as _BRAND_SUFFIXES in scrapers.models.
+_ALPHA_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"(?:3x|xxx)[\s-]*small|3xs|4xs", "XXXS"),
+    (r"(?:2x|xx)[\s-]*small|xxs|2xs", "XXS"),
+    (r"x[\s-]*small|extra[\s-]*small|\bxs\b", "XS"),
+    (r"(?:3x|xxx)[\s-]*large|3xl|xxxl|4xl", "XXXL"),
+    (r"(?:2x|xx)[\s-]*large|xxl|2xl", "XXL"),
+    (r"x[\s-]*large|extra[\s-]*large|\bxl\b|\bxlg\b", "XL"),
+    # Intermediate sizes are real (Specialized ships S/M and M/L), so they are
+    # kept rather than rounded into a neighbour.
+    #
+    # S/M demands an explicit separator, M/L does not, and the asymmetry is what
+    # the data says. Bare "SM" appears 197 times in a 5,478-row sample, next to
+    # "MD" (211) and "LG" (199) — it is the Small in Small/Medium/Large, not an
+    # intermediate. There is no "MDLG", so a bare "ML" has nothing to abbreviate
+    # and really is M/L.
+    (r"\bs[\s/\\-]m\b|\bsmall[\s/\\-]medium\b", "S/M"),
+    (r"\bm[\s/\\-]?l\b|\bmedium[\s/\\-]large\b", "M/L"),
+    (r"\bsmall\b|\bsml\b|\bsm\b|\bs\b", "S"),
+    (r"\bmedium\b|\bmed\b|\bmd\b|\bm\b", "M"),
+    (r"\blarge\b|\blge\b|\blrg\b|\blg\b|\bl\b", "L"),
+)
+_ALPHA_RE = tuple((re.compile(p, re.IGNORECASE), canon) for p, canon in _ALPHA_PATTERNS)
+
+# Specialized's S-Sizing, which replaced alpha sizes across their range and is
+# ~5% of the live catalogue ("S2", "S3", "S4", "S5").
+_S_SIZING = {
+    "s1": "XS", "s2": "S", "s3": "M", "s4": "L", "s5": "XL", "s6": "XXL",
+}
+_S_SIZING_RE = re.compile(r"^\s*(s[1-6])\s*$", re.IGNORECASE)
+
+# "M54", "L56" — an alpha size welded to its centimetre equivalent. No word
+# boundary exists between the letter and the digits, so the alpha patterns above
+# cannot see it.
+_ALPHA_CM_RE = re.compile(r"^\s*(xxs|xs|s|m|l|xl|xxl)\s*[-]?\s*\d{2}(?:\.\d)?\s*$", re.IGNORECASE)
+
+# Road sizing. The range is generous at both ends (a 38cm exists, so does a
+# 68cm) but stops well short of the numbers that are really wheel diameters.
+_CM_MIN, _CM_MAX = 38.0, 68.0
+_CM_MARKED_RE = re.compile(r"\b(\d{2}(?:\.\d)?)\s*cm\b", re.IGNORECASE)
+_CM_BARE_RE = re.compile(r"\b(\d{2}(?:\.\d)?)\b")
+# Some shops quote millimetres: "560" is a 56cm frame.
+_MM_RE = re.compile(r"\b([3-6]\d{2})\b")
+
+# Inch sizing: kids' wheels (12-24) and the inch-numbered MTB frames (15-21).
+# Integers only — "20.50 TT" is a top-tube measurement, not a 20.5" frame.
+_INCH_SIZES = frozenset({12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24})
+_INCH_MARKED_RE = re.compile(r"\b(\d{2})\s*(?:\"|''|in\b|inch\b|inches\b)", re.IGNORECASE)
+_INCH_BARE_RE = re.compile(r"^\s*(\d{2})\s*$")
+
+# Values that say "we don't know", as opposed to naming a size.
+_UNKNOWN_SIZES = frozenset({"n/a", "na", "one size", "onesize", "", "-"})
+
+# Top-tube length, which one shop publishes instead of a frame size
+# ("20.50 TT", "21.00 TT RHD"). It is a measurement in inches of a different
+# part of the bike, and the digits look enough like a size to be dangerous:
+# "18.50 TT" through "21.50 TT" all landed on 50cm and 65cm frames.
+_TOP_TUBE_RE = re.compile(r"\bTT\b")
+
+
+def canonical_frame_size(raw: str | None) -> str | None:
+    """Map a shop's frame-size wording onto a shared scale, or None.
+
+    None means "not a usable size" — unknown, or a colour/measurement that is
+    not a size at all. Callers keep the original string; this only decides what
+    the filter and the facet see.
+    """
+    if not raw:
+        return None
+    text = " ".join(str(raw).split())
+    if text.lower() in _UNKNOWN_SIZES or _TOP_TUBE_RE.search(text):
+        return None
+
+    s_sized = _S_SIZING_RE.match(text)
+    if s_sized:
+        return _S_SIZING[s_sized.group(1).lower()]
+
+    welded = _ALPHA_CM_RE.match(text)
+    if welded:
+        return welded.group(1).upper()
+
+    # Alpha wins over a measurement in the same string: "51cm - Small" and
+    # "54 (M)" are one size expressed twice, and the site's size filter is built
+    # around the alpha scale. The exact centimetres survive in frame_size_raw.
+    for pattern, canon in _ALPHA_RE:
+        if pattern.search(text):
+            return canon
+
+    marked_cm = _CM_MARKED_RE.search(text)
+    if marked_cm and _CM_MIN <= float(marked_cm.group(1)) <= _CM_MAX:
+        return _format_cm(marked_cm.group(1))
+
+    marked_inch = _INCH_MARKED_RE.search(text)
+    if marked_inch and int(marked_inch.group(1)) in _INCH_SIZES:
+        return f'{int(marked_inch.group(1))}"'
+
+    bare_inch = _INCH_BARE_RE.match(text)
+    if bare_inch and int(bare_inch.group(1)) in _INCH_SIZES:
+        return f'{int(bare_inch.group(1))}"'
+
+    for candidate in _CM_BARE_RE.findall(text):
+        if _CM_MIN <= float(candidate) <= _CM_MAX:
+            return _format_cm(candidate)
+
+    millimetres = _MM_RE.search(text)
+    if millimetres and _CM_MIN <= int(millimetres.group(1)) / 10 <= _CM_MAX:
+        return _format_cm(f"{int(millimetres.group(1)) / 10:g}")
+
+    return None
+
+
+def _format_cm(value: str) -> str:
+    number = float(value)
+    return f"{number:g}cm"
+
+
 def extract_frame_size(raw: str) -> str:
     """Return just the size token from a variant title that may contain colour info.
 

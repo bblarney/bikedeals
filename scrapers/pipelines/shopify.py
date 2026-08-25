@@ -94,10 +94,23 @@ _COLOUR_KEYWORDS = {
 }
 
 
-def _is_accessory(product_type: str, title: str = "") -> bool:
-    def _words(s: str) -> set[str]:
-        return set(s.lower().replace(":", " ").replace("/", " ").replace("-", " ").split())
-    return bool((_words(product_type) | _words(title)) & _ACCESSORY_WORDS)
+def _is_accessory(product_type: str) -> bool:
+    """Reject on Shopify's own `product_type`, which is category metadata.
+
+    This deliberately no longer looks at the product *title*. Aggressive word
+    matching is safe against a category field — a product_type of "Brakes" or
+    "Chargers" is unambiguously a part — and unsafe against free text, where
+    "Malvern Star Attitude (Disc brake) 24\"" is a real kids' bike and
+    "Riese & Muller Charger5" is a real e-bike.
+
+    Titles are now screened by scrapers.product_filter at the orchestrator,
+    which applies to all six pipelines rather than this one, and whose terms are
+    tuned against the live catalogue to avoid exactly those false positives.
+    """
+    words = set(
+        product_type.lower().replace(":", " ").replace("/", " ").replace("-", " ").split()
+    )
+    return bool(words & _ACCESSORY_WORDS)
 
 
 def _is_size_variant(title: str) -> bool:
@@ -215,7 +228,7 @@ async def _scrape_collection(
             images = product.get("images", [])
             image_url = images[0]["src"] if images else None
 
-            if _is_accessory(product_type, model_name):
+            if _is_accessory(product_type):
                 continue
 
             body_html = product.get("body_html") or ""

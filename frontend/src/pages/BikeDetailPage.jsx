@@ -76,9 +76,17 @@ export default function BikeDetailPage() {
   const displayModel = bike.model_name.toLowerCase().startsWith(bike.brand.toLowerCase())
     ? bike.model_name.slice(bike.brand.length).trim()
     : bike.model_name
+  // Canonical size first — it is what the size filter matches — with the shop's
+  // own wording alongside when it differs, because "54cm" and "M" are not
+  // interchangeable to someone about to buy.
+  const canonicalSize = bike.frame_size_canonical || bike.frame_size
+  const sizeLabel =
+    canonicalSize && bike.frame_size && bike.frame_size !== canonicalSize
+      ? `Size ${canonicalSize} (listed as ${bike.frame_size})`
+      : canonicalSize && `Size ${canonicalSize}`
   const specs = [
     bike.category,
-    bike.frame_size && `Size ${bike.frame_size}`,
+    sizeLabel,
     bike.frame_material,
     bike.drivetrain_groupset,
     bike.weight_grams && `${(bike.weight_grams / 1000).toFixed(1)} kg`,

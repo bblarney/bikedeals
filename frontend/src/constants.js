@@ -9,7 +9,12 @@ export const REGIONS = [
   { name: 'Tasmania',                abbr: 'TAS', cities: ['Hobart'] },
 ]
 
-export const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+// The canonical alpha scale the API emits, smallest first. Centimetre and inch
+// sizes are not listed: they sort numerically and the API already returns the
+// whole facet in scale order, so this is only a tiebreak for the client.
+export const SIZE_ORDER = [
+  'XXXS', 'XXS', 'XS', 'S', 'S/M', 'M', 'M/L', 'L', 'XL', 'XXL', 'XXXL',
+]
 
 export const DEFAULT_FILTERS = {
   category: [],

@@ -93,6 +93,10 @@ async def upsert_bikes(session: AsyncSession, records: list[BikeRecord]) -> int:
                 "brand": stmt.excluded.brand,
                 "model_name": stmt.excluded.model_name,
                 "frame_size": stmt.excluded.frame_size,
+                # Derived from frame_size, so it must be refreshed alongside it
+                # — otherwise a shop that tidies its size wording leaves the
+                # listing filed under the old canonical size.
+                "frame_size_canonical": stmt.excluded.frame_size_canonical,
                 "image_url": stmt.excluded.image_url,
                 "product_url": stmt.excluded.product_url,
                 "sku": stmt.excluded.sku,
