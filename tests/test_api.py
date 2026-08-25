@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import api.main as main_module
 from api.models import PriceEvent, Subscriber
 from tests.conftest import make_bike
 
@@ -453,3 +454,124 @@ def test_pagination_does_not_repeat_rows_across_pages(client, seed):
 
     ids = [b["id"] for b in page1] + [b["id"] for b in page2]
     assert len(set(ids)) == 10
+
+
+# --- the faceted filters endpoint -------------------------------------------
+
+def _filters(client, **params):
+    r = client.get("/api/v1/meta/filters", params=params)
+    assert r.status_code == 200
+    return r.json()
+
+
+def test_facets_list_every_option(client, seed):
+    seed(
+        make_bike(id="a", category="Road", brand="Trek", vendor_name="Shop A",
+                  city="Sydney", product_url="https://x/a"),
+        make_bike(id="b", category="Gravel", brand="Giant", vendor_name="Shop B",
+                  city="Melbourne", product_url="https://x/b"),
+    )
+    body = _filters(client)
+    assert body["categories"] == ["Gravel", "Road"]
+    assert body["brands"] == ["Giant", "Trek"]
+    assert body["vendors"] == ["Shop A", "Shop B"]
+    assert body["cities"] == ["Melbourne", "Sydney"]
+    assert body["total_bikes"] == 2
+
+
+def test_each_facet_excludes_itself(client, seed):
+    """Picking Road must not reduce the category list to just Road — that traps
+    the visitor with no way back. Every *other* facet does narrow."""
+    seed(
+        make_bike(id="a", category="Road", brand="Trek", product_url="https://x/a"),
+        make_bike(id="b", category="Gravel", brand="Giant", product_url="https://x/b"),
+    )
+    body = _filters(client, category="Road")
+    assert body["categories"] == ["Gravel", "Road"], "the category facet ignores itself"
+    assert body["brands"] == ["Trek"], "other facets still narrow"
+
+
+def test_facet_values_are_sorted(client, seed):
+    seed(
+        make_bike(id="a", brand="Zeta", product_url="https://x/a"),
+        make_bike(id="b", brand="Alpha", product_url="https://x/b"),
+        make_bike(id="c", brand="Mid", product_url="https://x/c"),
+    )
+    assert _filters(client)["brands"] == ["Alpha", "Mid", "Zeta"]
+
+
+def test_facets_omit_nulls(client, seed):
+    seed(
+        make_bike(id="a", city=None, frame_material=None, drivetrain_groupset=None,
+                  product_url="https://x/a"),
+        make_bike(id="b", city="Perth", frame_material="Carbon",
+                  drivetrain_groupset="Shimano 105", product_url="https://x/b"),
+    )
+    body = _filters(client)
+    assert body["cities"] == ["Perth"]
+    assert body["frame_materials"] == ["Carbon"]
+    assert body["drivetrain_groupsets"] == ["Shimano 105"]
+
+
+def test_ranges_and_price_filter_interaction(client, seed):
+    seed(
+        make_bike(id="a", price_sale=500.0, price_original=1000.0,
+                  discount_percentage=50, product_url="https://x/a"),
+        make_bike(id="b", price_sale=5000.0, price_original=6000.0,
+                  discount_percentage=17, product_url="https://x/b"),
+    )
+    body = _filters(client)
+    assert body["price_range"] == {"min": 500.0, "max": 5000.0}
+    assert body["discount_range"] == {"min": 17, "max": 50}
+
+    # price_range is the slider's *bounds*, so it deliberately ignores the
+    # price filters themselves — shrinking it to the current selection would
+    # leave no way to widen it again.
+    narrowed = _filters(client, max_price=1000)
+    assert narrowed["price_range"] == {"min": 500.0, "max": 5000.0}
+    # And an out-of-range price must not empty the discrete facets either.
+    assert narrowed["categories"] == body["categories"]
+
+
+def test_out_of_stock_is_excluded_from_every_facet(client, seed):
+    seed(
+        make_bike(id="a", brand="Trek", in_stock=True, product_url="https://x/a"),
+        make_bike(id="b", brand="Gone", in_stock=False, product_url="https://x/b"),
+    )
+    body = _filters(client)
+    assert body["brands"] == ["Trek"]
+    assert body["total_bikes"] == 1
+
+
+def test_filters_endpoint_stays_within_its_round_trip_budget(client, seed, sync_engine):
+    """The point of the UNION ALL: this endpoint is round-trip bound.
+
+    It used to issue eleven sequential statements and took ~0.8s in production
+    against a remote Postgres, where /bikes took ~0.28s over the same table.
+    Adding a separate query per facet is the easy way to put that back, so the
+    budget is asserted rather than left as a comment.
+
+    Five, not four: the seven facets share one UNION ALL, and the discount range
+    and price range are one query each, but the chain-collapsed total is a
+    GROUP BY count and cannot ride along with the min/max aggregates.
+    """
+    from sqlalchemy import event
+
+    seed(make_bike(id="a"))
+    statements = []
+
+    engine = main_module.get_engine().sync_engine
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def _record(conn, cursor, statement, *args):
+        statements.append(statement)
+
+    try:
+        assert client.get("/api/v1/meta/filters").status_code == 200
+    finally:
+        event.remove(engine, "before_cursor_execute", _record)
+
+    assert len(statements) <= 5, (
+        f"{len(statements)} round trips; the seven facets should share one "
+        f"statement:\n" + "\n".join(" ".join(s.split())[:90] for s in statements)
+    )
