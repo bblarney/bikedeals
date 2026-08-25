@@ -95,6 +95,8 @@ async def main() -> None:
 
     non_bikes_by_reason: Counter = Counter()
     non_bikes_by_vendor: Counter = Counter()
+    bad_rrp_by_reason: Counter = Counter()
+    bad_rrp_by_vendor: Counter = Counter()
 
     vendors = load_registry()
     # Randomise order so the same vendors aren't always the ones scraped first
@@ -140,6 +142,9 @@ async def main() -> None:
             if result.non_bike_count:
                 non_bikes_by_reason.update(result.non_bike_reasons)
                 non_bikes_by_vendor[result.vendor_name] += result.non_bike_count
+            if result.implausible_rrp_count:
+                bad_rrp_by_reason.update(result.implausible_rrp_reasons)
+                bad_rrp_by_vendor[result.vendor_name] += result.implausible_rrp_count
 
             if result.error:
                 logging.error("Vendor %r failed: %s", result.vendor_name, result.error)
@@ -248,6 +253,11 @@ async def main() -> None:
         "non_bikes_dropped": sum(non_bikes_by_reason.values()),
         "non_bikes_by_reason": dict(non_bikes_by_reason.most_common()),
         "non_bikes_by_vendor": dict(non_bikes_by_vendor.most_common(10)),
+        # Fabricated discounts we refused to publish. Visible every run: the
+        # default sort is discount_desc, so a shop typo lands on the homepage.
+        "implausible_rrp_dropped": sum(bad_rrp_by_reason.values()),
+        "implausible_rrp_by_reason": dict(bad_rrp_by_reason.most_common()),
+        "implausible_rrp_by_vendor": dict(bad_rrp_by_vendor.most_common(10)),
         "failures": failures,
         "warnings": warnings,
     }

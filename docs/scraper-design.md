@@ -279,6 +279,50 @@ keep them in the ratio's *denominator* for the same reason.
 
 ---
 
+### Implausible RRPs
+
+The default sort is `discount_desc`, so the largest discount in the catalogue is
+the first thing every visitor sees. On 2026-08-25 that was:
+
+> **91% off** — Giant Propel Advanced Pro 0-Di2 2027, was **$84,990**, now $7,799
+
+It is not a deal. Saint Cloud's feed lists six variants of that bike, five with
+`compare_at_price` `8499.00` and the XL with `84990.00` — a stray zero at the
+source, scraped faithfully and promoted to the top of the homepage.
+
+`scrapers/price_sanity.py` compares a variant's RRP to its **siblings**: the
+sizes of one bike carry the same RRP, so one that is several times the others is
+a typo. This also catches a typo that produces a *plausible-looking* 40%
+discount, which a discount cap never could.
+
+A cap is also hard to place honestly. The live distribution is:
+
+    >=50%: 77 listings      >=65%:  2
+    >=55%: 16               >=70%:  1
+    >=60%:  4               >=91%:  1
+
+The 69% Cannondale SuperSix EVO Neo and the 62% Focus VICE are real run-out
+clearances, so any cap tight enough to catch 91% sits in an arbitrary empty
+band. A cap survives only as a backstop for **single-variant** products, where
+there is nothing to compare against, set far above any genuine discount seen.
+
+Two things are load-bearing:
+
+- **Nothing is invented.** A rejected RRP is dropped and the discount goes to
+  zero. The bike stays in the catalogue at the price it really sells for,
+  without a fabricated saving beside it. Substituting the sibling median would
+  be publishing a number no shop ever quoted.
+- **Group on `(vendor, brand, model_name)`, never on `product_url`.** The URL
+  looks like the more precise key and is not: it is rewritten downstream for
+  affiliate vendors, where every product collapses onto one tracking link. An
+  early version grouped on it, put 538 unrelated Bikes Online products in a
+  single group, took the median of the whole catalogue, and condemned all 106
+  genuinely expensive bikes in it.
+
+Rejections are counted by reason and reported in the daily email.
+
+---
+
 ## Rate limiting
 
 Small local shops run on shared hosting. Be a polite scraper:
