@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
+from scrapers.brands import canonical_brand_name
+
 
 def make_bike_id(vendor_name: str, product_url: str, frame_size: str, city: str | None = None) -> str:
     key = f"{vendor_name}::{city or ''}::{product_url}::{frame_size}"
@@ -119,6 +121,15 @@ class BikeRecord(BaseModel):
     drivetrain_groupset: str | None = None
     # Derived from brand + sku, never set by a pipeline. See make_product_key.
     product_key: str | None = None
+
+    @model_validator(mode="after")
+    def normalise_brand(self) -> "BikeRecord":
+        # Declared BEFORE derive_product_key on purpose: after-validators run in
+        # declaration order, and product_key is <canonical brand>:<sku>. If the
+        # brand were normalised afterwards, two shops spelling it differently
+        # would still key differently and never be compared.
+        self.brand = canonical_brand_name(self.brand, self.model_name, self.vendor_name)
+        return self
 
     @model_validator(mode="after")
     def derive_product_key(self) -> "BikeRecord":

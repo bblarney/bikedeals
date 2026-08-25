@@ -135,6 +135,59 @@ variant title: colour names like "Forge Grey" or "DISRUPT Camo" share no word wi
 the size vocabulary and end up in the size filter. A product with no size axis
 records `"N/A"` and is kept, not dropped.
 
+### Brand normalisation
+
+The brand facet had **246 entries for about 190 real brands** — every kind of
+duplicate at once:
+
+| Kind | Example |
+|---|---|
+| casing | `FELT` / `Felt`, `GT` / `Gt`, `MONGOOSE` / `Mongoose` |
+| corporate suffix | `Norco` / `Norco Bicycles` / `Norco Bikes` |
+| accents | `Cervelo` / `CERVELO` / `Cervélo` |
+| punctuation | `X-LAB` / `X-Lab` / `X-lab` / `XLAB` |
+| wording | `AMPD BROS` / `AMPD BROTHERS`, `ET Cycle` / `ET-Cycles` / `ET.CYCLE` |
+
+The split is not only cosmetic: `product_key` is `<canonical brand>:<sku>`, so
+two shops selling the same bike as "Cervelo" and "Cervélo" are never compared.
+`make_product_key` already strips suffixes, which is why `Norco Bicycles`
+matched `Norco` — but it does not strip accents, so those did not.
+
+`scrapers/brands.py` runs as a `BikeRecord` validator, so all six pipelines get
+it. (The global alias table it replaces lived in the Shopify pipeline and
+covered one.) Per-vendor `brand_map` overrides in the YAML still apply first.
+
+Two mechanisms:
+
+- **Folding** — strip accents, case, punctuation and corporate suffixes to a
+  key, then look up the one spelling to display. **An unknown key keeps the
+  brand exactly as scraped**: normalising must never invent a brand.
+- **Recovery** — when the brand names the shop or a distributor rather than a
+  manufacturer, read the brand off the front of the model name:
+
+  | Brand as scraped | Model name | Recovered |
+  |---|---|---|
+  | `Advance Traders` | `Merida eBIG NINE 600` | Merida |
+  | `Bicycle Workshop` | `Giant TCR Advanced Disc 1` | Giant |
+  | `Pon Performance` | `2025 Santa Cruz Nomad` | Santa Cruz |
+  | `Not specified` | `JAMIS Durango A2 19` | Jamis |
+  | `global` | `Icon EB One` | Icon |
+
+  A shop using its own name as the brand is detected by comparing against
+  `vendor_name`, so there is no list of shop names to maintain. Recovery can
+  only return a brand already in the vocabulary, and is allowed to **fail** —
+  which is what keeps Progear Bikes' own-brand bikes labelled Progear.
+
+The Giant franchise (22 storefronts, each able to put its shop name in the brand
+field) is handled by a prefix rule rather than 22 table entries, because a table
+goes stale the next time a store is added — the same failure mode as the Worker
+allowlist. Prefix matching is used **only** there, and only because no other
+bicycle brand starts with those letters; `scrapers/models.py` documents why
+"Liv" must never prefix-match "Live Life Cycling".
+
+No migration: `upsert_bikes` refreshes `brand` and `product_key` on every run,
+so the catalogue converges on the next nightly scrape.
+
 ### Accessory filtering
 
 Shops file frames, scooters, chargers and helmets under a bike `product_type`.
