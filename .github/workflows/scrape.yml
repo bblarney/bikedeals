@@ -73,6 +73,19 @@ jobs:
                   f"Vendors failed: {s['vendors_failed']}",
                   f"Bikes upserted: {s['total_bikes_upserted']}",
               ]
+              # Fabricated discounts. The default sort is discount_desc, so a
+              # shop's typo is the first thing a visitor sees — worth watching.
+              bad_rrp = s.get("implausible_rrp_dropped", 0)
+              if bad_rrp:
+                  lines += ["", f"Implausible RRPs dropped: {bad_rrp}"]
+                  for reason, n in s.get("implausible_rrp_by_reason", {}).items():
+                      lines.append(f"  - {clean(reason)}: {n}")
+                  by_vendor = s.get("implausible_rrp_by_vendor", {})
+                  if by_vendor:
+                      lines.append("  top vendors: " + ", ".join(
+                          f"{clean(v)} ({n})" for v, n in by_vendor.items()
+                      ))
+
               if s["failures"]:
                   lines += ["", "Failures:"]
                   for f in s["failures"]:

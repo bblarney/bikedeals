@@ -140,4 +140,10 @@ class ScrapeResult(BaseModel):
     vendor_name: str
     bikes: list[BikeRecord]
     invalid_count: int = 0
+    # RRPs a shop published that its own sibling variants contradict. These are
+    # NOT invalid records — the bike is real and is kept, only its fabricated
+    # discount is dropped — so they stay out of invalid_count and the 5%
+    # quarantine ratio. See scrapers.price_sanity.
+    implausible_rrp_count: int = 0
+    implausible_rrp_reasons: dict[str, int] = {}
     error: str | None = None

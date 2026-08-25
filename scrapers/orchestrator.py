@@ -11,6 +11,7 @@ from scrapers.pipelines.giant import scrape_giant
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
 from scrapers.pipelines.woocommerce_api import scrape_woocommerce_api
+from scrapers.price_sanity import drop_implausible_rrp
 from scrapers.utils import redact_proxy
 
 logger = logging.getLogger(__name__)
@@ -45,10 +46,21 @@ async def scrape_vendor(
                 bikes, invalid_count = await scrape_canyon(config, client)
             else:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
+            # Every pipeline funnels through here, so the RRP sanity check runs
+            # once rather than in six places.
+            bikes, bad_rrp = drop_implausible_rrp(bikes)
+            if bad_rrp:
+                logger.info(
+                    "[%s] Dropped %d implausible RRP(s): %s",
+                    config.vendor_name, sum(bad_rrp.values()),
+                    ", ".join(f"{r}={n}" for r, n in sorted(bad_rrp.items())),
+                )
             return ScrapeResult(
                 vendor_name=config.vendor_name,
                 bikes=bikes,
                 invalid_count=invalid_count,
+                implausible_rrp_count=sum(bad_rrp.values()),
+                implausible_rrp_reasons=bad_rrp,
             )
         except Exception as exc:
             # ScrapeResult.error travels into scrape_summary.json and the daily
