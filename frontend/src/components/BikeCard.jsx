@@ -21,6 +21,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     brand,
     model_name,
     frame_size,
+    frame_size_canonical,
     category,
     price_sale,
     price_original,
@@ -174,7 +175,9 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           </span>
         </div>
         <p className="text-xs text-slate-400 mt-0.5 truncate">
-          {[category, frame_size && `Size ${frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
+          {/* The canonical size is the one that matches the filter the visitor
+              just used; the shop's own wording is on the detail page. */}
+          {[category, (frame_size_canonical || frame_size) && `Size ${frame_size_canonical || frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
         </p>
 
         {/* CTA pinned to bottom */}

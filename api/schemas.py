@@ -10,7 +10,11 @@ class BikeResponse(BaseModel):
     brand: str
     model_name: str
     category: str
+    # frame_size is the shop's own wording; frame_size_canonical is that size on
+    # a shared scale, or null when the shop published nothing usable. Clients
+    # should show the canonical one and fall back to the raw.
     frame_size: str
+    frame_size_canonical: str | None = None
     price_original: float | None
     price_sale: float
     discount_percentage: int

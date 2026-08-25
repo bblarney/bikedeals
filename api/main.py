@@ -16,10 +16,12 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import distinct, func, select, text, update
+from sqlalchemy import distinct, false, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
+
+from scrapers.utils import canonical_frame_size
 
 from api.db import get_db, get_engine
 from api.models import Base, Bike, PriceEvent, ScrapeLog, Subscriber
@@ -211,6 +213,23 @@ CACHE_STATS = "max-age=300"   # 5 min — stats change only after a scrape run
 _ADDED_SINCE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
 
 
+# Smallest to largest, so a size list reads the way a size chart does. Alpha
+# sizes first, then centimetres, then inches, then anything uncanonicalised.
+_ALPHA_ORDER = ("XXXS", "XXS", "XS", "S", "S/M", "M", "M/L", "L", "XL", "XXL", "XXXL")
+
+
+def _size_sort_key(size: str | None) -> tuple:
+    if not size:
+        return (4, 0.0, "")
+    if size in _ALPHA_ORDER:
+        return (0, float(_ALPHA_ORDER.index(size)), "")
+    if size.endswith("cm"):
+        return (1, float(size[:-2]), "")
+    if size.endswith('"'):
+        return (2, float(size[:-1]), "")
+    return (3, 0.0, size)
+
+
 def _added_since_cutoff(added_since: str) -> datetime:
     # Quantize "now" to the start of the current hour so identical requests
     # within the hour share a cache key and a DB query plan.
@@ -241,7 +260,14 @@ def _apply_filters(
     if category:
         query = query.where(Bike.category.in_(category))
     if size:
-        query = query.where(Bike.frame_size.in_(size))
+        # Canonicalise the *input* too, so a bookmarked ?size=Large from before
+        # sizes were normalised still resolves — to "L", the same value the
+        # facet now offers.
+        wanted = {canonical_frame_size(s) for s in size}
+        wanted.discard(None)
+        # Every requested size was uncanonicalisable (e.g. a stale ?size=Chrome
+        # Blue): match nothing rather than silently ignoring the filter.
+        query = query.where(Bike.frame_size_canonical.in_(wanted)) if wanted else query.where(false())
     if vendor:
         query = query.where(Bike.vendor_name.in_(vendor))
     if brand:
@@ -426,18 +452,27 @@ async def get_bike(
         )
         .order_by(Bike.price_sale.asc())
     )
+    # Group on the canonical size, not the raw one: two shops listing the same
+    # model as "L" and "LARGE - 56" were offered as two different sizes to pick
+    # between. Raw is the fallback so a size we cannot canonicalise still
+    # appears once rather than merging into a single null bucket.
     cheapest_per_size: dict[str, Bike] = {}
     for b in var_rows.scalars().all():
-        if b.frame_size not in cheapest_per_size:
-            cheapest_per_size[b.frame_size] = b
+        key = b.frame_size_canonical or b.frame_size
+        if key not in cheapest_per_size:
+            cheapest_per_size[key] = b
     variants = [
         VariantResponse(
             bike_id=b.id,
-            frame_size=b.frame_size,
+            frame_size=b.frame_size_canonical or b.frame_size,
             price_sale=b.price_sale,
             in_stock=b.in_stock,
         )
-        for b in sorted(cheapest_per_size.values(), key=lambda x: x.frame_size or "")
+        # Alphabetical ordered sizes as L, M, S, XL. Sort on the scale instead.
+        for b in sorted(
+            cheapest_per_size.values(),
+            key=lambda x: _size_sort_key(x.frame_size_canonical or x.frame_size),
+        )
     ]
 
     detail = BikeDetailResponse.model_validate(primary)
@@ -538,7 +573,9 @@ async def get_filters(
     in_stock_clause = Bike.in_stock == True  # noqa: E712
     categories_r    = await db.execute(facet_query(Bike.category,    "category"))
     cities_r        = await db.execute(facet_query(Bike.city,        "city").where(Bike.city.isnot(None)))
-    sizes_r         = await db.execute(facet_query(Bike.frame_size,  "size"))
+    sizes_r         = await db.execute(
+        facet_query(Bike.frame_size_canonical, "size").where(Bike.frame_size_canonical.isnot(None))
+    )
     vendors_r       = await db.execute(facet_query(Bike.vendor_name, "vendor"))
     brands_r        = await db.execute(facet_query(Bike.brand,       "brand"))
     materials_r     = await db.execute(
@@ -565,7 +602,9 @@ async def get_filters(
     return FiltersResponse(
         categories=[r[0] for r in categories_r.all()],
         cities=[r[0] for r in cities_r.all()],
-        sizes=[r[0] for r in sizes_r.all()],
+        # Ordered on the size scale — the SQL ORDER BY is alphabetical, which
+        # lists a size chart as 12", 16", L, M, S, XL.
+        sizes=sorted((r[0] for r in sizes_r.all()), key=_size_sort_key),
         vendors=[r[0] for r in vendors_r.all()],
         brands=[r[0] for r in brands_r.all()],
         frame_materials=[r[0] for r in materials_r.all()],

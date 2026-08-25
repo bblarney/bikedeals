@@ -167,9 +167,10 @@ def test_bike_detail_lists_size_variants(client, seed):
                   vendor_name="Other Cycles", price_sale=1550.0, product_url="https://x/m2"),
     )
     body = client.get("/api/v1/bikes/m1").json()
-    # One entry per size (cheapest), current size included.
+    # One entry per size (cheapest), current size included, ordered on the size
+    # scale. Sorting these alphabetically listed a size picker as L, M, S, XL.
     assert [(v["frame_size"], v["bike_id"]) for v in body["variants"]] == [
-        ("L", "l1"), ("M", "m1"),
+        ("M", "m1"), ("L", "l1"),
     ]
 
 
@@ -299,6 +300,56 @@ def test_listing_without_sku_has_no_product_key_and_stands_alone(client, seed):
     assert body["shop_count"] == 1
     assert body["sku_vendor_count"] == 0
 
+
+# --- the size filter works on the canonical scale ---------------------------
+
+def test_size_filter_matches_every_spelling_of_one_size(client, seed):
+    """The live facet had thirty spellings of Large. Picking one must return all."""
+    seed(
+        make_bike(id="a", frame_size="L", product_url="https://x/a"),
+        make_bike(id="b", frame_size="LARGE - 56", product_url="https://x/b"),
+        make_bike(id="c", frame_size="Large 29\" Wheels", product_url="https://x/c"),
+        make_bike(id="d", frame_size="LRG", product_url="https://x/d"),
+        make_bike(id="e", frame_size="M", product_url="https://x/e"),
+    )
+    body = client.get("/api/v1/bikes", params={"size": "L"}).json()
+    assert body["total"] == 4
+    assert {b["id"] for b in body["results"]} == {"a", "b", "c", "d"}
+
+
+def test_size_filter_still_honours_a_bookmarked_raw_value(client, seed):
+    # A link shared before sizes were normalised said ?size=Large.
+    seed(make_bike(id="a", frame_size="LARGE - 56"))
+    assert client.get("/api/v1/bikes", params={"size": "Large"}).json()["total"] == 1
+
+
+def test_size_filter_on_a_non_size_matches_nothing(client, seed):
+    seed(make_bike(id="a", frame_size="L"))
+    body = client.get("/api/v1/bikes", params={"size": "Chrome Blue"}).json()
+    assert body["total"] == 0, "must not silently ignore the filter and return everything"
+
+
+def test_size_facet_is_deduped_and_ordered_on_the_scale(client, seed):
+    seed(
+        make_bike(id="a", frame_size="LARGE", product_url="https://x/a"),
+        make_bike(id="b", frame_size="Lg", product_url="https://x/b"),
+        make_bike(id="c", frame_size="XS", product_url="https://x/c"),
+        make_bike(id="d", frame_size="MEDIUM", product_url="https://x/d"),
+        make_bike(id="e", frame_size="54cm", product_url="https://x/e"),
+        make_bike(id="f", frame_size="16 inch", product_url="https://x/f"),
+        # Neither of these names a size, so neither should pad the dropdown.
+        make_bike(id="g", frame_size="N/A", product_url="https://x/g"),
+        make_bike(id="h", frame_size="Chrome Blue", product_url="https://x/h"),
+    )
+    sizes = client.get("/api/v1/meta/filters").json()["sizes"]
+    assert sizes == ["XS", "M", "L", "54cm", '16"']
+
+
+def test_raw_size_is_still_returned_for_display(client, seed):
+    seed(make_bike(id="a", frame_size="LARGE - 56"))
+    bike = client.get("/api/v1/bikes").json()["results"][0]
+    assert bike["frame_size"] == "LARGE - 56"
+    assert bike["frame_size_canonical"] == "L"
 
 # --- chain storefronts are one listing, not N ------------------------------
 #

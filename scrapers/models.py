@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
+from scrapers.utils import canonical_frame_size
+
 
 def make_bike_id(vendor_name: str, product_url: str, frame_size: str, city: str | None = None) -> str:
     key = f"{vendor_name}::{city or ''}::{product_url}::{frame_size}"
@@ -102,7 +104,11 @@ class BikeRecord(BaseModel):
     brand: str
     model_name: str
     category: Literal["Road", "Mountain", "Gravel", "E-Bike", "Commuter"]
+    # As the shop published it. Keep it: make_bike_id hashes this, so it is what
+    # holds every detail URL and every price_events row in place.
     frame_size: str
+    # Derived from frame_size, never set by a pipeline. See canonical_frame_size.
+    frame_size_canonical: str | None = None
     price_original: float | None
     price_sale: float
     discount_percentage: int
@@ -119,6 +125,13 @@ class BikeRecord(BaseModel):
     drivetrain_groupset: str | None = None
     # Derived from brand + sku, never set by a pipeline. See make_product_key.
     product_key: str | None = None
+
+    @model_validator(mode="after")
+    def derive_frame_size_canonical(self) -> "BikeRecord":
+        # Always recomputed for the same reason product_key is: a pipeline that
+        # hand-set this would put a size in the filter that no shop published.
+        self.frame_size_canonical = canonical_frame_size(self.frame_size)
+        return self
 
     @model_validator(mode="after")
     def derive_product_key(self) -> "BikeRecord":
