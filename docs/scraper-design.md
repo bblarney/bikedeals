@@ -176,9 +176,53 @@ only an explicit separator (`S\M`, `Small/Medium`) reads as the intermediate.
 
 ### Accessory filtering
 
-Shops file frames, scooters, chargers and helmets under a bike `product_type`.
-`_is_accessory()` matches an accessory-word set against both `product_type` and
-the title, and those products are skipped before validation.
+Shops file frames, scooters, chargers and helmets under a bike `product_type`,
+so two screens run at different altitudes.
+
+**Category metadata — `_is_accessory()` in the Shopify pipeline.** Matches an
+accessory-word set against `product_type` only, and skips the product before
+validation. Aggressive matching is safe here: a `product_type` of "Brakes" or
+"Chargers" is unambiguously a part.
+
+**Product titles — `scrapers/product_filter.py`, applied in the orchestrator.**
+Runs for all six pipelines, not just Shopify, and screens on the title, the
+frame size and the price. Three rules, each independently defensible:
+
+1. An accessory noun in the name, word-bounded so "Ultralite" is not a light and
+   "tubeless" is not a tube.
+2. A frame size that is a tyre width — a frame is never `28mm`.
+3. A price floor of $80. The cheapest genuine complete bike in the live
+   catalogue is an $89 kids' bike; below that, everything was an accessory.
+
+Titles are deliberately screened more conservatively than `product_type`. The
+terms are tuned against the live catalogue, and the failure mode that matters is
+deleting a real bike, not missing an accessory. Measured false positives that
+shaped the list:
+
+| Term | Real bikes it deleted |
+|---|---|
+| `battery` | 84 e-bikes advertising "630Wh Battery" in the name |
+| `charger` | Norco Charger, Riese & Müller Charger5 |
+| `wheel` / `wheelset` | "3 Wheel E-Trike", "Tero X 4.0 (29/27.5 Wheelset…)" |
+| `rim` | "Merida Scultura Rim 100", a rim-brake road bike |
+| `brake` | "Malvern Star Attitude (Disc brake) 24\"" |
+| `\d{2,3}x\d` | ByK's kids bikes, whose model names *are* "E-450x8" |
+| brand `ENVE` | "ENVE Melee" complete build, $13,500 |
+| brand `Hornit` | the Hornit AIRO balance bike |
+
+Moving title screening off the Shopify word set is not only a safety change, it
+recovers stock. Two pages of one vendor (Crooze) returned 34 more bikes, and
+every recovered title was real: five BYK "9 Speed Disc Brake" kids bikes, five
+FirstBIKE and four Kids Ride Shotgun balance bikes "with Brake", the Early Rider
+Charger, and two Shogun e-bikes whose colour is "Light Grey".
+
+Rejections are counted by reason and reported in the daily email, so a
+mis-tuned rule shows up as a spike rather than as silent catalogue shrinkage.
+
+They are **not** counted in `invalid_count`: that feeds the 5% quarantine ratio,
+and a shop that legitimately lists accessories in its bike collection would
+otherwise quarantine itself every night. `run.py` and `scrape_check.py` both
+keep them in the ratio's *denominator* for the same reason.
 
 ---
 

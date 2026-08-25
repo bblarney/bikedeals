@@ -350,3 +350,106 @@ def test_raw_size_is_still_returned_for_display(client, seed):
     bike = client.get("/api/v1/bikes").json()["results"][0]
     assert bike["frame_size"] == "LARGE - 56"
     assert bike["frame_size_canonical"] == "L"
+
+# --- chain storefronts are one listing, not N ------------------------------
+#
+# scrapers/pipelines/shopify.py fans a national chain out to one record per
+# city, copying product_url and frame_size and varying only city and id. The
+# feed showed every copy: three chains alone (99 Bikes x8, Bicycle Centre x11,
+# Bikes Online x5) were 44% of the live catalogue. These seed rows mirror that
+# fan-out exactly.
+
+def _chain_rows(cities, *, product_url="https://x/chain/propel", **overrides):
+    # id mirrors make_bike_id's inputs (vendor, url, size, city) closely enough
+    # to stay unique per storefront, which is the whole point of the fan-out.
+    tag = f"{product_url.rsplit('/', 1)[-1]}-{overrides.get('frame_size', 'M')}"
+    return [
+        make_bike(
+            id=f"chain-{tag}-{c}", vendor_name="99 Bikes", city=c,
+            product_url=product_url, **overrides,
+        )
+        for c in cities
+    ]
+
+
+def test_chain_storefronts_collapse_to_one_feed_row(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 1, "one listing at four shopfronts is one listing"
+    assert len(body["results"]) == 1
+    assert body["results"][0]["location_count"] == 4
+
+
+def test_collapsed_row_is_the_cheapest_storefront(client, seed):
+    rows = _chain_rows(["Sydney", "Melbourne"])
+    rows[0].price_sale = 1400.0   # Sydney
+    rows[1].price_sale = 1200.0   # Melbourne undercuts
+    seed(*rows)
+
+    result = client.get("/api/v1/bikes").json()["results"][0]
+    assert result["price_sale"] == 1200.0
+    assert result["city"] == "Melbourne"
+
+
+def test_city_filter_narrows_before_collapsing(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane"]))
+    body = client.get("/api/v1/bikes", params={"city": "Brisbane"}).json()
+
+    assert body["total"] == 1
+    assert body["results"][0]["city"] == "Brisbane"
+    # In Brisbane it really is one shop, so there is no "+N more" to show.
+    assert body["results"][0]["location_count"] == 1
+
+
+def test_collapse_keeps_distinct_products_and_sizes_apart(client, seed):
+    seed(
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="M"),
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="L"),
+        *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/b", frame_size="M"),
+    )
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 3, "two sizes of one product plus a second product"
+    assert {b["location_count"] for b in body["results"]} == {2}
+
+
+def test_same_product_at_two_vendors_is_not_collapsed(client, seed):
+    seed(
+        make_bike(id="a", vendor_name="Shop A", product_url="https://x/p"),
+        make_bike(id="b", vendor_name="Shop B", product_url="https://x/p"),
+    )
+    assert client.get("/api/v1/bikes").json()["total"] == 2
+
+
+def test_total_bikes_matches_the_collapsed_feed(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    # The header's trust number and the feed must not disagree.
+    assert client.get("/api/v1/meta/filters").json()["total_bikes"] == 1
+    assert client.get("/api/v1/meta/stats").json()["new_today"] == 1
+
+
+def test_sitemap_advertises_one_url_per_listing(client, seed):
+    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
+    sitemap = client.get("/sitemap.xml").text
+    feed_id = client.get("/api/v1/bikes").json()["results"][0]["id"]
+
+    assert sitemap.count("/bikes/") == 1
+    # Same pick order as the feed, or we advertise a URL the site doesn't link.
+    assert f"/bikes/{feed_id}" in sitemap
+
+
+def test_pagination_does_not_repeat_rows_across_pages(client, seed):
+    # Every row ties on the sort key, which is the shape half the live feed has
+    # (0% discount). Without a unique tiebreak the DB may order ties differently
+    # per query, dropping and repeating rows between pages.
+    seed(*[
+        make_bike(id=f"tie-{i}", discount_percentage=0, price_original=None,
+                  product_url=f"https://x/tie/{i}")
+        for i in range(10)
+    ])
+    page1 = client.get("/api/v1/bikes", params={"limit": 5, "offset": 0}).json()["results"]
+    page2 = client.get("/api/v1/bikes", params={"limit": 5, "offset": 5}).json()["results"]
+
+    ids = [b["id"] for b in page1] + [b["id"] for b in page2]
+    assert len(set(ids)) == 10
