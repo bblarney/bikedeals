@@ -27,18 +27,6 @@ export default function Header({ total, lastScrapedAt, params, onOpenSidebar }) 
         <FlagAU className="h-3.5 w-7 rounded-[2px] ring-1 ring-white/20 flex-shrink-0" />
       </Link>
 
-      {/* Outside the {params && ...} block on purpose: StaticLayout renders
-          the header with no props, so anything gated on params disappears on
-          every route except the feed. */}
-      <nav className="flex-shrink-0">
-        <Link
-          to="/trends"
-          className="text-sm text-slate-300 hover:text-white transition whitespace-nowrap"
-        >
-          Trends
-        </Link>
-      </nav>
-
       {params && (
         <>
           <div className="flex-1 flex items-center justify-center min-w-0">

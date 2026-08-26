@@ -385,7 +385,7 @@ def _order_by(entity, sort: str):
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
 CACHE_FILTERS = "max-age=60"  # 1 min — filters change when vendors are added
 CACHE_STATS = "max-age=300"   # 5 min — stats change only after a scrape run
-CACHE_MARKET = "max-age=3600" # 1 hr: the market page only moves after a run
+CACHE_MARKET = "max-age=3600" # 1 hr: the market page only moves once a night
 
 _ADDED_SINCE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
 
@@ -911,7 +911,7 @@ async def get_stats(
 # The site knows what is on Australian shop floors today, and nothing about what
 # was on them last month: bikes is UPSERT-in-place, so yesterday's attributes are
 # overwritten. These aggregations are therefore all cross-sectional: the shape
-# of the current catalogue, re-derived after every scrape run.
+# of the current catalogue, re-derived nightly.
 
 # Every chart below shares one row shape so the eight aggregations can be one
 # UNION ALL rather than eight round trips, for the reason /meta/filters
@@ -973,7 +973,7 @@ def _rollup(points, chart, series_of, keep_bucket=True):
 
 
 # Recomputing this costs a full scan plus eight aggregations, and the answer
-# only changes after the nightly scrape run, so one request an hour pays for it
+# only changes once a night, so one request an hour pays for it
 # and the rest are served from memory. Per process, which is fine: it is a cache,
 # not a source of truth. Tests set the TTL to 0 so each one sees its own seed.
 _MARKET_CACHE_TTL = int(os.getenv("MARKET_CACHE_TTL", "3600"))

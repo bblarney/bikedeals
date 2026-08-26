@@ -199,8 +199,8 @@ export default function TrendsPage() {
           <p>
             Every figure here counts listings, not shops and not sizes: a bike published in five
             sizes across three of a chain's stores is one listing, the same way it is one card in
-            the feed. Only in-stock listings are counted, and the whole page is rebuilt after each
-            nightly scrape run.
+            the feed. Only in-stock listings are counted, and the whole page is rebuilt every
+            night.
           </p>
           <p>
             Frame material and drivetrain are read out of the shop's own product description, and
