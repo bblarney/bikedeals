@@ -40,6 +40,15 @@ class BikeResponse(BaseModel):
     # and this is what lets the card still say "at 8 stores". Always 1 once the
     # feed is filtered to a city.
     location_count: int = 1
+    # Every size this vendor stocks of the product, smallest first. The feed
+    # returns one row per product rather than one per size, and this is what the
+    # card shows in place of the sizes it collapsed; the row's own frame_size is
+    # one of them. Narrows with ?size=, exactly as location_count narrows with
+    # ?city=. Empty when the shop published no usable size ("One Size", "N/A").
+    #
+    # Feed-only: the detail response carries `variants` instead, which is richer
+    # (a bike id and a price per size) and spans every shop, not just this one.
+    sizes: list[str] = []
 
     model_config = {"from_attributes": True}
 

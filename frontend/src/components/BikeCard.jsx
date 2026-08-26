@@ -4,6 +4,10 @@ import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 import { recencyFlags } from '../lib/badges'
 
+// Enough chips to read a size run (XS-XL is six) without the row wrapping to a
+// third line on a phone; the rest become a "+N".
+const MAX_SIZE_CHIPS = 5
+
 // Image and product URLs come from scraped third-party data. Only trust http(s)
 // sources (defence-in-depth against javascript:/data: and other schemes).
 function isHttpUrl(value) {
@@ -35,6 +39,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     product_key,
     sku_vendor_count,
     location_count = 1,
+    sizes = [],
   } = bike
 
   const navigate = useNavigate()
@@ -46,6 +51,14 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
   const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
     ? model_name.slice(brand.length).trim()
     : model_name
+
+  // One card is one product, so the sizes behind it go in a chip row. A single
+  // size stays in the spec line below — a lone chip looks like a filter you can
+  // press, and none of them are pressable.
+  const displaySize = frame_size_canonical || frame_size
+  const sizeChips = sizes.length > 1 ? sizes : []
+  const shownChips = sizeChips.slice(0, MAX_SIZE_CHIPS)
+  const hiddenChipCount = sizeChips.length - shownChips.length
 
   // The card body opens the detail / comparison page. Outbound shop links live
   // on the explicit "View deal" button (and the detail page CTAs), which record
@@ -176,9 +189,30 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
         </div>
         <p className="text-xs text-slate-400 mt-0.5 truncate">
           {/* The canonical size is the one that matches the filter the visitor
-              just used; the shop's own wording is on the detail page. */}
-          {[category, (frame_size_canonical || frame_size) && `Size ${frame_size_canonical || frame_size}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
+              just used; the shop's own wording is on the detail page. It moves
+              to the chip row below as soon as there is more than one. */}
+          {[category, sizeChips.length === 0 && displaySize && `Size ${displaySize}`, frame_material, drivetrain_groupset].filter(Boolean).join(' · ')}
         </p>
+
+        {sizeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+            <span className="sr-only">Sizes available: {sizeChips.join(', ')}</span>
+            {shownChips.map((size) => (
+              <span
+                key={size}
+                aria-hidden="true"
+                className="inline-block text-[10px] font-medium leading-none text-slate-600 bg-slate-100 border border-slate-200 rounded px-1.5 py-1"
+              >
+                {size}
+              </span>
+            ))}
+            {hiddenChipCount > 0 && (
+              <span aria-hidden="true" className="text-[10px] leading-none text-slate-400">
+                +{hiddenChipCount}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* CTA pinned to bottom */}
         <div className="mt-auto pt-3">

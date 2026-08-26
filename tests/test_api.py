@@ -403,7 +403,7 @@ def test_city_filter_narrows_before_collapsing(client, seed):
     assert body["results"][0]["location_count"] == 1
 
 
-def test_collapse_keeps_distinct_products_and_sizes_apart(client, seed):
+def test_collapse_keeps_distinct_products_apart(client, seed):
     seed(
         *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="M"),
         *_chain_rows(["Sydney", "Melbourne"], product_url="https://x/a", frame_size="L"),
@@ -411,7 +411,7 @@ def test_collapse_keeps_distinct_products_and_sizes_apart(client, seed):
     )
     body = client.get("/api/v1/bikes").json()
 
-    assert body["total"] == 3, "two sizes of one product plus a second product"
+    assert body["total"] == 2, "one product in two sizes, plus a second product"
     assert {b["location_count"] for b in body["results"]} == {2}
 
 
@@ -438,6 +438,174 @@ def test_sitemap_advertises_one_url_per_listing(client, seed):
     assert sitemap.count("/bikes/") == 1
     # Same pick order as the feed, or we advertise a URL the site doesn't link.
     assert f"/bikes/{feed_id}" in sitemap
+
+
+# --- size variants are one card, not N -------------------------------------
+#
+# A shop publishes each size (and on Shopify each colourway) as its own variant
+# with its own ?variant= URL. Measured over 2,000 live rows sorted the way the
+# site opens, 49% of the feed was the same bike again in another size: page one
+# of "best deals" was six consecutive cards of one Giant Revolt X Advanced Pro.
+
+def _variant_rows(sizes, *, path="https://x/p/revolt", vendor="Test Cycles", **overrides):
+    """One row per size, spelled the way Shopify spells them: shared path,
+    per-variant query string."""
+    return [
+        make_bike(
+            id=f"var-{vendor}-{path[-6:]}-{i}", vendor_name=vendor,
+            product_url=f"{path}?variant={100 + i}", frame_size=s, **overrides,
+        )
+        for i, s in enumerate(sizes)
+    ]
+
+
+def test_sizes_of_one_product_collapse_to_one_card(client, seed):
+    seed(*_variant_rows(["S", "M", "L", "XL"]))
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 1, "four sizes of one bike is one bike"
+    # Smallest first, so the chip row reads the way a size chart does.
+    assert body["results"][0]["sizes"] == ["S", "M", "L", "XL"]
+
+
+def test_variant_query_string_does_not_defeat_the_collapse(client, seed):
+    # The whole reason the key uses the URL *path*: Shopify puts the variant id
+    # in the query, so the raw product_url is per-variant and never matches.
+    rows = _variant_rows(["S", "M"])
+    assert rows[0].product_url != rows[1].product_url
+    seed(*rows)
+
+    assert client.get("/api/v1/bikes").json()["total"] == 1
+
+
+def test_colourways_of_one_size_collapse_without_duplicating_the_chip(client, seed):
+    # One live Bikes Online product was 13 feed rows: 3 sizes in assorted
+    # colours, each its own variant, all at one price.
+    seed(*_variant_rows(["M", "M", "M", "S"]))
+    result = client.get("/api/v1/bikes").json()["results"][0]
+
+    assert result["sizes"] == ["S", "M"], "a size stocked in three colours is one size"
+
+
+def test_collapsed_card_fronts_the_cheapest_size(client, seed):
+    rows = _variant_rows(["S", "M", "L"])
+    rows[0].price_sale = 2000.0
+    rows[1].price_sale = 1500.0   # M undercuts
+    rows[2].price_sale = 2000.0
+    seed(*rows)
+
+    result = client.get("/api/v1/bikes").json()["results"][0]
+    assert result["price_sale"] == 1500.0, "headline a price a buyer can pay"
+    assert result["frame_size"] == "M"
+    assert result["sizes"] == ["S", "M", "L"], "the other sizes are still offered"
+
+
+def test_same_model_at_two_urls_is_not_collapsed(client, seed):
+    # The conservative half of the key. A shop that lists one bike twice under
+    # two URLs is a real problem, but a different one — and two genuinely
+    # different products can share a brand and a model_name.
+    seed(
+        *_variant_rows(["S", "M"], path="https://x/p/revolt"),
+        *_variant_rows(["S", "M"], path="https://x/p/revolt-copy"),
+    )
+    assert client.get("/api/v1/bikes").json()["total"] == 2
+
+
+def test_same_product_at_two_vendors_keeps_its_own_card(client, seed):
+    seed(
+        *_variant_rows(["S", "M"], vendor="Shop A"),
+        *_variant_rows(["S", "M"], vendor="Shop B"),
+    )
+    body = client.get("/api/v1/bikes").json()
+    assert body["total"] == 2, "comparing shops is the point of the site"
+    assert {b["vendor_name"] for b in body["results"]} == {"Shop A", "Shop B"}
+
+
+def test_size_filter_narrows_the_sizes_a_card_lists(client, seed):
+    # Same rule as location_count under ?city=: a filtered feed answers
+    # questions about the filtered catalogue.
+    seed(*_variant_rows(["S", "M", "L"]))
+    result = client.get("/api/v1/bikes", params={"size": "L"}).json()["results"][0]
+
+    assert result["sizes"] == ["L"]
+
+
+def test_unusable_sizes_produce_no_chips_at_all(client, seed):
+    # "One Size" and "N/A" canonicalise to nothing. A chip reading N/A is worse
+    # than no chip row.
+    seed(*_variant_rows(["One Size", "N/A"]))
+    body = client.get("/api/v1/bikes").json()
+
+    assert body["total"] == 1
+    assert body["results"][0]["sizes"] == []
+
+
+def test_url_path_compiles_for_postgres_as_well_as_sqlite():
+    """The prod dialect is the one CI never runs.
+
+    Every test above proves the collapse on SQLite; production is Postgres, and
+    _url_path is the one piece of this feature whose SQL differs between them.
+    A broken Postgres branch does not fail a test, it 500s the main feed — so
+    pin both strings. Compilation is as far as this can go without a server:
+    that POSITION/SUBSTRING is valid Postgres is the standard's promise, not
+    something asserted here.
+    """
+    from sqlalchemy import select as sa_select
+    from sqlalchemy.dialects import postgresql, sqlite
+
+    from api.main import _url_path
+    from api.models import Bike
+
+    def sql(dialect):
+        return " ".join(
+            str(sa_select(_url_path(Bike.product_url)).compile(dialect=dialect)).split()
+        )
+
+    assert sql(postgresql.dialect()) == (
+        "SELECT CASE WHEN POSITION('?' IN bikes.product_url) > 0 "
+        "THEN SUBSTRING(bikes.product_url FROM 1 FOR POSITION('?' IN bikes.product_url) - 1) "
+        "ELSE bikes.product_url END AS url_path_1 FROM bikes"
+    )
+    assert sql(sqlite.dialect()) == (
+        "SELECT CASE WHEN instr(bikes.product_url, '?') > 0 "
+        "THEN substr(bikes.product_url, 1, instr(bikes.product_url, '?') - 1) "
+        "ELSE bikes.product_url END AS url_path_1 FROM bikes"
+    )
+
+
+def test_url_path_sql_and_python_agree(client, seed):
+    """The card is grouped in SQL, its size chips in Python. They must agree.
+
+    If they drift, nothing raises — the cards just lose their size rows.
+    """
+    from api.main import _url_path_py
+
+    urls = ["https://x/p?variant=1", "https://x/p", "https://x/p?a=1&b=2", "https://x/p?"]
+    seed(*[
+        make_bike(id=f"u{i}", product_url=u, frame_size=s)
+        for i, (u, s) in enumerate(zip(urls, ["S", "M", "L", "XL"]))
+    ])
+    assert {_url_path_py(u) for u in urls} == {"https://x/p"}
+
+    body = client.get("/api/v1/bikes").json()
+    assert body["total"] == 1, "SQL agrees: every spelling is one product"
+    assert body["results"][0]["sizes"] == ["S", "M", "L", "XL"], "and Python agrees"
+
+
+def test_total_bikes_matches_the_size_collapsed_feed(client, seed):
+    seed(*_variant_rows(["S", "M", "L", "XL"]))
+    # The header's trust number and the feed must not disagree.
+    assert client.get("/api/v1/meta/filters").json()["total_bikes"] == 1
+    assert client.get("/api/v1/bikes").json()["total"] == 1
+
+
+def test_sitemap_still_advertises_every_size(client, seed):
+    # Deliberately divergent from the feed: /bikes/<id> for an L is a distinct
+    # canonical page, and collapsing here would drop half the indexable site.
+    seed(*_variant_rows(["S", "M", "L", "XL"]))
+
+    assert client.get("/sitemap.xml").text.count("/bikes/") == 4
+    assert client.get("/api/v1/bikes").json()["total"] == 1
 
 
 def test_pagination_does_not_repeat_rows_across_pages(client, seed):
