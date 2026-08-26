@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
@@ -16,10 +17,12 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import distinct, false, func, literal, select, text, union_all, update
+from sqlalchemy import Text, distinct, false, func, literal, select, text, union_all, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.functions import FunctionElement
 
 from scrapers.utils import canonical_frame_size
 
@@ -127,16 +130,182 @@ def _collapse_storefronts(query):
     return aliased(Bike, ranked), ranked
 
 
+# A product's URL with any ?query stripped.
+#
+# Shopify puts the variant id in the query string (`/products/foo?variant=123`),
+# so the raw product_url is per-*variant*, not per-product. Everything below
+# that groups "the same bike in another size" needs the path.
+#
+# SQLite and Postgres agree on substr() but not on how to find a character:
+# SQL-standard POSITION() covers Postgres, SQLite wants instr(). One @compiles
+# override is cheaper than either dialect-sniffing at call sites or a stored
+# column that a migration and every scraper would have to keep in step.
+class _url_path(FunctionElement):
+    type = Text()
+    name = "url_path"
+    inherit_cache = True
+
+
+@compiles(_url_path)
+def _compile_url_path(element, compiler, **kw):
+    url = compiler.process(list(element.clauses)[0], **kw)
+    return (
+        f"CASE WHEN POSITION('?' IN {url}) > 0 "
+        f"THEN SUBSTRING({url} FROM 1 FOR POSITION('?' IN {url}) - 1) "
+        f"ELSE {url} END"
+    )
+
+
+@compiles(_url_path, "sqlite")
+def _compile_url_path_sqlite(element, compiler, **kw):
+    url = compiler.process(list(element.clauses)[0], **kw)
+    return (
+        f"CASE WHEN instr({url}, '?') > 0 "
+        f"THEN substr({url}, 1, instr({url}, '?') - 1) "
+        f"ELSE {url} END"
+    )
+
+
+def _url_path_py(url: str) -> str:
+    """The Python mirror of _url_path, for grouping rows already fetched.
+
+    Must agree with the SQL exactly: the feed's cards are grouped in the
+    database and their size lists are grouped here, so a disagreement shows up
+    as a card whose size chips are empty.
+    """
+    return url.split("?", 1)[0]
+
+
+# One card per product, not one per size.
+#
+# The storefront collapse above dedupes a chain's cities; this dedupes the sizes
+# (and, on Shopify, the colourways) that a shop publishes as separate variants.
+# Both are the same listing wearing different hats, and the feed showed every
+# one: measured over 2,000 live rows sorted the way the site opens
+# (discount_desc), collapsing here removes 49% of them. On page one the "best
+# deals" grid was six consecutive cards of one Giant Revolt X Advanced Pro; one
+# Bikes Online product alone occupied 13 rows, which are 3 sizes in assorted
+# colours at a single price.
+#
+# The key is the *intersection* of the two identities already in the codebase:
+# (brand, model_name), which scrapers.price_sanity._variant_group argues is what
+# "the same bike in a different size" means, AND the URL path, which the
+# storefront collapse treats as what distinguishes two products at one vendor.
+# Either alone collapses ~49.4% / 51.5% of rows and the intersection 49.2%, so
+# the conservative choice costs nothing measurable and cannot merge two rows
+# that the rest of the API considers different products. The cases it declines
+# are shops that list one bike twice under two URLs (3 in 2,000 rows) — a real
+# problem, but a different one.
+_VARIANT_GROUP = (
+    Bike.vendor_name,
+    Bike.brand,
+    Bike.model_name,
+    _url_path(Bike.product_url),
+)
+
+
+def _variant_group_of(sq):
+    """_VARIANT_GROUP rebound to a subquery's columns."""
+    return (sq.c.vendor_name, sq.c.brand, sq.c.model_name, _url_path(sq.c.product_url))
+
+
+# Which variant fronts the card. Cheapest first, so the headline price is one a
+# buyer can actually pay; then the biggest discount, so a tie does not bury the
+# deal; then id, for the same stability _STOREFRONT_PICK needs. Deliberately
+# independent of ?sort= — a product that changed price when you re-sorted the
+# feed would be worse than a sort that occasionally ranks on a sibling's number.
+_VARIANT_PICK = (
+    "price_sale",
+    "discount_percentage",
+    "id",
+)
+
+
+def _collapse_variants(collapsed):
+    """One row per product, from the already-storefront-collapsed feed.
+
+    Nested rather than folded into one SELECT because the storefront rank is
+    filtered in WHERE, and a window function cannot see another window's result
+    in the same query level.
+    """
+    sq = collapsed.subquery()
+    group = _variant_group_of(sq)
+    price, discount, ident = (sq.c[c] for c in _VARIANT_PICK)
+    ranked = select(
+        sq,
+        func.row_number()
+        .over(partition_by=group, order_by=(price.asc(), discount.desc(), ident.asc()))
+        .label("variant_rank"),
+    ).subquery()
+    return aliased(Bike, ranked), ranked
+
+
+def _variant_key_of(bike) -> tuple:
+    """_VARIANT_GROUP evaluated in Python, for a row already fetched.
+
+    Named to keep its distance from Bike.product_key, which is the unrelated
+    cross-*shop* identity (brand:sku). This one never leaves the vendor.
+    """
+    return (bike.vendor_name, bike.brand, bike.model_name, _url_path_py(bike.product_url))
+
+
+async def _sizes_for_page(db, bikes, filters, *, in_stock):
+    """Every size behind each card on this page, keyed by _variant_key_of.
+
+    A second round trip rather than a window aggregate: string_agg (Postgres)
+    and group_concat (SQLite) do not share a name, and this endpoint already
+    pays one extra trip for the cross-shop vendor counts.
+
+    The same filters narrow this as narrow the feed, so ?size=L yields cards
+    listing only L. That matches location_count, which likewise reports what is
+    left after ?city= rather than what exists — a filtered feed answers
+    questions about the filtered catalogue.
+    """
+    if not bikes:
+        return {}
+    wanted = {_variant_key_of(b) for b in bikes}
+    query = _apply_filters(
+        select(
+            Bike.vendor_name, Bike.brand, Bike.model_name, Bike.product_url,
+            Bike.frame_size, Bike.frame_size_canonical,
+        ),
+        **filters,
+    )
+    if in_stock:
+        query = query.where(Bike.in_stock == True)  # noqa: E712
+    # Narrow to the page before the exact key match happens in Python: the
+    # four-column key has no index and IN over a row constructor is
+    # Postgres-only, while model_name alone cuts the scan to a handful of rows.
+    query = query.where(Bike.model_name.in_({b.model_name for b in bikes}))
+
+    sizes: dict[tuple, set] = defaultdict(set)
+    for row in await db.execute(query):
+        key = (row.vendor_name, row.brand, row.model_name, _url_path_py(row.product_url))
+        if key not in wanted:
+            continue
+        # Canonical where the shop published a usable size, raw as the fallback,
+        # and nothing at all for "One Size" / "N/A" — a chip reading N/A is
+        # worse than no chip row.
+        label = row.frame_size_canonical or canonical_frame_size(row.frame_size)
+        if label:
+            sizes[key].add(label)
+    return {key: sorted(values, key=_size_sort_key) for key, values in sizes.items()}
+
+
 def _distinct_listing_count(*where_clauses):
-    """COUNT of listings after chain collapse, for the trust-facing totals.
+    """COUNT of the cards the feed would show, for the trust-facing totals.
+
+    Grouped on exactly what the feed collapses on — chain storefronts *and*
+    size/colour variants — because the header's "N bikes" and the feed's own
+    total must not disagree.
 
     GROUP BY rather than COUNT(DISTINCT a, b, c): the multi-column form is
     Postgres-only and the test suite runs on SQLite.
     """
     grouped = (
-        select(Bike.vendor_name, Bike.product_url, Bike.frame_size)
+        select(*_VARIANT_GROUP)
         .where(*where_clauses)
-        .group_by(Bike.vendor_name, Bike.product_url, Bike.frame_size)
+        .group_by(*_VARIANT_GROUP)
         .subquery()
     )
     return select(func.count()).select_from(grouped)
@@ -350,39 +519,51 @@ async def get_bikes(
         row.product_key: row.cnt for row in product_counts_r.all()
     }
 
-    base = select(Bike)
-    base = _apply_filters(
-        base,
+    active_filters = dict(
         city=city, category=category, size=size, vendor=vendor, brand=brand,
         frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
         min_discount=min_discount, min_price=min_price, max_price=max_price,
         q=q, added_since=added_since, sku=sku, product_key=product_key,
     )
+    base = _apply_filters(select(Bike), **active_filters)
     if in_stock:
         base = base.where(Bike.in_stock == True)  # noqa: E712
 
-    # One row per chain listing rather than one per storefront.
+    # One row per chain listing rather than one per storefront...
     listing, ranked = _collapse_storefronts(base)
     collapsed = (
         select(listing, ranked.c.location_count)
         .where(ranked.c.storefront_rank == 1)
     )
+    # ...then one row per product rather than one per size.
+    product, pranked = _collapse_variants(collapsed)
+    feed = (
+        select(product, pranked.c.location_count)
+        .where(pranked.c.variant_rank == 1)
+    )
 
-    count_result = await db.execute(select(func.count()).select_from(collapsed.subquery()))
+    count_result = await db.execute(select(func.count()).select_from(feed.subquery()))
     total = count_result.scalar_one()
 
-    rows = await db.execute(
-        collapsed.order_by(*_order_by(listing, sort)).limit(limit).offset(offset)
+    rows = (
+        await db.execute(
+            feed.order_by(*_order_by(product, sort)).limit(limit).offset(offset)
+        )
+    ).all()
+
+    sizes_by_product = await _sizes_for_page(
+        db, [b for b, *_ in rows], active_filters, in_stock=in_stock
     )
 
     results = []
-    for bike_obj, location_count in rows.all():
+    for bike_obj, location_count in rows:
         br = BikeResponse.model_validate(bike_obj)
         br.sku = bike_obj.sku
         br.sku_vendor_count = (
             product_vendor_counts.get(bike_obj.product_key, 0) if bike_obj.product_key else 0
         )
         br.location_count = location_count
+        br.sizes = sizes_by_product.get(_variant_key_of(bike_obj), [])
         br.product_url = _apply_affiliate_url(bike_obj.vendor_name, br.product_url)
         results.append(br)
 
@@ -729,6 +910,15 @@ async def sitemap(
     #
     # Chain storefronts are collapsed with the same rule (and the same pick
     # order) the feed uses, so we advertise exactly the URL the feed links to.
+    #
+    # Size variants are deliberately NOT collapsed here, though the feed does
+    # collapse them. The two are answering different questions: the feed is
+    # asking what a browsing human should scroll past, and a size is not a
+    # reason to show the same bike twice; the sitemap is asking what pages
+    # exist, and /bikes/<id> for an L is a distinct, canonical, self-describing
+    # page that can rank for "… size L". Collapsing here would drop roughly half
+    # the indexable pages on the site — a real SEO decision, not a side effect
+    # of a feed change, and not one to make silently.
     # Previously this listed all 38,725 rows — ~44% of them near-identical pages
     # for one chain product in 8-11 cities, which is duplicate content pointed
     # at Google on purpose, on a domain that also has a finite crawl budget.

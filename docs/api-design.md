@@ -100,11 +100,39 @@ an hour share a cache key and a query plan.
       "frame_material": "Aluminium",
       "drivetrain_groupset": "Shimano Deore",
       "sku": "5259601",
-      "sku_vendor_count": 3
+      "sku_vendor_count": 3,
+      "location_count": 1,
+      "sizes": ["S", "M", "L"]
     }
   ]
 }
 ```
+
+**One result is one product at one vendor, not one row per variant.** The feed
+collapses twice, in this order:
+
+1. **Chain storefronts.** A vendor with a `cities:` list produces one row per
+   city for the same national catalogue. They collapse to the cheapest, which
+   carries `location_count` — how many of that vendor's storefronts stock it.
+2. **Size and colour variants.** A shop publishes each size (and on Shopify each
+   colourway) as its own `?variant=` URL. They collapse to the cheapest, which
+   carries `sizes` — every size behind the card, smallest first.
+
+Together these removed 49% of the rows measured over 2,000 live listings sorted
+`discount_desc`: page one was six consecutive cards of one Giant Revolt, and one
+Bikes Online product held 13 rows that were three sizes in assorted colours.
+
+Two products are only merged when they agree on vendor **and** brand **and**
+model_name **and** URL path — the intersection of the two identities the
+codebase already uses, so the collapse can never merge rows the rest of the API
+treats as different products.
+
+Both counts describe the **filtered** catalogue, not the whole one: `?city=`
+leaves `location_count` at 1, and `?size=L` leaves `sizes` as `["L"]`. A
+filtered feed answers questions about what it is showing.
+
+`sizes` is empty when the shop published nothing usable (`One Size`, `N/A`).
+It is feed-only — the detail endpoint returns the richer `variants` instead.
 
 `sku_vendor_count` is the number of distinct **vendors** (not storefronts)
 carrying that product in stock, and is `0` unless at least two vendors carry it
@@ -112,9 +140,7 @@ carrying that product in stock, and is `0` unless at least two vendors carry it
 `sku`; counting is per vendor, not per storefront. See
 [`data-model.md`](data-model.md) for why both matter.
 
-Each entry in `offers` carries `location_count`: how many of that vendor's
-storefronts stock the product. Chains collapse to one row (one catalogue, one
-price) but still report their reach.
+Each entry in `offers` carries `location_count` on the same rule.
 
 **Affiliate links:** `product_url` is rewritten for vendors configured in
 `_AFFILIATE_URLS` (currently Bikes Online, via `IMPACT_BIKESONLINE_URL`). The

@@ -231,6 +231,21 @@ card. Beyond the core fields, cards surface badges derived in `lib/badges.js` fr
 Clicking through calls `POST /bikes/{id}/click` before opening `product_url` in a
 new tab; that counter backs the `clicks_desc` sort.
 
+**One card is one product.** The API collapses a shop's size and colour variants
+into a single result carrying a `sizes` list (see
+[`api-design.md`](api-design.md)), so the card renders a chip row instead of the
+same bike again at another size. The rules the card follows:
+
+- A single size stays in the spec line as `Size M`. A lone chip reads as a
+  filter button, and none of the chips are pressable.
+- At most `MAX_SIZE_CHIPS` (5) chips, then a `+N` — enough for a size run
+  without wrapping to a third line on a phone.
+- The full list goes to screen readers as one `sr-only` sentence; the chips
+  themselves are `aria-hidden`, so the row is read as "Sizes available: S, M, L"
+  rather than as three orphaned letters.
+- The card links and the "View deal" CTA point at the cheapest variant, which is
+  also the one whose price the card headlines.
+
 ---
 
 ## Performance
@@ -251,4 +266,7 @@ Image loading:
 3. **Empty state** — "No deals match your filters" with a clear-filters CTA.
 4. **Mobile layout** — the dense grid is desktop-first; mobile needs a different layout mode.
 5. **Image null handling** — `image_url` can be null per the data model; the UI must handle it.
-6. **Variant grouping** — if one row per size, the grid needs to group or dedupe cards by model so users don't see 5 identical Trek Marlin 5 cards with different sizes.
+6. ~~**Variant grouping**~~ — done. Grouping happens in the API rather than the
+   grid, so `total`, the pager and the header's "N bikes" all count cards rather
+   than variants; the client would only have deduped the 50 rows it was handed.
+   See **BikeCard** above.
