@@ -1,0 +1,7 @@
+# Shell scripts and systemd units are consumed on Linux. Without this, a
+# Windows checkout commits CRLF and the server fails with the singularly
+# unhelpful "bad interpreter: /usr/bin/env bash^M".
+*.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+Dockerfile text eol=lf
