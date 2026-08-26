@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import time
 import secrets
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -17,7 +19,10 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import Text, distinct, false, func, literal, select, text, union_all, update
+from sqlalchemy import (
+    Float, Text, case, cast, distinct, false, func, literal, null, select, text,
+    union_all, update,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.compiler import compiles
@@ -32,6 +37,8 @@ from api.schemas import (
     BikeDetailResponse,
     BikeResponse,
     FiltersResponse,
+    MarketPoint,
+    MarketResponse,
     MessageResponse,
     OfferResponse,
     PaginatedBikes,
@@ -378,6 +385,7 @@ def _order_by(entity, sort: str):
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
 CACHE_FILTERS = "max-age=60"  # 1 min — filters change when vendors are added
 CACHE_STATS = "max-age=300"   # 5 min — stats change only after a scrape run
+CACHE_MARKET = "max-age=3600" # 1 hr: the market page only moves after a run
 
 _ADDED_SINCE_DAYS = {"day": 1, "week": 7, "month": 30, "year": 365}
 
@@ -895,6 +903,349 @@ async def get_stats(
         shops_tracked=shops_r.scalar_one() or 0,
         biggest_discount=biggest_discount_r.scalar_one() or 0,
         avg_discount=int(avg_discount_r.scalar_one() or 0),
+    )
+
+
+# --- /meta/market -------------------------------------------------------------
+#
+# The site knows what is on Australian shop floors today, and nothing about what
+# was on them last month: bikes is UPSERT-in-place, so yesterday's attributes are
+# overwritten. These aggregations are therefore all cross-sectional: the shape
+# of the current catalogue, re-derived after every scrape run.
+
+# Every chart below shares one row shape so the eight aggregations can be one
+# UNION ALL rather than eight round trips, for the reason /meta/filters
+# documents at length: against a remote Postgres the cost is the round trips,
+# not the scans, and an async session cannot overlap them.
+_MARKET_SQL_CHARTS = (
+    "price_hist",            # price distribution, series = category
+    "brands",                # listings per brand, value = avg discount
+    "material_by_band",      # frame material share, series = material
+    "groupset_by_category",  # groupset mix, bucket = category
+    "groupset_by_band",      # groupset mix, bucket = price band
+    "discount_depth",        # discounted listings per cell, value = avg depth
+    "cell_totals",           # all listings per cell, the heatmap's denominator
+    "discount_hist",         # how deep the discounts run
+)
+
+# What the response actually carries. The two groupset branches above are the
+# raw material for three charts and are rolled up before they are emitted, so
+# they do not appear here.
+_MARKET_CHARTS = (
+    "price_hist",
+    "brands",
+    "material_by_band",
+    "groupset_brand_by_category",
+    "groupset_ladder",
+    "shifting_by_band",
+    "discount_depth",
+    "cell_totals",
+    "discount_hist",
+    "median_price",
+)
+
+# A groupset string is normalised by the scraper to '<Brand> <Tier> [<Suffix>]',
+# so the brand is the first word and electronic shifting is one of three
+# suffixes. Both splits happen here rather than in SQL because the substring
+# functions differ between SQLite and Postgres, and here rather than in the
+# browser because rolling up first drops ~350 rows the charts never plot.
+_ELECTRONIC_RE = re.compile(r"(Di2|AXS|eTap)")
+
+
+def _groupset_brand(point):
+    return point.series.split(" ", 1)[0]
+
+
+def _shifting_kind(point):
+    return "Electronic" if _ELECTRONIC_RE.search(point.series) else "Mechanical"
+
+
+def _rollup(points, chart, series_of, keep_bucket=True):
+    """Merge points onto a coarser series, summing their counts."""
+    totals = {}
+    for p in points:
+        key = ((p.bucket, p.bucket_rank) if keep_bucket else ("all", 0)) + (series_of(p),)
+        totals[key] = totals.get(key, 0) + p.n
+    return [
+        MarketPoint(chart=chart, bucket=bucket, bucket_rank=rank, series=series, n=n)
+        for (bucket, rank, series), n in totals.items()
+    ]
+
+
+# Recomputing this costs a full scan plus eight aggregations, and the answer
+# only changes after the nightly scrape run, so one request an hour pays for it
+# and the rest are served from memory. Per process, which is fine: it is a cache,
+# not a source of truth. Tests set the TTL to 0 so each one sees its own seed.
+_MARKET_CACHE_TTL = int(os.getenv("MARKET_CACHE_TTL", "3600"))
+_market_cache = {"at": 0.0, "payload": None}
+
+# Upper bound (exclusive) and label. The last entry is the open-ended top band.
+_PRICE_BANDS = (
+    (1000, "Under $1k"),
+    (2000, "$1–2k"),
+    (3000, "$2–3k"),
+    (5000, "$3–5k"),
+    (8000, "$5–8k"),
+    (12000, "$8–12k"),
+    (None, "$12k+"),
+)
+
+# Finer than the bands above, and log-ish rather than linear, because bike
+# prices are: half the catalogue sits under $2k and the tail runs to $168k.
+# Hardcoded rather than computed with log(), because SQLite's math functions are a
+# compile-time option and the test suite runs on SQLite.
+_PRICE_BINS = (
+    (250, "<$250"), (500, "$250–500"), (750, "$500–750"), (1000, "$750–1k"),
+    (1250, "$1–1.25k"), (1500, "$1.25–1.5k"), (2000, "$1.5–2k"),
+    (2500, "$2–2.5k"), (3000, "$2.5–3k"), (4000, "$3–4k"), (5000, "$4–5k"),
+    (6000, "$5–6k"), (7000, "$6–7k"), (8000, "$7–8k"), (10000, "$8–10k"),
+    (12000, "$10–12k"), (15000, "$12–15k"), (20000, "$15–20k"),
+    (None, "$20k+"),
+)
+
+_DISCOUNT_BINS = (
+    (10, "1–9%"), (20, "10–19%"), (30, "20–29%"), (40, "30–39%"),
+    (50, "40–49%"), (60, "50–59%"), (None, "60%+"),
+)
+
+# Cheapest-first reads as a spectrum rather than an alphabet, and puts the two
+# categories people compare most (Road, Gravel) side by side.
+_CATEGORY_ORDER = ("Commuter", "E-Bike", "Mountain", "Gravel", "Road")
+
+_MARKET_BRAND_LIMIT = 25
+
+
+def _bucketed(col, bins):
+    """(label, rank) expressions placing `col` into `bins`.
+
+    A CASE ladder rather than arithmetic so the bins can be unevenly spaced,
+    and so one definition produces both the label and its sort order. A chart
+    whose x-axis ordering disagrees with its own labels is worse than no chart.
+    """
+    label_whens = [(col < hi, lab) for hi, lab in bins if hi is not None]
+    rank_whens = [(col < hi, i) for i, (hi, _) in enumerate(bins) if hi is not None]
+    return (
+        case(*label_whens, else_=bins[-1][1]),
+        case(*rank_whens, else_=len(bins) - 1),
+    )
+
+
+def _category_rank(col):
+    """_CATEGORY_ORDER as a sort rank, for charts whose x-axis is the category."""
+    return case(
+        *[(col == name, i) for i, name in enumerate(_CATEGORY_ORDER)],
+        else_=len(_CATEGORY_ORDER),
+    )
+
+
+def _listing_cte():
+    """One row per card the feed shows, as a CTE the aggregations share.
+
+    Ranked and filtered to rank 1 rather than GROUP BY'd with MIN()s, so every
+    attribute on the row belongs to the same variant (the one the card
+    actually displays) instead of being assembled from siblings.
+
+    Partitioned on _VARIANT_GROUP, which is exactly what _distinct_listing_count
+    counts, so these charts and the header's "N bikes" cannot disagree. Note
+    _VARIANT_GROUP is strictly coarser than _STOREFRONT_GROUP (same vendor, same
+    URL path), so this single pass collapses a chain's cities and a product's
+    sizes together; the feed needs two stages only because it carries a
+    location_count through, and nothing here does.
+    """
+    ranked = (
+        select(
+            Bike.category,
+            Bike.brand,
+            Bike.price_sale,
+            Bike.discount_percentage,
+            Bike.frame_material,
+            Bike.drivetrain_groupset,
+            func.row_number()
+            .over(
+                partition_by=_VARIANT_GROUP,
+                # Matches _VARIANT_PICK: cheapest fronts the card, biggest
+                # discount breaks the tie, id makes it deterministic.
+                order_by=(
+                    Bike.price_sale.asc(),
+                    Bike.discount_percentage.desc(),
+                    Bike.id.asc(),
+                ),
+            )
+            .label("variant_rank"),
+        )
+        .where(Bike.in_stock == True)  # noqa: E712
+        .subquery()
+    )
+    return (
+        select(
+            ranked.c.category,
+            ranked.c.brand,
+            ranked.c.price_sale,
+            ranked.c.discount_percentage,
+            ranked.c.frame_material,
+            ranked.c.drivetrain_groupset,
+        )
+        .where(ranked.c.variant_rank == 1)
+        .cte("listings")
+    )
+
+
+def _market_branch(chart, bucket, bucket_rank, series, *where, value=None):
+    """One aggregation, labelled so all eight can share a result set."""
+    return (
+        select(
+            literal(chart).label("chart"),
+            bucket.label("bucket"),
+            bucket_rank.label("bucket_rank"),
+            series.label("series"),
+            func.count().label("n"),
+            (value if value is not None else cast(null(), Float)).label("value"),
+        )
+        .where(*where)
+        .group_by(bucket, bucket_rank, series)
+    )
+
+
+def _interpolated_median(bins, counts):
+    """Median from a histogram, linearly interpolated inside the crossing bin.
+
+    Exact percentiles would mean percentile_cont, which is Postgres-only while
+    the test suite runs on SQLite. The bins are narrow where the catalogue is
+    dense, so the error is small, but it is an approximation and the page
+    labels it as one.
+    """
+    total = sum(counts)
+    if not total:
+        return None
+    target = total / 2
+    cumulative = 0
+    for i, count in enumerate(counts):
+        if not count:
+            continue
+        if cumulative + count >= target:
+            low = bins[i - 1][0] if i else 0
+            high = bins[i][0]
+            if high is None:  # open-ended top bin: no upper edge to interpolate to
+                return float(low)
+            return float(low + (high - low) * (target - cumulative) / count)
+        cumulative += count
+    return None
+
+
+def _market_sort_key(point):
+    """Bucket order first, then series, with categories on their own scale."""
+    series = point.series
+    rank = _CATEGORY_ORDER.index(series) if series in _CATEGORY_ORDER else len(_CATEGORY_ORDER)
+    return (point.bucket_rank, rank, -point.n, series)
+
+
+@app.get("/api/v1/meta/market", response_model=MarketResponse)
+@limiter.limit("120/minute")
+async def get_market(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    now = time.monotonic()
+    cached = _market_cache["payload"]
+    if cached is None or now - _market_cache["at"] >= _MARKET_CACHE_TTL:
+        cached = await _build_market(db)
+        if _MARKET_CACHE_TTL > 0:
+            _market_cache.update(at=now, payload=cached)
+
+    response.headers["Cache-Control"] = CACHE_MARKET
+    return cached
+
+
+async def _build_market(db):
+    """The eight aggregations and everything derived from them."""
+    listings = _listing_cte()
+    band, band_rank = _bucketed(listings.c.price_sale, _PRICE_BANDS)
+    price_bin, bin_rank = _bucketed(listings.c.price_sale, _PRICE_BINS)
+    discount_bin, discount_rank = _bucketed(listings.c.discount_percentage, _DISCOUNT_BINS)
+    all_bucket, all_rank = literal("all"), literal(0)
+    avg_discount = func.avg(listings.c.discount_percentage)
+    on_sale = listings.c.discount_percentage > 0
+    has_material = listings.c.frame_material.isnot(None)
+    has_groupset = listings.c.drivetrain_groupset.isnot(None)
+
+    # Brand and electronic-shifting splits are derived in Python rather than in
+    # SQL: both mean picking apart the groupset string, and the substring
+    # functions for that differ between SQLite and Postgres.
+    stmt = union_all(
+        _market_branch("price_hist", price_bin, bin_rank, listings.c.category),
+        _market_branch("brands", all_bucket, all_rank, listings.c.brand,
+                       value=avg_discount),
+        _market_branch("material_by_band", band, band_rank,
+                       listings.c.frame_material, has_material),
+        _market_branch("groupset_by_category", listings.c.category,
+                       _category_rank(listings.c.category),
+                       listings.c.drivetrain_groupset, has_groupset),
+        _market_branch("groupset_by_band", band, band_rank,
+                       listings.c.drivetrain_groupset, has_groupset),
+        _market_branch("discount_depth", band, band_rank, listings.c.category,
+                       on_sale, value=avg_discount),
+        _market_branch("cell_totals", band, band_rank, listings.c.category),
+        _market_branch("discount_hist", discount_bin, discount_rank,
+                       literal("all"), on_sale),
+    )
+    rows = (await db.execute(stmt)).all()
+
+    grouped: dict[str, list] = {name: [] for name in _MARKET_SQL_CHARTS}
+    for chart, bucket, bucket_rank, series, n, value in rows:
+        grouped[chart].append(
+            MarketPoint(
+                chart=chart, bucket=bucket, bucket_rank=int(bucket_rank),
+                series=series, n=int(n),
+                value=None if value is None else round(float(value), 1),
+            )
+        )
+
+    # The brand chart is a top-N bar chart and the tail is ~165 brands with a
+    # handful of listings each. Truncated here rather than shipped for the
+    # client to throw away.
+    grouped["brands"].sort(key=lambda p: (-p.n, p.series))
+    grouped["brands"] = grouped["brands"][:_MARKET_BRAND_LIMIT]
+
+    grouped["groupset_ladder"] = _rollup(
+        grouped["groupset_by_category"], "groupset_ladder",
+        lambda p: p.series, keep_bucket=False,
+    )
+    grouped["groupset_brand_by_category"] = _rollup(
+        grouped["groupset_by_category"], "groupset_brand_by_category", _groupset_brand,
+    )
+    grouped["shifting_by_band"] = _rollup(
+        grouped["groupset_by_band"], "shifting_by_band", _shifting_kind,
+    )
+
+    total_listings = sum(p.n for p in grouped["cell_totals"])
+    coverage = {
+        "frame_material": sum(p.n for p in grouped["material_by_band"]),
+        "drivetrain_groupset": sum(p.n for p in grouped["groupset_by_category"]),
+    }
+
+    # Median price per category, from the histogram the same query already
+    # returned: no extra round trip and no percentile_cont.
+    by_category: dict[str, list[int]] = {}
+    for point in grouped["price_hist"]:
+        counts = by_category.setdefault(point.series, [0] * len(_PRICE_BINS))
+        counts[point.bucket_rank] += point.n
+    grouped["median_price"] = [
+        MarketPoint(chart="median_price", bucket="all", bucket_rank=0,
+                    series=category, n=sum(counts), value=median)
+        for category, counts in by_category.items()
+        if (median := _interpolated_median(_PRICE_BINS, counts)) is not None
+    ]
+
+    # Sorted here rather than with a per-branch ORDER BY, which UNION ALL would
+    # not preserve anyway. Emitting in final order means the client renders in
+    # encounter order and keeps no ordering constants of its own.
+    points = []
+    for name in _MARKET_CHARTS:
+        points.extend(sorted(grouped[name], key=_market_sort_key))
+
+    return MarketResponse(
+        total_listings=total_listings, coverage=coverage, points=points
     )
 
 

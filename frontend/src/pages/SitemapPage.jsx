@@ -66,6 +66,7 @@ export default function SitemapPage() {
           </h2>
           <ul className="space-y-2">
             {[
+              { to: '/trends', label: 'Market trends' },
               { to: '/about', label: 'About BikeGrid' },
               { to: '/contact', label: 'Contact' },
               { to: '/data', label: 'Data services' },

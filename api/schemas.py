@@ -138,3 +138,33 @@ class UnsubscribeRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class MarketPoint(BaseModel):
+    """One aggregated cell, in the shape every market chart shares.
+
+    Deliberately generic so the eight aggregations behind /meta/market can be
+    one UNION ALL and one response model: ``chart`` says which chart the row
+    belongs to, ``bucket`` is its x-axis value and ``series`` the stacked or
+    coloured dimension. ``n`` is a count of collapsed listings; ``value``
+    carries the average where a chart needs one and is null otherwise.
+    """
+
+    chart: str
+    bucket: str
+    # Server-owned sort order. Emitted so a client never has to keep its own
+    # copy of the price-band list in sync with ours.
+    bucket_rank: int
+    series: str
+    n: int
+    value: float | None = None
+
+
+class MarketResponse(BaseModel):
+    total_listings: int
+    # Per-field counts of listings where the shop actually published the
+    # attribute. The page needs these to label the enrichment charts honestly:
+    # only the Shopify pipeline fills frame_material/drivetrain_groupset, and
+    # only when the shop wrote the word in its description.
+    coverage: dict[str, int]
+    points: list[MarketPoint]
