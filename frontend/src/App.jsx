@@ -16,6 +16,7 @@ import { MAIN_SCROLL_ID } from './lib/scroll'
 import { REGION_KEY, hasStoredRegion } from './lib/landing'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
+import DataPage from './pages/DataPage'
 import SitemapPage from './pages/SitemapPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -179,6 +180,7 @@ export default function App() {
           <Route path="/guides/commuter-bikes" element={<StaticLayout><CommuterBikesPage /></StaticLayout>} />
           <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
           <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
+          <Route path="/data" element={<StaticLayout><DataPage /></StaticLayout>} />
           <Route path="/sitemap" element={<StaticLayout><SitemapPage /></StaticLayout>} />
           <Route path="/terms" element={<StaticLayout><TermsPage /></StaticLayout>} />
           <Route path="/privacy" element={<StaticLayout><PrivacyPage /></StaticLayout>} />
