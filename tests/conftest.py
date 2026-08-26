@@ -13,6 +13,10 @@ from datetime import datetime, timezone
 TEST_DB_FILE = "_test.db"
 os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///./{TEST_DB_FILE}")
 os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:5173")
+# /meta/market memoises its whole payload for an hour in production. Each test
+# seeds its own catalogue, so the cache has to be off or the second test to hit
+# the endpoint asserts against the first one's data.
+os.environ.setdefault("MARKET_CACHE_TTL", "0")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -22,6 +22,7 @@ import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import UnsubscribePage from './pages/UnsubscribePage'
 import LandingPage from './pages/LandingPage'
+import TrendsPage from './pages/TrendsPage'
 import BikeDetailPage from './pages/BikeDetailPage'
 import GuidesHubPage from './pages/guides/GuidesHubPage'
 import ElectricBikesPage from './pages/guides/ElectricBikesPage'
@@ -178,6 +179,7 @@ export default function App() {
           <Route path="/guides/road-bikes" element={<StaticLayout><RoadBikesPage /></StaticLayout>} />
           <Route path="/guides/gravel-bikes" element={<StaticLayout><GravelBikesPage /></StaticLayout>} />
           <Route path="/guides/commuter-bikes" element={<StaticLayout><CommuterBikesPage /></StaticLayout>} />
+          <Route path="/trends" element={<StaticLayout><TrendsPage /></StaticLayout>} />
           <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
           <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
           <Route path="/data" element={<StaticLayout><DataPage /></StaticLayout>} />

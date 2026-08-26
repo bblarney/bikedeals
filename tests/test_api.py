@@ -1,6 +1,8 @@
 """Endpoint tests for the BikeGrid API (hardened contract)."""
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -742,4 +744,203 @@ def test_filters_endpoint_stays_within_its_round_trip_budget(client, seed, sync_
     assert len(statements) <= 5, (
         f"{len(statements)} round trips; the seven facets should share one "
         f"statement:\n" + "\n".join(" ".join(s.split())[:90] for s in statements)
+    )
+
+
+# --- /api/v1/meta/market ------------------------------------------------------
+
+
+def _market(client):
+    r = client.get("/api/v1/meta/market")
+    assert r.status_code == 200
+    return r
+
+
+def _chart(body, name):
+    return [p for p in body["points"] if p["chart"] == name]
+
+
+def test_market_empty_db(client):
+    r = _market(client)
+    body = r.json()
+    assert body["total_listings"] == 0
+    assert body["points"] == []
+    assert body["coverage"] == {"frame_material": 0, "drivetrain_groupset": 0}
+    assert r.headers["cache-control"] == "max-age=3600"
+
+
+def test_market_counts_cards_not_rows(client, seed):
+    """Two sizes of one product are one card, so they must count once.
+
+    The header's "N bikes" and these charts read the same catalogue; if they
+    disagree the page is visibly wrong on its own first line.
+    """
+    seed(
+        make_bike(id="a", frame_size="M", price_sale=1500.0,
+                  product_url="https://shop.example.com/p/1?variant=m"),
+        make_bike(id="b", frame_size="L", price_sale=1600.0,
+                  product_url="https://shop.example.com/p/1?variant=l"),
+    )
+    body = _market(client).json()
+    assert body["total_listings"] == 1
+    assert sum(p["n"] for p in _chart(body, "cell_totals")) == 1
+
+    # ...and it is the fronting (cheapest) variant that was kept, so the
+    # listing lands in the band its card advertises.
+    assert _chart(body, "cell_totals")[0]["bucket"] == "$1–2k"
+
+    filters = client.get("/api/v1/meta/filters").json()
+    assert body["total_listings"] == filters["total_bikes"]
+
+
+def test_market_excludes_out_of_stock(client, seed):
+    seed(
+        make_bike(id="a", product_url="https://shop.example.com/p/1"),
+        make_bike(id="b", in_stock=False, product_url="https://shop.example.com/p/2"),
+    )
+    assert _market(client).json()["total_listings"] == 1
+
+
+def test_market_coverage_counts_only_enriched_listings(client, seed):
+    """A null attribute drops out of its chart but still counts as a listing."""
+    seed(
+        make_bike(id="a", frame_material="Carbon", drivetrain_groupset="Shimano 105",
+                  product_url="https://shop.example.com/p/1"),
+        make_bike(id="b", frame_material=None, drivetrain_groupset=None,
+                  product_url="https://shop.example.com/p/2"),
+        make_bike(id="c", frame_material="Steel", drivetrain_groupset=None,
+                  product_url="https://shop.example.com/p/3"),
+    )
+    body = _market(client).json()
+    assert body["total_listings"] == 3
+    assert body["coverage"] == {"frame_material": 2, "drivetrain_groupset": 1}
+    assert sum(p["n"] for p in _chart(body, "material_by_band")) == 2
+    assert {p["series"] for p in _chart(body, "material_by_band")} == {"Carbon", "Steel"}
+
+
+@pytest.mark.parametrize(
+    "price,band",
+    [
+        (999.0, "Under $1k"),
+        (1000.0, "$1–2k"),
+        (1999.99, "$1–2k"),
+        (2000.0, "$2–3k"),
+        (12000.0, "$12k+"),
+        (167999.0, "$12k+"),
+    ],
+)
+def test_market_price_band_boundaries(client, seed, price, band):
+    """Bands are half-open: the upper bound belongs to the next band up."""
+    seed(make_bike(price_sale=price, price_original=price, discount_percentage=0))
+    body = _market(client).json()
+    assert _chart(body, "cell_totals")[0]["bucket"] == band
+
+
+@pytest.mark.parametrize(
+    "discount,bucket",
+    [(1, "1–9%"), (9, "1–9%"), (10, "10–19%"), (60, "60%+"), (69, "60%+")],
+)
+def test_market_discount_bin_boundaries(client, seed, discount, bucket):
+    seed(make_bike(discount_percentage=discount))
+    body = _market(client).json()
+    assert [p["bucket"] for p in _chart(body, "discount_hist")] == [bucket]
+
+
+def test_market_discount_charts_ignore_full_price_listings(client, seed):
+    """Full-price listings are the heatmap's denominator, never its depth."""
+    seed(
+        make_bike(id="a", discount_percentage=0, price_sale=1500.0,
+                  price_original=1500.0, product_url="https://shop.example.com/p/1"),
+        make_bike(id="b", discount_percentage=40, price_sale=1200.0,
+                  product_url="https://shop.example.com/p/2"),
+    )
+    body = _market(client).json()
+    assert _chart(body, "discount_hist") == [
+        {"chart": "discount_hist", "bucket": "40–49%", "bucket_rank": 4,
+         "series": "all", "n": 1, "value": None}
+    ]
+    depth = _chart(body, "discount_depth")
+    assert [(p["n"], p["value"]) for p in depth] == [(1, 40.0)]
+    # Both listings are in the same cell, so the denominator sees both.
+    assert sum(p["n"] for p in _chart(body, "cell_totals")) == 2
+
+
+def test_market_median_price_is_per_category(client, seed):
+    seed(
+        make_bike(id="a", category="Road", price_sale=1600.0,
+                  product_url="https://shop.example.com/p/1"),
+        make_bike(id="b", category="Road", price_sale=1900.0,
+                  product_url="https://shop.example.com/p/2"),
+        make_bike(id="c", category="Gravel", price_sale=4200.0,
+                  product_url="https://shop.example.com/p/3"),
+    )
+    body = _market(client).json()
+    medians = {p["series"]: p["value"] for p in _chart(body, "median_price")}
+    assert set(medians) == {"Road", "Gravel"}
+    # Interpolated within the bin, so assert the bin rather than an exact dollar.
+    assert 1500 <= medians["Road"] <= 2000
+    assert 4000 <= medians["Gravel"] <= 5000
+
+
+def test_market_brands_are_ranked_and_capped(client, seed):
+    bikes = []
+    for i in range(30):
+        for j in range(i + 1):  # brand i gets i+1 listings
+            bikes.append(make_bike(
+                id=f"b{i}-{j}", brand=f"Brand{i:02d}", model_name=f"M{i}-{j}",
+                product_url=f"https://shop.example.com/p/{i}-{j}",
+            ))
+    seed(*bikes)
+    brands = _chart(_market(client).json(), "brands")
+    assert len(brands) == 25  # the ~165-brand tail is not shipped
+    assert brands[0]["series"] == "Brand29"
+    assert [p["n"] for p in brands] == sorted((p["n"] for p in brands), reverse=True)
+
+
+def test_market_points_are_emitted_in_render_order(client, seed):
+    """The client renders in encounter order and keeps no ordering constants."""
+    seed(
+        make_bike(id="a", category="Road", price_sale=9000.0,
+                  product_url="https://shop.example.com/p/1"),
+        make_bike(id="b", category="Commuter", price_sale=800.0,
+                  product_url="https://shop.example.com/p/2"),
+        make_bike(id="c", category="Gravel", price_sale=800.0,
+                  product_url="https://shop.example.com/p/3"),
+    )
+    body = _market(client).json()
+    for name in ("cell_totals", "price_hist", "material_by_band"):
+        ranks = [p["bucket_rank"] for p in _chart(body, name)]
+        assert ranks == sorted(ranks), name
+    # Within one bucket, categories follow _CATEGORY_ORDER, not the alphabet.
+    first_band = [p["series"] for p in _chart(body, "cell_totals")
+                  if p["bucket"] == "Under $1k"]
+    assert first_band == ["Commuter", "Gravel"]
+
+
+def test_market_endpoint_issues_one_query(client, seed, sync_engine):
+    """Eight aggregations, one round trip.
+
+    Same reasoning as the filters budget above: this endpoint is round-trip
+    bound against a remote Postgres, and adding a chart is the easy way to
+    quietly add a query. The UNION ALL is the whole design, so assert it.
+    """
+    from sqlalchemy import event
+
+    seed(make_bike(id="a", frame_material="Carbon", drivetrain_groupset="Shimano 105"))
+    statements = []
+
+    engine = main_module.get_engine().sync_engine
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def _record(conn, cursor, statement, *args):
+        statements.append(statement)
+
+    try:
+        assert client.get("/api/v1/meta/market").status_code == 200
+    finally:
+        event.remove(engine, "before_cursor_execute", _record)
+
+    assert len(statements) == 1, (
+        f"{len(statements)} round trips; every chart should ride the one "
+        f"UNION ALL:\n" + "\n".join(" ".join(s.split())[:90] for s in statements)
     )

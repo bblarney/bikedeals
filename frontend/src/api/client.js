@@ -38,6 +38,7 @@ export const api = {
   getPriceHistory: (id) => request(`/api/v1/bikes/${encodeURIComponent(id)}/price-history`),
   getFilters: (params) => request('/api/v1/meta/filters', params),
   getStats: () => request('/api/v1/meta/stats'),
+  getMarket: () => request('/api/v1/meta/market'),
   recordClick: (id) =>
     post(`/api/v1/bikes/${encodeURIComponent(id)}/click`).catch((err) => {
       if (import.meta.env.DEV) console.warn('click record failed', err)

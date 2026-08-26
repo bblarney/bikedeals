@@ -34,6 +34,7 @@ const { DEAL_FEED_GATE, DEAL_FEED_GATE_STYLE } = await import(
 
 const ROUTES = [
   '/',
+  '/trends',
   '/about',
   '/contact',
   '/data',
