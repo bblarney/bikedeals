@@ -68,6 +68,7 @@ export default function SitemapPage() {
             {[
               { to: '/about', label: 'About BikeGrid' },
               { to: '/contact', label: 'Contact' },
+              { to: '/data', label: 'Data services' },
               { to: '/terms', label: 'Terms of Use' },
               { to: '/privacy', label: 'Privacy Policy' },
               { to: '/sitemap', label: 'Sitemap' },

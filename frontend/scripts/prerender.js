@@ -36,6 +36,7 @@ const ROUTES = [
   '/',
   '/about',
   '/contact',
+  '/data',
   '/sitemap',
   '/terms',
   '/privacy',
