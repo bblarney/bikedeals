@@ -48,7 +48,17 @@ _GROUPSET_WORD_CASE = {
 }
 
 
+# Shop copy spells the top Shimano tier "Dura-Ace", "Dura Ace" and "DuraAce",
+# and _GROUPSET_RE accepts all three. The per-word casing below splits on
+# whitespace, so only the hyphenated form ever reaches the "dura-ace" entry --
+# left alone, one groupset arrives in the facet as three separate values and
+# splits the top rung of any Shimano-vs-SRAM comparison. Collapse to the
+# hyphenated spelling before the words are split.
+_DURA_ACE_RE = re.compile(r"\bdura[\s\-]?ace\b", re.IGNORECASE)
+
+
 def _normalise_groupset(raw: str) -> str:
+    raw = _DURA_ACE_RE.sub("Dura-Ace", raw)
     words = raw.split()
     result = []
     for i, w in enumerate(words):

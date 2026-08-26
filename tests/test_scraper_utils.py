@@ -111,6 +111,14 @@ def test_parse_drivetrain_groupset():
     assert parse_drivetrain_groupset("no groupset mentioned") is None
 
 
+def test_dura_ace_spellings_collapse_to_one_value():
+    # Shops write it all three ways. Left alone they arrive as three separate
+    # facet values and split the top Shimano rung three ways.
+    for text in ("Shimano Dura-Ace", "Shimano Dura Ace", "SHIMANO DURAACE"):
+        assert parse_drivetrain_groupset(text) == "Shimano Dura-Ace"
+    assert parse_drivetrain_groupset("Shimano Dura Ace Di2") == "Shimano Dura-Ace Di2"
+
+
 # --- BikeRecord validation ----------------------------------------------------
 
 def _record(**kw):
