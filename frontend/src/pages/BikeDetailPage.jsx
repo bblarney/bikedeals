@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 import { recencyFlags } from '../lib/badges'
-import { formatTimeAgo, formatShortDate } from '../lib/time'
+import { formatDayLabel, formatShortDate } from '../lib/time'
 import { usePins } from '../hooks/usePins'
 import { useStats } from '../hooks/useStats'
 import { buildBikeMeta, buildBikeJsonLd, serializeJsonLd, canonicalFor } from '../seo'
@@ -109,7 +109,7 @@ export default function BikeDetailPage() {
   // Freshness / sale-timing microcopy from the timestamps we already store.
   const timing = []
   if (bike.discount_started_at) timing.push(`on sale since ${formatShortDate(new Date(bike.discount_started_at))}`)
-  if (bike.price_drop_at) timing.push(`price dropped ${formatTimeAgo(new Date(bike.price_drop_at))}`)
+  if (bike.price_drop_at) timing.push(`price dropped ${formatDayLabel(new Date(bike.price_drop_at))}`)
 
   const guide = GUIDES.find((g) => g.category === bike.category)
 
@@ -147,7 +147,7 @@ export default function BikeDetailPage() {
         {/* Image */}
         <div className="relative aspect-square bg-slate-50 rounded-2xl flex items-center justify-center p-6 border border-slate-100 md:sticky md:top-6 md:self-start">
           {bike.discount_percentage > 0 && (
-            <span className={`absolute top-3 left-3 z-10 font-mono tabular-nums text-sm font-semibold px-2 py-1 rounded-lg ${
+            <span className={`absolute top-3 left-3 z-10 tabular-nums text-sm font-semibold px-2 py-1 rounded-lg ${
               bike.discount_percentage >= 30 ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
             }`}>
               &minus;{bike.discount_percentage}%
@@ -184,7 +184,7 @@ export default function BikeDetailPage() {
               alt={bike.brand}
               className="h-5 w-auto max-w-[80px] object-contain"
               fallbackText={
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                <span className="tabular-nums text-[10px] uppercase tracking-[0.14em] text-slate-400">
                   {bike.brand}
                 </span>
               }
@@ -213,7 +213,7 @@ export default function BikeDetailPage() {
             </button>
           </div>
 
-          <div className="mt-4 flex items-baseline gap-3 font-mono tabular-nums">
+          <div className="mt-4 flex items-baseline gap-3 tabular-nums">
             <span className="text-3xl font-semibold text-slate-900 tracking-tight">
               {money(bike.price_sale)}
             </span>
@@ -240,8 +240,8 @@ export default function BikeDetailPage() {
             <b className="font-semibold text-slate-900">{bike.vendor_name}</b>
             {bike.city ? `, ${bike.city}` : ''}
             {bike.last_seen_at && (
-              <span className="font-mono text-[11px] text-slate-400">
-                checked {formatTimeAgo(new Date(bike.last_seen_at))}
+              <span className="tabular-nums text-[11px] text-slate-400">
+                checked {formatDayLabel(new Date(bike.last_seen_at))}
               </span>
             )}
           </p>
@@ -250,7 +250,7 @@ export default function BikeDetailPage() {
               cheapest size is not always the one you landed on. */}
           {variants.length >= 2 && (
             <div className="mt-5">
-              <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-slate-400 mb-1.5">
+              <p className="tabular-nums text-[9.5px] uppercase tracking-[0.13em] text-slate-400 mb-1.5">
                 Frame size, this shop
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -259,7 +259,7 @@ export default function BikeDetailPage() {
                   const inner = (
                     <>
                       <b className="block text-sm font-bold">{v.frame_size}</b>
-                      <span className={`block font-mono tabular-nums text-[10px] ${active ? 'text-orange-700/70' : 'text-slate-400'}`}>
+                      <span className={`block tabular-nums text-[10px] ${active ? 'text-orange-700/70' : 'text-slate-400'}`}>
                         {money(v.price_sale)}
                       </span>
                     </>
@@ -335,7 +335,7 @@ export default function BikeDetailPage() {
               spread > 0 ? (
                 <>
                   Cheapest first. The spread between the top and bottom of this table is{' '}
-                  <b className="font-mono tabular-nums font-semibold text-slate-900">{money(spread)}</b>.
+                  <b className="tabular-nums font-semibold text-slate-900">{money(spread)}</b>.
                 </>
               ) : (
                 'Cheapest first. Every shop is asking the same price today.'
@@ -379,27 +379,27 @@ export default function BikeDetailPage() {
                             `${offer.city ? ' ' : ''}+ ${offer.location_count - 1} other location${offer.location_count > 2 ? 's' : ''}`}
                         </div>
                         {best && offers.length >= 2 && (
-                          <span className="inline-block mt-1 font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          <span className="inline-block mt-1 tabular-nums text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                             Best price
                           </span>
                         )}
                       </td>
-                      <td className={`${cell} font-mono tabular-nums text-slate-500 text-xs`}>{offer.frame_size}</td>
-                      <td className={`${cell} font-mono text-[11px] text-slate-400 whitespace-nowrap`}>
-                        {offer.last_seen_at ? formatTimeAgo(new Date(offer.last_seen_at)) : ''}
+                      <td className={`${cell} tabular-nums text-slate-500 text-xs`}>{offer.frame_size}</td>
+                      <td className={`${cell} tabular-nums text-[11px] text-slate-400 whitespace-nowrap`}>
+                        {offer.last_seen_at ? formatDayLabel(new Date(offer.last_seen_at)) : ''}
                       </td>
-                      <td className={`${cell} text-right font-mono tabular-nums text-xs text-slate-400 line-through`}>
+                      <td className={`${cell} text-right tabular-nums text-xs text-slate-400 line-through`}>
                         {offer.price_original && offer.price_original > offer.price_sale ? money(offer.price_original) : ''}
                       </td>
-                      <td className={`${cell} text-right font-mono tabular-nums font-semibold text-slate-900`}>
+                      <td className={`${cell} text-right tabular-nums font-semibold text-slate-900`}>
                         {money(offer.price_sale)}
                       </td>
-                      <td className={`${cell} text-right font-mono tabular-nums text-xs text-emerald-700`}>
+                      <td className={`${cell} text-right tabular-nums text-xs text-emerald-700`}>
                         {offerSaving > 0 ? money(offerSaving) : ''}
                       </td>
                       <td className={`${cell} text-right`}>
                         {offer.discount_percentage > 0 && (
-                          <span className="font-mono tabular-nums text-xs font-semibold text-orange-700 bg-orange-50 rounded px-1.5 py-0.5">
+                          <span className="tabular-nums text-xs font-semibold text-orange-700 bg-orange-50 rounded px-1.5 py-0.5">
                             {offer.discount_percentage}%
                           </span>
                         )}
@@ -438,7 +438,7 @@ export default function BikeDetailPage() {
           className="mt-12 flex flex-col sm:flex-row sm:items-center gap-4 border border-navy-900 rounded-xl px-5 py-4 bg-slate-50 hover:bg-white transition-colors"
         >
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.13em] text-orange-600 font-bold">
+            <p className="tabular-nums text-[10px] uppercase tracking-[0.13em] text-orange-600 font-bold">
               From the {guide.label.toLowerCase()} guide
             </p>
             <p className="font-display text-lg font-bold tracking-tight text-slate-900 mt-1">
@@ -480,7 +480,7 @@ function Th({ children, right = false }) {
   return (
     <th
       scope="col"
-      className={`font-mono text-[9.5px] uppercase tracking-[0.12em] text-slate-400 font-medium px-3 py-2.5 whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}
+      className={`tabular-nums text-[9.5px] uppercase tracking-[0.12em] text-slate-400 font-medium px-3 py-2.5 whitespace-nowrap ${right ? 'text-right' : 'text-left'}`}
     >
       {children}
     </th>
@@ -491,10 +491,10 @@ function Th({ children, right = false }) {
 function Spec({ label, value, mono = false }) {
   return (
     <div className="flex items-baseline gap-4 py-1.5 border-b border-slate-50">
-      <dt className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-slate-400 w-32 flex-shrink-0">
+      <dt className="tabular-nums text-[9.5px] uppercase tracking-[0.12em] text-slate-400 w-32 flex-shrink-0">
         {label}
       </dt>
-      <dd className={`text-[13px] ${value ? 'text-slate-900' : 'text-slate-300'} ${mono && value ? 'font-mono' : ''}`}>
+      <dd className={`text-[13px] ${value ? 'text-slate-900' : 'text-slate-300'} ${mono && value ? 'tabular-nums' : ''}`}>
         {value || 'Not published by this shop'}
       </dd>
     </div>

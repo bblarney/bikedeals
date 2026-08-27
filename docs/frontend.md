@@ -10,6 +10,29 @@ chart uses `recharts`. No global state store — none has been needed.
 
 ---
 
+## Type
+
+Two faces, defined as `@theme` tokens in `src/index.css` and loaded in
+`index.html`.
+
+- **Inter** sets everything: body, UI, labels, and every figure. Prices, counts
+  and percentages carry `tabular-nums` so a column of them lines up, which is
+  the job a monospace face was previously being carried for.
+- **Archivo** (`font-display`) is for headings that announce a page: the home
+  hero, the home section headings, the guide callout. Nothing else. It is a
+  second voice, and a second voice competing with the data is what made the home
+  page read as five fonts.
+
+`src/lib/time.js` is the other half of that consistency. Freshness reads as
+"today", "yesterday" or a date rather than "4h ago": the scrape runs once a day,
+so an hour count was precision about nothing, and it changed every time the page
+was opened without the data having changed. `formatShortDate` spells its months
+out rather than calling `toLocaleDateString`, because Node's ICU renders en-AU
+`month: 'short'` as "June" where a browser gives "Jun", and both render these
+pages (see the prerender).
+
+---
+
 ## Deployment
 
 The frontend is a static build (`vite build` → `dist/`). Deploy to Cloudflare Pages or Vercel. Both are free and provide instant global CDN.

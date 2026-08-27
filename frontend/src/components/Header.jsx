@@ -76,7 +76,7 @@ export default function Header({ params, onUpdate, onOpenSidebar, savedCount = 0
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-orange-600">
                   <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.7z" />
                 </svg>
-                <span className="font-mono tabular-nums">{savedCount}</span>
+                <span className="tabular-nums">{savedCount}</span>
               </span>
             )}
           </div>

@@ -1,5 +1,5 @@
 import { activeChips } from '../lib/chips'
-import { formatTimeAgo } from '../lib/time'
+import { formatDayLabel } from '../lib/time'
 
 // Dollars off and percent off are different questions, so they are different
 // sorts: 20% off a $13,000 bike is $2,600, and 60% off a $600 one is $360.
@@ -24,7 +24,7 @@ export default function ResultsToolbar({
 }) {
   const { sort, view } = params
   const chips = activeChips(params)
-  const timeAgo = lastScrapedAt ? formatTimeAgo(new Date(lastScrapedAt)) : null
+  const updated = lastScrapedAt ? formatDayLabel(new Date(lastScrapedAt)) : null
 
   return (
     <div className="bg-white border-b border-slate-100">
@@ -33,7 +33,7 @@ export default function ResultsToolbar({
           {isFetching && <Spinner />}
           {total != null ? (
             <>
-              <b className="font-mono tabular-nums text-base font-semibold text-slate-900">
+              <b className="tabular-nums text-base font-semibold text-slate-900">
                 {total.toLocaleString()}
               </b>
               result{total === 1 ? '' : 's'}
@@ -44,8 +44,8 @@ export default function ResultsToolbar({
           )}
         </p>
 
-        {timeAgo && (
-          <span className="font-mono text-[11px] text-slate-400 hidden sm:inline">updated {timeAgo}</span>
+        {updated && (
+          <span className="text-[11px] text-slate-400 hidden sm:inline">updated {updated}</span>
         )}
         {newToday > 0 && (
           <span className="text-[11px] font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full">
