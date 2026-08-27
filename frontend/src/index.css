@@ -4,12 +4,22 @@
   --color-navy-700: #28395c;
   --color-navy-800: #18294a;
   --color-navy-900: #0e1c3a;
+
+  /* Two registers, one system. The display face is reserved for the retail
+     surfaces (home, guide cards, section headings); the tool surfaces (filters,
+     results, detail) use the body face and put every figure in the mono one. */
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 :root {
-  /* Header height on md+. The sticky sidebar sizes itself off this, so the
-     header pins it explicitly rather than letting content decide. */
+  /* The two rows of fixed chrome on the feed, on md+. The sticky sidebar and
+     the collapse toggle size themselves off --chrome-h, so the chrome states
+     its own height rather than letting content decide. */
   --header-h: 4rem;
+  --catbar-h: 2.75rem;
+  --chrome-h: calc(var(--header-h) + var(--catbar-h));
 }
 
 .saved-glow {
@@ -65,7 +75,7 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: #f8fafc;
   margin: 0;
   -webkit-font-smoothing: antialiased;

@@ -114,7 +114,7 @@ export default function CommuterBikesPage() {
         title="Commuter bikes on sale right now"
         params={{ category: ['Commuter'] }}
         ctaLabel="Browse all commuter bike deals"
-        ctaTo="/?category=Commuter"
+        ctaTo="/commuter-bikes"
         pinnedIds={pinnedIds}
         onTogglePin={togglePin}
       />

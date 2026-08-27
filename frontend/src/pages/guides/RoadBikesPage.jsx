@@ -102,7 +102,7 @@ export default function RoadBikesPage() {
         title="Road bikes on sale right now"
         params={{ category: ['Road'] }}
         ctaLabel="Browse all road bike deals"
-        ctaTo="/?category=Road"
+        ctaTo="/road-bikes"
         pinnedIds={pinnedIds}
         onTogglePin={togglePin}
       />

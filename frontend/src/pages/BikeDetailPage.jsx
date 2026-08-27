@@ -10,6 +10,7 @@ import { useStats } from '../hooks/useStats'
 import { buildBikeMeta, buildBikeJsonLd, serializeJsonLd, canonicalFor } from '../seo'
 import RelatedBikes from '../components/RelatedBikes'
 import PriceHistoryChart from '../components/PriceHistoryChart'
+import { categoryPath } from '../content/categories'
 
 // Only trust http(s) URLs from scraped third-party data.
 function isHttpUrl(value) {
@@ -139,7 +140,7 @@ export default function BikeDetailPage() {
       <nav className="text-sm text-slate-500 mb-6 flex items-center gap-1.5">
         <Link to="/" className="hover:text-orange-600">Deals</Link>
         <span>/</span>
-        <Link to={`/?category=${encodeURIComponent(bike.category)}`} className="hover:text-orange-600">
+        <Link to={categoryPath(bike.category)} className="hover:text-orange-600">
           {bike.category}
         </Link>
         <span>/</span>

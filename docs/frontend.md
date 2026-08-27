@@ -25,8 +25,9 @@ VITE_API_BASE_URL=https://api.bikegrid.example.com
 
 `npm run build` is three steps: the client build, an SSR build of
 `src/entry-server.jsx`, then `scripts/prerender.js`, which writes real HTML for
-`/`, `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy`, and every guide
-route listed in `src/content/guides.js`.
+`/`, `/deals`, `/trends`, `/about`, `/contact`, `/data`, `/sitemap`, `/terms`,
+`/privacy`, every category route listed in `src/content/categories.js`, and
+every guide route listed in `src/content/guides.js`.
 
 This exists because the SPA otherwise ships `<div id="root"></div>` and nothing
 else. Crawlers that don't execute JavaScript — including the AdSense review
@@ -37,26 +38,14 @@ which `renderToString` doesn't run, so pages render in their empty-data shape:
 headings, copy, nav, footer. Dropdown options and deal data fill in on the
 client. A build therefore succeeds while the API is cold or down.
 
-Four things are load-bearing:
+Three things are load-bearing:
 
 - **`createRoot`, not `hydrateRoot`.** React discards the prerendered markup and
-  re-renders on mount. The markup is for crawlers and first paint only. This is
-  what lets a returning visitor — whose `localStorage` sends them to the deal
-  feed rather than the landing page — avoid a hydration mismatch.
-- **The pre-paint gate on `/`.** `/` is the one route whose prerendered markup is
-  not what every visitor gets: it is the landing page, but a visitor with a
-  stored region or a `?city=` URL renders the deal feed. Without the gate that
-  visitor watches the landing page paint and then get thrown away on mount — a
-  flash of the wrong page on every refresh. `src/lib/landing.js` owns both the
-  condition and the style; `prerender.js` inlines them into the head of `/` and
-  wraps the body in `#prerendered-landing`, which the style hides before first
-  paint for exactly those visitors. A crawler has neither `localStorage` nor a
-  query string, so it still gets the landing page. The condition mirrors
-  `showLanding` in `App.jsx` — change one and change the other.
+  re-renders on mount. The markup is for crawlers and first paint only.
 - **`app-shell.html`.** `/bikes/:id` and `/unsubscribe` are not prerendered and
-  are rewritten to this bare shell, not to `index.html`. `index.html` is now the
-  prerendered landing page; serving it for a bike detail page would give every
-  one a canonical pointing at the homepage before JS runs.
+  are rewritten to this bare shell, not to `index.html`. `index.html` is the
+  prerendered home page; serving it for a bike detail page would give every one
+  a canonical pointing at the homepage before JS runs.
 - **`data-prerendered` on the canonical.** React appends its own canonical
   rather than replacing static markup it didn't create, so `main.jsx` removes
   the prerendered one on mount. Without that, every client-side navigation
@@ -72,8 +61,8 @@ Guide routes are the exception, and are handled structurally: `prerender.js`
 imports `GUIDE_PATHS` from `src/content/guides.js` and concatenates it onto
 `ROUTES`, so adding a guide to that array is enough. That import is why
 `content/guides.js` must stay free of JSX, imports and `import.meta.env` — bare
-`node` loads it, outside Vite. `src/lib/landing.js` is imported the same way and
-carries the same constraint.
+`node` loads it, outside Vite. `src/content/categories.js` is imported the same
+way and carries the same constraint.
 
 Anything rendered during the prerender must tolerate the absence of `window`,
 `document`, and `localStorage`. Effects and event handlers are safe; `useState`
@@ -156,14 +145,34 @@ Derive filter state from `useSearchParams()` on mount; update URL on filter chan
 
 | Path | Page |
 |---|---|
-| `/` | Main deal feed (`MainLayout`) |
-| `/bikes/:id` | `BikeDetailPage` — offers, size variants, price history |
-| `/guides` | Guide hub — comparison table and cards, `pages/guides/` |
+| `/` | `HomePage`: hero and finder, category tiles, today's deepest cuts, guide band, market strip |
+| `/deals` | `DealsPage`: the feed, every category |
+| `/road-bikes`, `/gravel-bikes`, `/mountain-bikes`, `/commuter-bikes`, `/electric-bikes` | `DealsPage` with the category pinned by the route, enumerated in `src/content/categories.js` |
+| `/bikes/:id` | `BikeDetailPage`: offers, size variants, price history |
+| `/guides` | Guide hub: comparison table and cards, `pages/guides/` |
 | `/guides/:type` | Five bike-type guides, enumerated in `src/content/guides.js` |
-| `/about`, `/contact`, `/sitemap`, `/terms`, `/privacy` | Static pages |
-| `/unsubscribe` | `UnsubscribePage` — posts the token from the email link |
+| `/trends` | `TrendsPage`: the market report |
+| `/about`, `/contact`, `/data`, `/sitemap`, `/terms`, `/privacy` | Static pages |
+| `/unsubscribe` | `UnsubscribePage`: posts the token from the email link |
 
-Everything except `/` renders inside `StaticLayout`.
+The feed routes are the app shell (fixed chrome, one scrolling column).
+Everything else renders inside `StaticLayout` or `HomeLayout` and scrolls
+normally.
+
+Category is a route rather than a query parameter, so each one is a page a
+crawler can reach and a canonical it can keep. `useBikeParams(lockedCategory)`
+takes the category from the route on those paths, which is why the filter
+sidebar has no category control: `components/CategoryBar` owns that choice and
+switches routes, carrying the rest of the query string with it. `/` forwards any
+URL still carrying a feed parameter (`?category=`, `?city=`, `?q=` and the rest)
+to the matching feed route, so links indexed before the split still land.
+
+Region is a header control (`components/RegionMenu`), not a gate. It used to be
+a full-page picker on `/`, which meant the highest-authority URL on the site had
+no content on it and returning visitors watched the landing markup get replaced
+on every refresh. `src/lib/landing.js` is now only the storage key and the
+reader; `DealsPage` applies a remembered region once, with `replace`, on a URL
+that does not already name a city.
 
 Guide pages wrap their content in `components/guides/GuideLayout`, which owns
 the title/description/canonical block and the BreadcrumbList JSON-LD. Their deal

@@ -1,4 +1,5 @@
 import { buildBikeMetaFor, buildBikeJsonLdFor, serializeJsonLd } from './lib/bikeMeta.js'
+import { categoryPath } from './content/categories.js'
 
 export { serializeJsonLd }
 
@@ -24,37 +25,41 @@ const CATEGORY_LABELS = {
   Commuter: 'Commuter Bikes',
 }
 
+// Title, description and canonical for a feed URL. The canonical is built from
+// the category route rather than a query string, so /gravel-bikes and
+// /deals?category=Gravel cannot both claim to be the page.
 export function buildPageMeta(params) {
   const category = params.category?.[0]
   const city = params.city?.length === 1 ? params.city[0] : null
   const catLabel = category ? (CATEGORY_LABELS[category] ?? category) : null
+  const base = category ? categoryPath(category) : '/deals'
+  const canonical = canonicalFor(city ? `${base}?city=${encodeURIComponent(city)}` : base)
 
   if (catLabel && city) {
-    const qs = `?category=${encodeURIComponent(category)}&city=${encodeURIComponent(city)}`
     return {
       title: `${catLabel} on Sale in ${city} · BikeGrid`,
       description: `Find discounted ${catLabel.toLowerCase()} from local bike shops in ${city}. Updated daily.`,
-      canonical: canonicalFor(`/${qs}`),
+      canonical,
     }
   }
   if (catLabel) {
     return {
       title: `${catLabel} on Sale · BikeGrid Australia`,
       description: `Find discounted ${catLabel.toLowerCase()} from local Australian bike shops. Updated daily.`,
-      canonical: canonicalFor(`/?category=${encodeURIComponent(category)}`),
+      canonical,
     }
   }
   if (city) {
     return {
       title: `Bike Deals in ${city} · BikeGrid`,
       description: `Browse discounted bikes from local bike shops in ${city}. Updated daily.`,
-      canonical: canonicalFor(`/?city=${encodeURIComponent(city)}`),
+      canonical,
     }
   }
   return {
-    title: 'BikeGrid — Daily Bike Deals from Australian Shops',
-    description: 'Browse hundreds of discounted bikes from local Australian bike shops. Updated daily. Filter by category, size, and brand.',
-    canonical: canonicalFor('/'),
+    title: 'Every Bike on Sale in Australia · BikeGrid',
+    description: 'Every discounted bike from local Australian bike shops, in one feed. Filter by category, size, city, brand, frame material and groupset.',
+    canonical,
   }
 }
 

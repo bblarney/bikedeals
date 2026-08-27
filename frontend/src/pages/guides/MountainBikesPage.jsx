@@ -104,7 +104,7 @@ export default function MountainBikesPage() {
         title="Mountain bikes on sale right now"
         params={{ category: ['Mountain'] }}
         ctaLabel="Browse all mountain bike deals"
-        ctaTo="/?category=Mountain"
+        ctaTo="/mountain-bikes"
         pinnedIds={pinnedIds}
         onTogglePin={togglePin}
       />

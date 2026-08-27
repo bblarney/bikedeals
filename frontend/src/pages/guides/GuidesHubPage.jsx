@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import GuideLayout from '../../components/guides/GuideLayout'
 import ComparisonTable from '../../components/guides/ComparisonTable'
 import { GUIDES } from '../../content/guides'
+import { categoryPath } from '../../content/categories'
 
 const COMPARISON = {
   columns: ['Type', 'Where it goes', 'Riding position', 'Best for'],
@@ -72,7 +73,7 @@ export default function GuidesHubPage() {
           {GUIDES.map((g) => (
             <li key={g.category}>
               <Link
-                to={`/?category=${encodeURIComponent(g.category)}`}
+                to={categoryPath(g.category)}
                 className="inline-block text-sm text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 hover:border-orange-400 hover:text-orange-600 transition-colors"
               >
                 {g.label}

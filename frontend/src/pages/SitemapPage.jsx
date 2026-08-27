@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { canonicalFor } from '../seo'
 import { GUIDES } from '../content/guides'
+import { CATEGORIES as CATEGORY_ROUTES, categoryPath } from '../content/categories'
 
-const CATEGORIES = ['Road', 'Mountain', 'Gravel', 'E-Bike', 'Commuter']
+const CATEGORIES = CATEGORY_ROUTES.map((c) => c.category)
 
 export default function SitemapPage() {
   return (
@@ -21,7 +22,7 @@ export default function SitemapPage() {
           <ul className="space-y-2">
             <li>
               <Link
-                to="/"
+                to="/deals"
                 className="text-orange-600 hover:text-orange-700 text-sm font-medium"
               >
                 All deals
@@ -30,7 +31,7 @@ export default function SitemapPage() {
             {CATEGORIES.map((cat) => (
               <li key={cat}>
                 <Link
-                  to={`/?category=${encodeURIComponent(cat)}`}
+                  to={categoryPath(cat)}
                   className="text-orange-600 hover:text-orange-700 text-sm"
                 >
                   {cat} bikes

@@ -5,11 +5,8 @@
 // Deliberately offline: no route here fetches data, so the API can be cold or
 // down during a build without affecting the output. See src/entry-server.jsx.
 //
-// The client still uses createRoot, not hydrateRoot — the prerendered markup is
+// The client still uses createRoot, not hydrateRoot: the prerendered markup is
 // for crawlers and first paint, and React discards and re-renders it on mount.
-// That keeps returning visitors (whose localStorage sends them to the deal feed
-// rather than the landing page) free of hydration-mismatch errors. Those
-// visitors are also never shown the discarded markup: see gateHead below.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -27,13 +24,16 @@ const { GUIDE_PATHS } = await import(
   pathToFileURL(join(root, 'src', 'content', 'guides.js')).href
 )
 
-// Same deal: loaded by bare node, so src/lib/landing.js stays plain JS.
-const { DEAL_FEED_GATE, DEAL_FEED_GATE_STYLE } = await import(
-  pathToFileURL(join(root, 'src', 'lib', 'landing.js')).href
+// Same deal: bare node, so src/content/categories.js stays plain JS. Every
+// category is a route, and an unlisted route is a hard 404 in production.
+const { CATEGORY_PATHS } = await import(
+  pathToFileURL(join(root, 'src', 'content', 'categories.js')).href
 )
 
 const ROUTES = [
   '/',
+  '/deals',
+  ...CATEGORY_PATHS,
   '/trends',
   '/about',
   '/contact',
@@ -124,29 +124,9 @@ function applyMeta(head, tags, route) {
       sawCanonical = true
     }
   }
-  // The landing page declares no canonical of its own (MainLayout returns before
-  // its meta block), so derive one rather than leaving the route uncanonicalised.
+  // A route that declares no canonical of its own still gets one, rather than
+  // shipping uncanonicalised.
   return sawCanonical ? out : setCanonical(out, SITE + route)
-}
-
-// `/` is the one route whose prerendered markup is not what every visitor gets:
-// it is the landing page, but a visitor with a stored region or a city-filtered
-// URL renders the deal feed instead. Without this the landing page paints and
-// is then thrown away on mount — a flash of the wrong page on every refresh.
-// The gate hides it before first paint, for those visitors only; a crawler has
-// no localStorage and no query string, so it still gets the landing page.
-function gateHead(head) {
-  return head.replace(
-    '</head>',
-    `  <script>${DEAL_FEED_GATE}</script>\n` +
-      `  <style>${DEAL_FEED_GATE_STYLE}</style>\n  </head>`,
-  )
-}
-
-// The id the gate's style hooks onto. Only ever present in prerendered markup —
-// React renders its own tree into #root and never emits this wrapper.
-function gateBody(body) {
-  return `<div id="prerendered-landing">${body}</div>`
 }
 
 function outputPath(route) {
@@ -156,9 +136,9 @@ function outputPath(route) {
 }
 
 // The client routes that are NOT prerendered (/bikes/:id, /unsubscribe) are
-// rewritten to this file by _redirects, not to index.html. index.html is now the
-// prerendered landing page, and serving that for a bike detail page would give
-// every one of them a canonical pointing at the homepage in its pre-JS HTML —
+// rewritten to this file by _redirects, not to index.html. index.html is the
+// prerendered home page, and serving that for a bike detail page would give
+// every one of them a canonical pointing at the homepage in its pre-JS HTML,
 // which invites Google to drop them. app-shell.html is the original empty shell:
 // no body content, no canonical, so the client is free to supply both.
 await writeFile(join(dist, 'app-shell.html'), template, 'utf8')
@@ -170,20 +150,17 @@ for (const route of ROUTES) {
   const { body, tags } = splitMeta(render(route))
 
   const [head, tail] = template.split('<body>')
-  const isLanding = route === '/'
-  const rootHtml = isLanding ? gateBody(body) : body
-  const headHtml = applyMeta(head, tags, route)
   const html =
-    (isLanding ? gateHead(headHtml) : headHtml) +
+    applyMeta(head, tags, route) +
     '<body>' +
-    tail.replace('<div id="root"></div>', `<div id="root">${rootHtml}</div>`)
+    tail.replace('<div id="root"></div>', `<div id="root">${body}</div>`)
 
   const file = outputPath(route)
   await mkdir(dirname(file), { recursive: true })
   await writeFile(file, html, 'utf8')
 
   const kb = (Buffer.byteLength(html) / 1024).toFixed(1)
-  console.log(`  prerendered ${route.padEnd(10)} -> ${kb} kB`)
+  console.log(`  prerendered ${route.padEnd(18)} -> ${kb} kB`)
 }
 
 console.log(`\nPrerendered ${ROUTES.length} routes.`)
