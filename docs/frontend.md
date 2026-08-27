@@ -148,7 +148,7 @@ Derive filter state from `useSearchParams()` on mount; update URL on filter chan
 | `/` | `HomePage`: hero and finder, category tiles, today's deepest cuts, guide band, market strip |
 | `/deals` | `DealsPage`: the feed, every category |
 | `/road-bikes`, `/gravel-bikes`, `/mountain-bikes`, `/commuter-bikes`, `/electric-bikes` | `DealsPage` with the category pinned by the route, enumerated in `src/content/categories.js` |
-| `/bikes/:id` | `BikeDetailPage`: offers, size variants, price history |
+| `/bikes/:id` | `BikeDetailPage`: the cross-shop comparison, size variants, spec coverage, price history |
 | `/guides` | Guide hub: comparison table and cards, `pages/guides/` |
 | `/guides/:type` | Five bike-type guides, enumerated in `src/content/guides.js` |
 | `/trends` | `TrendsPage`: the market report |
@@ -233,6 +233,26 @@ App
 Supporting modules: `hooks/` (`useBikes`, `useFilters`, `useStats`, `useMarket`,
 `usePins`), `api/client.js`, `lib/` (`badges`, `chips`, `market`, `scroll`,
 `time`, `urls`), `content/` (`categories`, `guides`), `logos.js`, `seo.js`.
+
+```
+BikeDetailPage
+├── price, stock and size matrix   ← every size of this model, with its price
+├── spec list                      ← prints the gaps as "not published"
+├── offers table                   ← same product at other shops, cheapest first
+├── PriceHistoryChart              ← recharts, from /price-history
+├── guide callout                  ← the category's guide
+└── RelatedBikes
+```
+
+The detail page is a comparison, not a product page: BikeGrid sells nothing, and
+the reason to look a bike up here rather than on Google is that the same product
+is often at several shops at once. So the spread between the cheapest and the
+dearest offer is named above the table, the offers table is the largest thing on
+the page, and the spec list prints "Not published by this shop" rather than
+dropping the row. `PriceHistoryChart` does the same with a single observation:
+most listings have never been seen to change, and "tracked since 5 Aug, no
+change since" is a real answer, where a drawn flat line implies a trend that is
+not there.
 
 ---
 
