@@ -51,7 +51,17 @@ export default function App() {
   const isShell = FEED_PATHS.includes(useLocation().pathname)
 
   return (
-    <div className={`flex flex-col bg-gray-50 ${isShell ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
+    // `relative` is load-bearing, not decoration. Tailwind's `sr-only` is
+    // `position: absolute` with no offsets, so without a positioned ancestor its
+    // containing block is the initial one: it renders at its static position
+    // (which on the feed is thousands of pixels down, inside the scrolling
+    // grid), escapes this wrapper's `overflow-hidden`, and extends the
+    // *document* to reach it. The result was a fixed-height shell you could
+    // still scroll ~4,800px past, into blank white. Positioning the wrapper
+    // makes it the containing block, so the clip finally applies to everything
+    // it claims to clip. Any visually-hidden text added anywhere below here
+    // depends on this.
+    <div className={`relative flex flex-col bg-gray-50 ${isShell ? 'h-dvh overflow-hidden' : 'min-h-screen'}`}>
       <ScrollToTop />
       <ErrorBoundary>
         <Routes>
