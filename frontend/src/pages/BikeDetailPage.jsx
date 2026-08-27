@@ -11,17 +11,7 @@ import { buildBikeMeta, buildBikeJsonLd, serializeJsonLd, canonicalFor } from '.
 import RelatedBikes from '../components/RelatedBikes'
 import PriceHistoryChart from '../components/PriceHistoryChart'
 import { categoryPath } from '../content/categories'
-
-// Only trust http(s) URLs from scraped third-party data.
-function isHttpUrl(value) {
-  if (!value) return false
-  try {
-    const u = new URL(value)
-    return u.protocol === 'http:' || u.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
+import { isHttpUrl } from '../lib/urls'
 
 export default function BikeDetailPage() {
   const { id } = useParams()

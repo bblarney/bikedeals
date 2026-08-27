@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:pages": "wrangler pages dev dist --port 8788 --compatibility-date=2026-05-01",
-    "test": "node --test test/bike-detail-function.test.js test/market-transforms.test.js"
+    "test": "node --test test/bike-detail-function.test.js test/market-transforms.test.js test/filter-chips.test.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",

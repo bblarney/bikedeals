@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
-export default function MultiSelectDropdown({ label, options, selected, onChange, searchable = false }) {
+// `placeholder` is what the closed control says when nothing is selected. The
+// sidebar passes the facet's live option count there ("Any of 17"), which is
+// more useful than "All shops" and costs nothing: /meta/filters already
+// excludes each facet from itself.
+export default function MultiSelectDropdown({ label, options, selected, onChange, searchable = false, placeholder = null }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const ref = useRef(null)
@@ -34,7 +38,9 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
     onChange(selected.includes(val) ? selected.filter((x) => x !== val) : [...selected, val])
   }
 
-  const summary = selected.length === 0 ? `All ${label.toLowerCase()}` : selected.join(', ')
+  const summary = selected.length === 0
+    ? (placeholder ?? `All ${label.toLowerCase()}`)
+    : selected.join(', ')
   const hasSelection = selected.length > 0
   const visible = searchable && query
     ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
@@ -67,15 +73,15 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm text-left transition ${
+        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-2.5 py-1.5 text-xs text-left transition ${
           open
             ? 'border-orange-500 ring-2 ring-orange-500/20'
             : 'border-slate-200 hover:border-slate-300'
-        } ${hasSelection ? 'bg-orange-50 border-orange-300 text-orange-700 font-medium' : 'bg-white text-slate-700'}`}
+        } ${hasSelection ? 'bg-orange-50 border-orange-300 text-orange-700 font-semibold' : 'bg-white text-slate-600'}`}
       >
         <span className="truncate">{summary}</span>
         <svg
-          className={`w-4 h-4 flex-shrink-0 text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          className={`w-3.5 h-3.5 flex-shrink-0 text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 20 20" fill="currentColor"
         >
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />

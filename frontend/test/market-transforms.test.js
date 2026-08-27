@@ -11,7 +11,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
-const { pick, pivot, toShares, inOrder, groupsetBrand, feedHref } = await import(
+const { pick, pivot, toShares, inOrder, groupsetBrand, feedHref, coverageShares } = await import(
   '../src/lib/market.js'
 )
 
@@ -127,5 +127,21 @@ describe('feedHref', () => {
   test('encodes values that need it, and falls back to the bare feed', () => {
     assert.equal(feedHref({ brand: 'Riese & Müller' }), '/?brand=Riese+%26+M%C3%BCller')
     assert.equal(feedHref({}), '/')
+  })
+})
+
+describe('coverageShares', () => {
+  test('reports each enrichment field as a percentage of all listings', () => {
+    const shares = coverageShares({
+      total_listings: 10000,
+      coverage: { frame_material: 6000, drivetrain_groupset: 3300 },
+    })
+    assert.deepEqual(shares, { frame_material: 60, drivetrain_groupset: 33 })
+  })
+
+  test('returns null rather than dividing by a missing total', () => {
+    assert.equal(coverageShares(undefined), null)
+    assert.equal(coverageShares({ coverage: { frame_material: 5 } }), null)
+    assert.equal(coverageShares({ total_listings: 0, coverage: {} }), null)
   })
 })

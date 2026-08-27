@@ -159,6 +159,27 @@ The feed routes are the app shell (fixed chrome, one scrolling column).
 Everything else renders inside `StaticLayout` or `HomeLayout` and scrolls
 normally.
 
+The feed has two layouts, chosen by `?view=`: cards for browsing, a table for
+comparing. The table is the same query and the same filters, and its Now, Save
+and Off columns are sort buttons. `view` is a URL parameter rather than component
+state so a comparison survives a refresh and can be linked to; `useBikes` strips
+it before the request, because it is not something the API is asked.
+
+`ResultsToolbar` carries the result count, the sort, the layout toggle and a chip
+row of everything currently narrowing the feed. The chips come from
+`src/lib/chips.js`, which is import-free and unit-tested: each one carries the
+params update that removes just itself, and the category pinned by the route is
+deliberately not a chip.
+
+The filter rail prints two things the API already knew and never showed. Each
+facet's option count ("Any of 17") comes free from `/meta/filters`, which
+excludes each facet from itself. Frame material and groupset print their
+coverage, from `/meta/market`, because they are published on roughly three
+fifths and one third of listings: filtering by either hides most of the
+catalogue, and a filter that does that quietly is worse than one that says so.
+The card and the table say the same thing per listing, with a dashed "no spec
+published" chip rather than an empty row.
+
 Category is a route rather than a query parameter, so each one is a page a
 crawler can reach and a canonical it can keep. `useBikeParams(lockedCategory)`
 takes the category from the route on those paths, which is why the filter
@@ -191,36 +212,34 @@ bike grid scrolls.
 
 ```
 App
-├── Header                    ← logo, search, stats ("342 deals · 77 shops · updated 2h ago")
+├── Header                    ← wordmark, nav, region control, search, saved count
+├── CategoryBar               ← the seam: retail chrome above, the tool below
 ├── FilterSidebar (fixed)
-│   ├── MultiSelectDropdown   ← city, category, brand, vendor, material, groupset
-│   ├── size chips            ← multi-select
-│   ├── price + discount ranges
-│   └── added-since control
+│   ├── region + added-since buttons
+│   ├── MultiSelectDropdown   ← city, size, shop, brand, material, groupset
+│   ├── price range
+│   └── minimum discount
 ├── BikeGrid (scroll container)
-│   ├── BikeCard (×n)         ← image, discount badge, model, size, price, vendor, CTA
-│   └── Prev / Next controls  ← top and bottom of the list
+│   ├── ResultsToolbar        ← count, sort, grid/table toggle, applied-filter chips
+│   ├── BikeCard (xN)         ← image, discount, price, saving, spec chips, cross-shop strip
+│   ├── BikeTable             ← the same rows as columns, sortable
+│   └── Prev / Next controls
 ├── SidebarAd
 ├── BackToTop
 ├── Footer
 └── ErrorBoundary             ← wraps the tree
-
-BikeDetailPage
-├── offers table              ← same SKU at other shops, cheapest first
-├── size variants
-├── PriceHistoryChart         ← recharts, from /price-history
-└── RelatedBikes
 ```
 
-Supporting modules: `hooks/` (`useBikes`, `useFilters`, `useStats`, `usePins`),
-`api/client.js`, `lib/` (`badges`, `scroll`, `time`), `logos.js`, `seo.js`.
+Supporting modules: `hooks/` (`useBikes`, `useFilters`, `useStats`, `useMarket`,
+`usePins`), `api/client.js`, `lib/` (`badges`, `chips`, `market`, `scroll`,
+`time`, `urls`), `content/` (`categories`, `guides`), `logos.js`, `seo.js`.
 
 ---
 
 ## Pagination
 
-**Offset pagination**, as planned — Prev/Next controls rendered at both ends of
-the grid, with `offset` in the URL so a position is shareable. Changing any filter
+**Offset pagination**, as planned: Prev/Next controls under the results, with
+`offset` in the URL so a position is shareable. Changing any filter
 clears `offset` (see `useBikes.js`); changing `offset` itself does not. Page
 changes scroll the grid container back to the top rather than the window, because
 the shell is fixed.
