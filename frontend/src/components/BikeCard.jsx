@@ -79,7 +79,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
       {/* Image */}
       <div className="relative aspect-[5/4] bg-slate-50 flex items-center justify-center p-3">
         {discount_percentage > 0 && (
-          <span className={`absolute top-2 left-2 z-10 inline-flex items-center font-mono tabular-nums text-[11.5px] font-semibold px-1.5 py-0.5 rounded-md ${
+          <span className={`absolute top-2 left-2 z-10 inline-flex items-center tabular-nums text-[11.5px] font-semibold px-1.5 py-0.5 rounded-md ${
             bigDeal ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
           }`}>
             &minus;{discount_percentage}%
@@ -138,7 +138,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
             alt={brand}
             className="h-4 w-auto max-w-[64px] object-contain"
             fallbackText={
-              <span className="font-mono text-[9.5px] uppercase tracking-[0.11em] text-slate-400 truncate">
+              <span className="tabular-nums text-[9.5px] uppercase tracking-[0.11em] text-slate-400 truncate">
                 {brand}
               </span>
             }
@@ -155,14 +155,14 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
 
         {/* Price: mono and tabular, so a column of cards reads as a column of
             numbers rather than as five different typefaces. */}
-        <div className="mt-2 flex items-baseline gap-2 font-mono tabular-nums">
+        <div className="mt-2 flex items-baseline gap-2 tabular-nums">
           <span className="text-base font-semibold text-slate-900 tracking-tight">{money(price_sale)}</span>
           {price_original && price_original > price_sale && (
             <span className="text-[11px] text-slate-400 line-through">{money(price_original)}</span>
           )}
         </div>
         {saving > 0 && (
-          <span className="font-mono tabular-nums text-[11px] text-emerald-700 mt-0.5">
+          <span className="tabular-nums text-[11px] text-emerald-700 mt-0.5">
             Save {money(saving)}
           </span>
         )}
@@ -181,13 +181,13 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
               <span
                 key={size}
                 aria-hidden="true"
-                className="inline-block font-mono text-[10px] leading-none text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-1"
+                className="inline-block tabular-nums text-[10px] leading-none text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-1"
               >
                 {size}
               </span>
             ))}
             {hiddenChipCount > 0 && (
-              <span aria-hidden="true" className="font-mono text-[10px] leading-none text-slate-400">
+              <span aria-hidden="true" className="tabular-nums text-[10px] leading-none text-slate-400">
                 +{hiddenChipCount}
               </span>
             )}
@@ -233,7 +233,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
             <path d="M3 9 4.5 4h15L21 9M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
           </svg>
-          At <b className="font-mono font-semibold">{sku_vendor_count} shops</b>, compare prices
+          At <b className="tabular-nums font-semibold">{sku_vendor_count} shops</b>, compare prices
         </Link>
       )}
     </div>

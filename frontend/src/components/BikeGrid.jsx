@@ -93,7 +93,7 @@ export default function BikeGrid({
           >
             &larr; Prev
           </PageButton>
-          <span className="font-mono tabular-nums text-sm text-slate-400 px-2">
+          <span className="tabular-nums text-sm text-slate-400 px-2">
             {page} of {totalPages}
           </span>
           <PageButton

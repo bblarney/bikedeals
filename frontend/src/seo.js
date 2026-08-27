@@ -57,8 +57,8 @@ export function buildPageMeta(params) {
     }
   }
   return {
-    title: 'Every Bike on Sale in Australia · BikeGrid',
-    description: 'Every discounted bike from local Australian bike shops, in one feed. Filter by category, size, city, brand, frame material and groupset.',
+    title: 'Bikes on Sale at Australian Shops · BikeGrid',
+    description: 'Discounted bikes from local Australian bike shops, in one feed. Filter by category, size, city, brand, frame material and groupset.',
     canonical,
   }
 }

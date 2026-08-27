@@ -69,7 +69,7 @@ export default function BikeTable({ bikes, params, onUpdate, pinnedIds, onToggle
 }
 
 function Th({ children, right = false, column = null, params, onUpdate }) {
-  const base = `font-mono text-[9.5px] uppercase tracking-[0.12em] text-slate-400 font-medium
+  const base = `tabular-nums text-[9.5px] uppercase tracking-[0.12em] text-slate-400 font-medium
     px-3 py-2.5 border-b border-slate-200 bg-slate-50 whitespace-nowrap ${right ? 'text-right' : 'text-left'}`
 
   if (!column) return <th scope="col" className={base}>{children}</th>
@@ -125,7 +125,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
             )}
           </span>
           <span className="min-w-0">
-            <span className="block font-mono text-[9.5px] uppercase tracking-[0.1em] text-slate-400 truncate">{brand}</span>
+            <span className="block tabular-nums text-[9.5px] uppercase tracking-[0.1em] text-slate-400 truncate">{brand}</span>
             <Link
               to={`/bikes/${bike.id}`}
               onClick={(e) => e.stopPropagation()}
@@ -141,39 +141,39 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
         {spec || <span className="text-slate-300">not published</span>}
       </td>
 
-      <td className={`${cell} font-mono tabular-nums`}>
+      <td className={`${cell} tabular-nums`}>
         {sizeList.length > 0 ? sizeList.join(' ') : <span className="text-slate-300">n/a</span>}
       </td>
 
       <td className={cell}>
         <span className="truncate block max-w-[11rem]">{vendor_name}{city ? `, ${city}` : ''}</span>
         {sku_vendor_count >= 2 && (
-          <span className="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-px inline-block mt-0.5">
+          <span className="tabular-nums text-[10px] font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-px inline-block mt-0.5">
             {sku_vendor_count} shops
           </span>
         )}
         {location_count > 1 && (
-          <span className="font-mono text-[10px] text-slate-400 ml-1">+{location_count - 1} stores</span>
+          <span className="tabular-nums text-[10px] text-slate-400 ml-1">+{location_count - 1} stores</span>
         )}
       </td>
 
-      <td className={`${cell} font-mono tabular-nums text-slate-400 whitespace-nowrap`}>{listed ?? ''}</td>
+      <td className={`${cell} tabular-nums text-slate-400 whitespace-nowrap`}>{listed ?? ''}</td>
 
-      <td className={`${cell} text-right font-mono tabular-nums text-slate-400 line-through`}>
+      <td className={`${cell} text-right tabular-nums text-slate-400 line-through`}>
         {price_original && price_original > price_sale ? money(price_original) : ''}
       </td>
 
-      <td className={`${cell} text-right font-mono tabular-nums text-[13px] font-semibold text-slate-900`}>
+      <td className={`${cell} text-right tabular-nums text-[13px] font-semibold text-slate-900`}>
         {money(price_sale)}
       </td>
 
-      <td className={`${cell} text-right font-mono tabular-nums text-emerald-700`}>
+      <td className={`${cell} text-right tabular-nums text-emerald-700`}>
         {saving > 0 ? money(saving) : ''}
       </td>
 
       <td className={`${cell} text-right`}>
         {discount_percentage > 0 && (
-          <span className="font-mono tabular-nums font-semibold text-orange-700 bg-orange-50 rounded px-1.5 py-0.5">
+          <span className="tabular-nums font-semibold text-orange-700 bg-orange-50 rounded px-1.5 py-0.5">
             {discount_percentage}%
           </span>
         )}

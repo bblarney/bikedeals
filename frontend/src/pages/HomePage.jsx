@@ -5,6 +5,7 @@ import { GUIDES } from '../content/guides'
 import { REGIONS, SIZE_ORDER } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 import { pick } from '../lib/market'
+import { formatDayLabel } from '../lib/time'
 import { canonicalFor } from '../seo'
 import { useBikes } from '../hooks/useBikes'
 import { useFilters } from '../hooks/useFilters'
@@ -102,10 +103,10 @@ export default function HomePage() {
 
   return (
     <>
-      <title>BikeGrid: Every Discounted Bike in Australia, in One Place</title>
+      <title>Bike Deals from Local Australian Shops · BikeGrid</title>
       <meta
         name="description"
-        content="We check 96 local Australian bike shops every morning and list every bike they have marked down. Filter by category, size, city, brand and groupset."
+        content="We check local Australian bike shops every day and list the bikes they have marked down. Filter by category, size, city, brand, frame material and groupset."
       />
       <link rel="canonical" href={canonicalFor('/')} />
 
@@ -125,7 +126,7 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-8">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Today's deepest cuts
+            Today's deepest discounts
           </h2>
           <Link to="/deals?min_discount=25" className="text-sm font-bold text-orange-600 hover:text-orange-700">
             {figures?.onSale ? `See all ${figures.onSale.toLocaleString()} on sale` : 'See everything on sale'} &rsaquo;
@@ -173,26 +174,24 @@ function Hero({ total, onSale, newToday, shops, lastScrapedAt, categories, sizes
     return category ? categoryPath(category, suffix) : `/deals${suffix}`
   }
 
-  const updated = lastScrapedAt
-    ? new Date(lastScrapedAt).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })
-    : null
+  const updated = lastScrapedAt ? formatDayLabel(new Date(lastScrapedAt)) : null
 
   return (
     <section className="bg-navy-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="flex items-center gap-2.5 mb-6">
           <FlagAU className="h-4 w-8 rounded-sm ring-1 ring-white/20" />
-          <span className="text-xs font-mono uppercase tracking-[0.16em] text-slate-400">
+          <span className="text-xs tabular-nums uppercase tracking-[0.16em] text-slate-400">
             Australia wide
           </span>
         </div>
 
         <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight leading-[1.03] max-w-[17ch]">
-          Every discounted bike in Australia, <span className="text-orange-400">in one place.</span>
+          Discounted bikes from local Australian shops, <span className="text-orange-400">in one place.</span>
         </h1>
 
         <p className="mt-4 text-slate-300 max-w-[54ch]">
-          We check {shops ? `${shops} local shops` : 'every local shop we can find'} every morning
+          We check {shops ? `${shops} local shops` : 'local bike shops around the country'} every day
           {onSale ? `. ${onSale.toLocaleString()} bikes are marked down right now` : ''}
           {newToday ? `, and ${newToday} of them went on sale since yesterday` : ''}.
         </p>
@@ -228,7 +227,7 @@ function Hero({ total, onSale, newToday, shops, lastScrapedAt, categories, sizes
 function Field({ label, value, onChange, options, anyLabel, last = false }) {
   return (
     <label className={`flex-1 min-w-0 px-3 py-1.5 ${last ? '' : 'sm:border-r sm:border-slate-100'}`}>
-      <span className="block text-[10px] font-mono uppercase tracking-[0.11em] text-slate-500">{label}</span>
+      <span className="block text-[10px] tabular-nums uppercase tracking-[0.11em] text-slate-500">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={finderSelect}>
         <option value="">{anyLabel}</option>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -240,7 +239,7 @@ function Field({ label, value, onChange, options, anyLabel, last = false }) {
 function Stat({ value, label }) {
   return (
     <span className="flex items-baseline gap-2">
-      <b className="font-mono tabular-nums text-lg font-semibold text-white tracking-tight">{value}</b>
+      <b className="tabular-nums text-lg font-semibold text-white tracking-tight">{value}</b>
       {label}
     </span>
   )
@@ -332,7 +331,7 @@ function Figure({ value, suffix, label }) {
     <div>
       <dt className="sr-only">{label}</dt>
       <dd>
-        <b className="block font-mono tabular-nums text-2xl font-semibold tracking-tight">
+        <b className="block tabular-nums text-2xl font-semibold tracking-tight">
           {value == null ? '…' : `${value}${suffix}`}
         </b>
         <span className="text-xs text-slate-400 max-w-[22ch] block">{label}</span>

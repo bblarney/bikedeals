@@ -246,7 +246,7 @@ export default function FilterSidebar({
               onChange={(e) => onUpdate({ min_discount: parseInt(e.target.value, 10) })}
               className="w-full accent-orange-600"
             />
-            <div className="flex justify-between font-mono text-[10px] text-slate-400 mt-0.5">
+            <div className="flex justify-between tabular-nums text-[10px] text-slate-400 mt-0.5">
               <span>0%</span>
               <span>{filters?.discount_range?.max || 80}%</span>
             </div>
@@ -284,7 +284,7 @@ function Facet({ label, options, selected, onChange, isLoading, searchable = fal
 function PriceInput({ value, placeholder, onChange, label }) {
   return (
     <div className="relative flex-1 min-w-0">
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none font-mono">$</span>
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none tabular-nums">$</span>
       <input
         type="text"
         inputMode="numeric"
@@ -292,7 +292,7 @@ function PriceInput({ value, placeholder, onChange, label }) {
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full font-mono tabular-nums border border-slate-200 rounded-lg pl-5 pr-2 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+        className="w-full tabular-nums border border-slate-200 rounded-lg pl-5 pr-2 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
       />
     </div>
   )
@@ -301,7 +301,7 @@ function PriceInput({ value, placeholder, onChange, label }) {
 function FilterSection({ label, note = null, children }) {
   return (
     <div>
-      <p className="font-mono text-[9.5px] uppercase tracking-[0.13em] text-slate-400 mb-1.5 flex items-center justify-between gap-2">
+      <p className="tabular-nums text-[9.5px] uppercase tracking-[0.13em] text-slate-400 mb-1.5 flex items-center justify-between gap-2">
         <span>{label}</span>
         {note && <span className="normal-case tracking-normal text-slate-400">{note}</span>}
       </p>

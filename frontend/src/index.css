@@ -5,12 +5,12 @@
   --color-navy-800: #18294a;
   --color-navy-900: #0e1c3a;
 
-  /* Two registers, one system. The display face is reserved for the retail
-     surfaces (home, guide cards, section headings); the tool surfaces (filters,
-     results, detail) use the body face and put every figure in the mono one. */
-  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Two faces, and the second one is rationed. Inter sets everything, figures
+     included: `tabular-nums` gives it the column alignment a monospace face was
+     being carried for. Archivo is for headings that announce a page, and
+     nothing else, so a second voice never competes with the data. */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Archivo', 'Inter', system-ui, sans-serif;
 }
 
 :root {
