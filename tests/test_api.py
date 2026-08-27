@@ -205,6 +205,52 @@ def test_price_history_returns_points_ascending(client, seed, sync_engine):
     assert body[0]["price_original"] == 2000.0
 
 
+def test_sort_by_saving_ranks_on_dollars_not_percent(client, seed):
+    """Dollars off and percent off are different questions, and rank differently.
+
+    The cheap bike wins on discount_percentage (60% against 20%) and loses badly
+    on money saved ($360 against $2,600), which is the whole reason the sort
+    exists.
+    """
+    seed(
+        make_bike(id="cheap", brand="Apollo", model_name="Trace 10", sku="c1",
+                  price_original=600.0, price_sale=240.0, discount_percentage=60,
+                  product_url="https://x/c"),
+        make_bike(id="dear", brand="Norco", model_name="Search C", sku="d1",
+                  price_original=13000.0, price_sale=10400.0, discount_percentage=20,
+                  product_url="https://x/d"),
+    )
+    by_percent = client.get("/api/v1/bikes?sort=discount_desc").json()["results"]
+    assert [b["id"] for b in by_percent] == ["cheap", "dear"]
+
+    by_saving = client.get("/api/v1/bikes?sort=saving_desc").json()["results"]
+    assert [b["id"] for b in by_saving] == ["dear", "cheap"]
+
+
+def test_sort_by_saving_treats_an_undiscounted_bike_as_zero(client, seed):
+    """price_original is null on anything never discounted, and null sorts badly.
+
+    Without the coalesce the undiscounted bike sorts as NULL, which Postgres
+    ranks FIRST on a DESC order: the full-price bike would head a feed sorted by
+    biggest saving.
+    """
+    seed(
+        make_bike(id="full", brand="Giant", model_name="Escape 2", sku="f1",
+                  price_original=None, price_sale=900.0, discount_percentage=0,
+                  product_url="https://x/f"),
+        make_bike(id="cut", brand="Merida", model_name="Silex 8000", sku="g1",
+                  price_original=1200.0, price_sale=900.0, discount_percentage=25,
+                  product_url="https://x/g"),
+    )
+    results = client.get("/api/v1/bikes?sort=saving_desc").json()["results"]
+    assert [b["id"] for b in results] == ["cut", "full"]
+
+
+def test_unknown_sort_is_rejected(client, seed):
+    seed()
+    assert client.get("/api/v1/bikes?sort=nonsense_desc").status_code == 422
+
+
 def test_sitemap_lists_bike_urls(client, seed):
     seed(make_bike(id="mapme"))
     r = client.get("/sitemap.xml")

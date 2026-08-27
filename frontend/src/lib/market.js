@@ -67,6 +67,25 @@ export const fmtMoney = (v) => `$${Math.round(v).toLocaleString()}`
 export const fmtPct = (v) => `${Math.round(v)}%`
 
 /** Every point belonging to one chart, in the order the API emitted them. */
+/**
+ * The two enrichment fields, as the percentage of listings that publish them.
+ *
+ * Frame material and groupset are only as good as what the shops put in their
+ * feeds, and filtering by either hides every listing that says nothing. The
+ * filter rail prints these next to those two controls so narrowing by them is
+ * an informed choice rather than a surprise.
+ */
+export function coverageShares(data) {
+  const total = data?.total_listings
+  const coverage = data?.coverage
+  if (!total || !coverage) return null
+  const share = (n) => (typeof n === 'number' ? Math.round((n / total) * 100) : null)
+  return {
+    frame_material: share(coverage.frame_material),
+    drivetrain_groupset: share(coverage.drivetrain_groupset),
+  }
+}
+
 export function pick(points, chart) {
   return points.filter((p) => p.chart === chart)
 }

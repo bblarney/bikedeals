@@ -8,6 +8,8 @@ import { useBikes, useBikeParams } from '../hooks/useBikes'
 import { usePins } from '../hooks/usePins'
 import { useFilters } from '../hooks/useFilters'
 import { useStats } from '../hooks/useStats'
+import { useMarket } from '../hooks/useMarket'
+import { coverageShares } from '../lib/market'
 import { buildPageMeta } from '../seo'
 import { MAIN_SCROLL_ID } from '../lib/scroll'
 import { REGIONS } from '../constants'
@@ -41,6 +43,9 @@ export default function DealsPage({ lockedCategory = null }) {
   const { data: bikesData, isLoading, isFetching, isError } = useBikes(params)
   const { data: filtersData } = useFilters(params)
   const { data: statsData } = useStats()
+  // One extra request for two labels, but it is the same hour-cached response
+  // /trends and the home page already hold, so in practice it is free.
+  const { data: marketData } = useMarket()
   const { pinnedBikes, pinnedIds, togglePin, clearPins } = usePins()
 
   useRememberedRegion(params)
@@ -73,6 +78,7 @@ export default function DealsPage({ lockedCategory = null }) {
             mobileOpen={sidebarOpen}
             onCloseMobile={() => setSidebarOpen(false)}
             desktopCollapsed={sidebarCollapsed}
+            coverage={coverageShares(marketData)}
           />
           {/* Zero-width rail so the toggle overlays the sidebar's edge without taking
               layout width. Sticky rather than fixed: it shares the sidebar's containing
@@ -107,6 +113,8 @@ export default function DealsPage({ lockedCategory = null }) {
               isFetching={isFetching}
               isError={isError}
               total={bikesData?.total}
+              shopCount={filtersData?.vendors?.length}
+              lastScrapedAt={filtersData?.last_scraped_at}
               newToday={statsData?.new_today}
               params={params}
               onUpdate={params.update}

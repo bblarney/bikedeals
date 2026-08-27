@@ -61,7 +61,7 @@ and ORs them** (`?category=Road&category=Gravel`).
 | `added_since` | enum | — | `day` \| `week` \| `month` \| `year`, on `scraped_at` |
 | `product_key` | string | — | Every listing of one product, across shops |
 | `sku` | string | — | Exact SKU match. Deprecated: collides across brands — prefer `product_key` |
-| `sort` | enum | `discount_desc` | `discount_desc` \| `price_asc` \| `price_desc` \| `clicks_desc` |
+| `sort` | enum | `discount_desc` | `discount_desc` \| `saving_desc` \| `price_asc` \| `price_desc` \| `clicks_desc` |
 | `limit` | int 1–200 | 50 | |
 | `offset` | int ≥ 0 | 0 | |
 
@@ -175,6 +175,13 @@ deal" from "no recorded changes yet".
 
 Increments `click_count`. Returns `204` with no body; `404` if unknown. Feeds the
 `clicks_desc` sort.
+
+`saving_desc` ranks on dollars off rather than percent off, which is a different
+question: 20% off a $13,000 bike is $2,600, and 60% off a $600 one is $360. It is
+an expression (`coalesce(price_original, price_sale) - price_sale`) rather than a
+stored column. The coalesce is load-bearing: `price_original` is null on anything
+never discounted, and Postgres sorts nulls first on a DESC order, so without it a
+full-price bike would head a feed sorted by biggest saving.
 
 ---
 

@@ -46,6 +46,9 @@ export function useBikeParams(lockedCategory = null) {
     q: get('q'),
     added_since: get('added_since'),
     sort: get('sort', 'discount_desc'),
+    // Grid or table. A URL preference rather than component state, so a
+    // comparison view survives a refresh and can be linked to.
+    view: get('view', 'grid') === 'table' ? 'table' : 'grid',
     offset: getInt('offset', 0),
     limit: 48,
     sku: get('sku'),
@@ -61,6 +64,7 @@ export function useBikes(bikeParams) {
     update: _update,
     filterByProduct: _filterByProduct,
     lockedCategory: _lockedCategory,
+    view: _view,
     ...queryParams
   } = bikeParams
   return useQuery({

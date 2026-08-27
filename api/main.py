@@ -361,14 +361,29 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
         content={"error": {"code": "INTERNAL_ERROR", "message": "An internal error occurred."}},
     )
 
-# (attribute, descending?) rather than a bound Bike column, because the feed
-# orders the *collapsed* subquery alias, not the base table.
+def _saving(entity):
+    """Dollars off, as an expression rather than a stored column.
+
+    Not the same question as discount_percentage: 20% off a $13,000 bike is
+    $2,600 and 60% off a $600 one is $360, so the two sorts rank the feed
+    completely differently. price_original is null on anything that was never
+    discounted, which coalesces to a saving of zero rather than to null.
+    """
+    return func.coalesce(entity.price_original, entity.price_sale) - entity.price_sale
+
+
+# (attribute name or expression builder, descending?) rather than a bound Bike
+# column, because the feed orders the *collapsed* subquery alias, not the base
+# table.
 _SORT_COLUMNS = {
     "discount_desc": ("discount_percentage", True),
     "price_asc": ("price_sale", False),
     "price_desc": ("price_sale", True),
+    "saving_desc": (_saving, True),
     "clicks_desc": ("click_count", True),
 }
+
+SORT_PATTERN = "^(discount_desc|price_asc|price_desc|saving_desc|clicks_desc)$"
 
 
 def _order_by(entity, sort: str):
@@ -379,7 +394,7 @@ def _order_by(entity, sort: str):
     per query. That silently drops and repeats rows across LIMIT/OFFSET pages.
     """
     name, descending = _SORT_COLUMNS.get(sort, _SORT_COLUMNS["discount_desc"])
-    col = getattr(entity, name)
+    col = name(entity) if callable(name) else getattr(entity, name)
     return [col.desc() if descending else col.asc(), entity.id.asc()]
 
 CACHE_BIKES = "max-age=300"   # 5 min — bikes update after each scrape run
@@ -507,7 +522,7 @@ async def get_bikes(
     max_price: float | None = Query(default=None, ge=0),
     in_stock: bool = True,
     q: str | None = Query(default=None, max_length=100),
-    sort: str = Query(default="discount_desc", pattern="^(discount_desc|price_asc|price_desc|clicks_desc)$"),
+    sort: str = Query(default="discount_desc", pattern=SORT_PATTERN),
     added_since: str | None = Query(default=None, pattern="^(day|week|month|year)$"),
     sku: str | None = None,
     product_key: str | None = Query(default=None, max_length=200),
