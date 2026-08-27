@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-
-const CATEGORIES = [
-  { label: 'Road bikes', to: '/?category=Road' },
-  { label: 'Mountain bikes', to: '/?category=Mountain' },
-  { label: 'Gravel bikes', to: '/?category=Gravel' },
-  { label: 'E-Bikes', to: '/?category=E-Bike' },
-  { label: 'Commuter bikes', to: '/?category=Commuter' },
-]
+import { CATEGORIES } from '../content/categories'
 
 const COMPANY_LINKS = [
   { label: 'Market trends', to: '/trends' },
@@ -54,13 +47,13 @@ export default function Footer() {
               Explore
             </p>
             <ul className="space-y-2">
-              {CATEGORIES.map(({ label, to }) => (
-                <li key={to}>
+              {CATEGORIES.map(({ plural, path }) => (
+                <li key={path}>
                   <Link
-                    to={to}
+                    to={path}
                     className="text-slate-400 hover:text-white text-sm transition-colors"
                   >
-                    {label}
+                    {plural}
                   </Link>
                 </li>
               ))}

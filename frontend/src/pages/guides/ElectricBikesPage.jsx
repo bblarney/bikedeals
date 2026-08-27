@@ -136,7 +136,7 @@ export default function ElectricBikesPage() {
         title="Electric bikes on sale right now"
         params={{ category: ['E-Bike'] }}
         ctaLabel="Browse all e-bike deals"
-        ctaTo="/?category=E-Bike"
+        ctaTo="/electric-bikes"
         {...pins}
       />
 
@@ -171,7 +171,7 @@ export default function ElectricBikesPage() {
           title="Commuter e-bike deals"
           params={{ category: ['E-Bike'], q: 'commuter' }}
           ctaLabel="See commuter e-bikes"
-          ctaTo="/?category=E-Bike&q=commuter"
+          ctaTo="/electric-bikes?q=commuter"
           {...pins}
         />
       </section>
@@ -208,7 +208,7 @@ export default function ElectricBikesPage() {
           title="Cargo e-bike deals"
           params={{ category: ['E-Bike'], q: 'cargo' }}
           ctaLabel="See cargo e-bikes"
-          ctaTo="/?category=E-Bike&q=cargo"
+          ctaTo="/electric-bikes?q=cargo"
           note="Cargo bikes are a small slice of the catalog, so this is a thin list. Some shops also file them under commuter bikes."
           {...pins}
         />
@@ -247,7 +247,7 @@ export default function ElectricBikesPage() {
           title="Electric mountain bike deals"
           params={{ category: ['E-Bike'], q: 'electric mountain' }}
           ctaLabel="See electric mountain bikes"
-          ctaTo="/?category=E-Bike&q=electric+mountain"
+          ctaTo="/electric-bikes?q=electric+mountain"
           {...pins}
         />
       </section>
@@ -282,7 +282,7 @@ export default function ElectricBikesPage() {
           title="Electric road and fast hybrid deals"
           params={{ category: ['E-Bike'], q: 'road' }}
           ctaLabel="See electric road bikes"
-          ctaTo="/?category=E-Bike&q=road"
+          ctaTo="/electric-bikes?q=road"
           note={'Shops rarely label these "e-road", so this search also picks up allroad and fast-hybrid models from the same family.'}
           {...pins}
         />

@@ -2,14 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 
-export function useBikeParams() {
+// `lockedCategory` comes from the route: /road-bikes is the category, so it is
+// not in the query string and the sidebar does not offer to change it. The
+// category bar switches routes instead.
+export function useBikeParams(lockedCategory = null) {
   const [params, setParams] = useSearchParams()
 
   const get = (key, fallback = '') => params.get(key) ?? fallback
   const getAll = (key) => params.getAll(key)
   const getInt = (key, fallback = 0) => parseInt(params.get(key) ?? fallback, 10)
 
-  function update(changes) {
+  function update(changes, { replace = false } = {}) {
     setParams((prev) => {
       const next = new URLSearchParams(prev)
       Object.entries(changes).forEach(([k, v]) => {
@@ -20,7 +23,7 @@ export function useBikeParams() {
       // reset offset when any filter changes (unless offset itself is the change)
       if (!('offset' in changes)) next.delete('offset')
       return next
-    })
+    }, { replace })
   }
 
   // Narrow the feed to one product across every shop. Keyed on product_key, not
@@ -30,7 +33,7 @@ export function useBikeParams() {
   }
 
   return {
-    category: getAll('category'),
+    category: lockedCategory ? [lockedCategory] : getAll('category'),
     city: getAll('city'),
     size: getAll('size'),
     vendor: getAll('vendor'),
@@ -47,13 +50,19 @@ export function useBikeParams() {
     limit: 48,
     sku: get('sku'),
     product_key: get('product_key'),
+    lockedCategory,
     update,
     filterByProduct,
   }
 }
 
 export function useBikes(bikeParams) {
-  const { update: _update, filterByProduct: _filterByProduct, ...queryParams } = bikeParams
+  const {
+    update: _update,
+    filterByProduct: _filterByProduct,
+    lockedCategory: _lockedCategory,
+    ...queryParams
+  } = bikeParams
   return useQuery({
     queryKey: ['bikes', queryParams],
     queryFn: () => api.getBikes(queryParams),

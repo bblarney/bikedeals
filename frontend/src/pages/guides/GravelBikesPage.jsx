@@ -117,7 +117,7 @@ export default function GravelBikesPage() {
         title="Gravel bikes on sale right now"
         params={{ category: ['Gravel'] }}
         ctaLabel="Browse all gravel bike deals"
-        ctaTo="/?category=Gravel"
+        ctaTo="/gravel-bikes"
         pinnedIds={pinnedIds}
         onTogglePin={togglePin}
       />

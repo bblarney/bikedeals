@@ -5,7 +5,7 @@ import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 
 export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = false, onCloseMobile, desktopCollapsed = false }) {
-  const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, added_since } = params
+  const { category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, added_since, lockedCategory } = params
 
   const isLoading = filters == null
 
@@ -27,7 +27,9 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
     })
   }, [filters])
 
-  const active = hasActiveFilters(params)
+  // On /gravel-bikes the category comes from the route, so it is not something
+  // "Clear all" can clear and must not be what makes the button appear.
+  const active = hasActiveFilters({ ...params, category: lockedCategory ? [] : category })
 
   return (
     <>
@@ -42,7 +44,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
       <aside
         className={`bg-white border-r border-slate-200 flex flex-col flex-shrink-0
           fixed inset-y-0 left-0 z-40 w-72 max-w-[85%] transform transition-transform duration-200
-          md:sticky md:inset-y-auto md:top-0 md:left-auto md:h-[calc(100dvh-var(--header-h))]
+          md:sticky md:inset-y-auto md:top-0 md:left-auto md:h-[calc(100dvh-var(--chrome-h))]
           md:transform-none md:transition-[width] md:duration-200
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${desktopCollapsed ? 'md:w-0 md:min-w-0 md:overflow-hidden md:border-r-0' : 'md:w-60'}`}
@@ -132,17 +134,6 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           </FilterSection>
         )}
 
-        <FilterSection label="Category">
-          {isLoading
-            ? <Skeleton />
-            : filters.categories?.length > 0 && <MultiSelectDropdown
-                label="Categories"
-                options={filters.categories}
-                selected={category}
-                onChange={(next) => onUpdate({ category: next })}
-              />}
-        </FilterSection>
-
         <FilterSection label="Size">
           {isLoading
             ? <Skeleton />
@@ -231,7 +222,7 @@ export default function FilterSidebar({ filters, params, onUpdate, mobileOpen = 
           </div>
         </FilterSection>
 
-        <FilterSection label={`Min discount — ${min_discount}%`}>
+        <FilterSection label={`Min discount: ${min_discount}%`}>
           <input
             type="range"
             min={0}

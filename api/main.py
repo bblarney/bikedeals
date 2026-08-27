@@ -1290,7 +1290,30 @@ async def sitemap(
             parts.append(f"<lastmod>{lastmod.date().isoformat()}</lastmod>")
         return f"<url>{''.join(parts)}</url>"
 
-    entries = [url_entry(f"{SITE_URL}/")]
+    # The static pages, in the order a reader would meet them. Kept in step with
+    # frontend/src/content/categories.js and content/guides.js by hand: they are
+    # a different deployable, so there is nothing to import, and a stale entry
+    # here costs one 404 in Search Console rather than a broken page.
+    static_paths = (
+        "/",
+        "/deals",
+        "/road-bikes",
+        "/gravel-bikes",
+        "/mountain-bikes",
+        "/commuter-bikes",
+        "/electric-bikes",
+        "/guides",
+        "/guides/road-bikes",
+        "/guides/gravel-bikes",
+        "/guides/mountain-bikes",
+        "/guides/commuter-bikes",
+        "/guides/electric-bikes",
+        "/trends",
+        "/data",
+        "/about",
+        "/contact",
+    )
+    entries = [url_entry(f"{SITE_URL}{path}") for path in static_paths]
     entries.extend(
         url_entry(f"{SITE_URL}/bikes/{bike_id}", last_seen_at)
         for bike_id, last_seen_at in rows.all()
