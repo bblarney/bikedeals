@@ -65,7 +65,7 @@ describe('bike detail edge renderer', () => {
     const res = await onRequestGet(ctx())
     const html = await textOf(res)
     assert.equal(res.status, 200)
-    assert.match(html, /<title>Reid Classic Vintage 12&quot; Balance Bike 12 inch — \$100 at Reid Cycles · BikeGrid<\/title>/)
+    assert.match(html, /<title>Reid Classic Vintage 12&quot; Balance Bike 12 inch, \$100 at Reid Cycles · BikeGrid<\/title>/)
     assert.match(html, /<link rel="canonical" href="https:\/\/bikegrid\.com\.au\/bikes\/abc123" data-prerendered \/>/)
     assert.doesNotMatch(html, /content="placeholder"/)
   })

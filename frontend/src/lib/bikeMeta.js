@@ -20,9 +20,9 @@ export function buildBikeMetaFor(bike, siteUrl) {
   const size = bike.frame_size ? ` ${bike.frame_size}` : ''
   const price = Math.round(bike.price_sale)
   const where = [bike.vendor_name, bike.city].filter(Boolean).join(', ')
-  const off = bike.discount_percentage > 0 ? `${bike.discount_percentage}% off — ` : ''
+  const off = bike.discount_percentage > 0 ? `${bike.discount_percentage}% off: ` : ''
   return {
-    title: `${name}${size} — $${price} at ${bike.vendor_name} · BikeGrid`,
+    title: `${name}${size}, $${price} at ${bike.vendor_name} · BikeGrid`,
     description: `${off}${name}${size} for $${price}${where ? ` at ${where}` : ''}. Compare prices across local Australian bike shops on BikeGrid.`,
     canonical: `${String(siteUrl).replace(/\/$/, '')}${bikePath(bike)}`,
   }

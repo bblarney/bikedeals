@@ -60,13 +60,20 @@ export default function PriceHistoryChart({ id, bike }) {
   // not core to the page.
   if (isLoading || isError || !data) return null
 
-  // A single event (first-seen, never changed) is just a flat line — not worth
-  // showing. Only render once there's at least one real price change.
+  // A single event (first seen, never changed) is a flat line, and drawing one
+  // implies a trend that is not there. Say what we actually know instead: most
+  // listings are one observation deep, and "no change since we started
+  // watching" is a real answer, where "unavailable" was not.
   if (data.length < 2) {
+    const since = data.length === 1 ? formatShortDate(new Date(data[0].observed_at)) : null
     return (
       <section className="mt-12">
-        <h2 className="text-lg font-semibold text-slate-900 mb-1">Price history</h2>
-        <p className="text-sm text-slate-400">Price history unavailable.</p>
+        <h2 className="text-lg font-bold text-slate-900 tracking-tight mb-1">Price history</h2>
+        <p className="text-sm text-slate-500">
+          {since
+            ? `Tracked since ${since}. The price has not moved since we first saw it.`
+            : 'We have not recorded a price change for this listing yet.'}
+        </p>
       </section>
     )
   }
@@ -76,7 +83,7 @@ export default function PriceHistoryChart({ id, bike }) {
 
   return (
     <section className="mt-12">
-      <h2 className="text-lg font-semibold text-slate-900 mb-1">Price history</h2>
+      <h2 className="text-lg font-bold text-slate-900 tracking-tight mb-1">Price history</h2>
       <p className="text-sm text-slate-500 mb-4">Sale price since we started tracking this listing.</p>
       <div className="rounded-xl border border-slate-200 p-4">
         <ResponsiveContainer width="100%" height={240}>
