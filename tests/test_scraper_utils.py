@@ -378,14 +378,14 @@ async def test_proxied_request_rewrite_drops_the_token(monkeypatch):
 async def test_scrape_failure_message_is_redacted(monkeypatch):
     """A vendor failure travels into scrape_summary.json and the daily email."""
     from scrapers.models import VendorConfig
-    from scrapers.orchestrator import scrape_vendor
+    from scrapers.orchestrator import _PIPELINES, scrape_vendor
 
     monkeypatch.setattr("scrapers.utils.SCRAPER_PROXY_URL", "https://proxy.workers.dev")
 
     async def _boom(config, client):
         raise RuntimeError("connect failed to https://proxy.workers.dev")
 
-    monkeypatch.setattr("scrapers.orchestrator.scrape_shopify", _boom)
+    monkeypatch.setitem(_PIPELINES, "shopify", _boom)
 
     config = VendorConfig(
         vendor_name="V", city="Sydney", base_url="https://shop.example",

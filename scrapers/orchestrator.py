@@ -17,6 +17,17 @@ from scrapers.utils import redact_proxy
 
 logger = logging.getLogger(__name__)
 
+# Pipeline name (the YAML's `pipeline:` value) to its scraper. Every entry
+# shares one signature: (config, client) -> (bikes, invalid_count).
+_PIPELINES = {
+    "shopify": scrape_shopify,
+    "woocommerce": scrape_woocommerce,
+    "woocommerce_api": scrape_woocommerce_api,
+    "bigcommerce": scrape_bigcommerce,
+    "giant": scrape_giant,
+    "canyon": scrape_canyon,
+}
+
 
 async def scrape_vendor(
     config: VendorConfig,
@@ -33,20 +44,10 @@ async def scrape_vendor(
         if startup_jitter[1] > 0:
             await asyncio.sleep(random.uniform(*startup_jitter))
         try:
-            if config.pipeline == "shopify":
-                bikes, invalid_count = await scrape_shopify(config, client)
-            elif config.pipeline == "woocommerce":
-                bikes, invalid_count = await scrape_woocommerce(config, client)
-            elif config.pipeline == "woocommerce_api":
-                bikes, invalid_count = await scrape_woocommerce_api(config, client)
-            elif config.pipeline == "bigcommerce":
-                bikes, invalid_count = await scrape_bigcommerce(config, client)
-            elif config.pipeline == "giant":
-                bikes, invalid_count = await scrape_giant(config, client)
-            elif config.pipeline == "canyon":
-                bikes, invalid_count = await scrape_canyon(config, client)
-            else:
+            scrape = _PIPELINES.get(config.pipeline)
+            if scrape is None:
                 raise NotImplementedError(f"Pipeline {config.pipeline!r} not implemented")
+            bikes, invalid_count = await scrape(config, client)
             # Every pipeline funnels through here, so both post-scrape passes
             # live at this single boundary rather than in six places.
             #
