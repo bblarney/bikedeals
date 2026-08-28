@@ -35,6 +35,14 @@ class BikeResponse(BaseModel):
     # Distinct *vendors* carrying this product, not storefronts — 0 when there
     # is no cross-shop match to show.
     sku_vendor_count: int = 0
+    # Cheapest in-stock price for this product at any shop, over the same rows
+    # sku_vendor_count counts, so it can equal this listing's own price when
+    # this listing is the cheapest. Null when there is no cross-shop match.
+    # Like the count, it spans the whole catalogue and ignores the request's
+    # filters: it answers "what does this cost elsewhere", not "within my
+    # current view". Feed-only; the detail response carries `lowest_price`,
+    # which is the same number computed from the offers it already returns.
+    sku_min_price: float | None = None
     # How many of *this* vendor's storefronts carry the listing. A chain lists
     # one national catalogue per city, so those rows collapse to a single result
     # and this is what lets the card still say "at 8 stores". Always 1 once the

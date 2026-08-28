@@ -2,14 +2,13 @@ import { memo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
-import { recencyFlags } from '../lib/badges'
+import { recencyFlags, crossShopLine } from '../lib/badges'
+import { money } from '../lib/money'
 import { isHttpUrl } from '../lib/urls'
 
 // Enough chips to read a size run (XS-XL is six) without the row wrapping to a
 // third line on a phone; the rest become a "+N".
 const MAX_SIZE_CHIPS = 5
-
-const money = (n) => `$${Math.round(n).toLocaleString('en-AU')}`
 
 const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = () => {} }) {
   const {
@@ -26,8 +25,6 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
     image_url,
     frame_material,
     drivetrain_groupset,
-    product_key,
-    sku_vendor_count,
     location_count = 1,
     sizes = [],
   } = bike
@@ -56,6 +53,9 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
   // than left as an empty row: a comparison tool that pads its own coverage is
   // not one you can trust.
   const spec = [frame_material, drivetrain_groupset].filter(Boolean)
+
+  // Null unless the same product is at two or more shops.
+  const compareLine = crossShopLine(bike)
 
   // The card body opens the detail / comparison page. Outbound shop links live
   // on the explicit "View deal" button (and the detail page CTAs), which record
@@ -223,17 +223,20 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
       </div>
 
       {/* The cross-shop strip: the one line that says why this site exists
-          rather than a shop's own listing page. */}
-      {product_key && sku_vendor_count >= 2 && (
+          rather than a shop's own listing page. It carries the floor price
+          rather than an instruction, because a count on its own is trivia and
+          a cheaper number is a reason to open the comparison. Quiet, so it
+          stops competing with the orange button directly above it. */}
+      {compareLine && (
         <Link
           to={`/bikes/${bike.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 border-t border-slate-100 bg-emerald-50/60 px-3 py-1.5 text-[11px] text-emerald-800 hover:bg-emerald-50 transition-colors"
+          className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-500 hover:bg-slate-50 transition-colors"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-            <path d="M3 9 4.5 4h15L21 9M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+          <span className="truncate tabular-nums">{compareLine.text}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400">
+            <path d="M4.5 2.5 8 6l-3.5 3.5" />
           </svg>
-          At <b className="tabular-nums font-semibold">{sku_vendor_count} shops</b>, compare prices
         </Link>
       )}
     </div>

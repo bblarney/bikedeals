@@ -1,13 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { isHttpUrl } from '../lib/urls'
+import { crossShopLine } from '../lib/badges'
+import { money } from '../lib/money'
 
 // Cards are for browsing; comparing is a table job and the data was always
 // tabular. Nine bikes fit where four cards did, and the saving in dollars sits
 // next to the discount in percent because those two rank differently and the
 // difference is the point.
-const money = (n) => `$${Math.round(n).toLocaleString('en-AU')}`
-
 function listedOn(iso) {
   if (!iso) return null
   const d = new Date(iso)
@@ -95,7 +95,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
   const {
     brand, model_name, frame_material, drivetrain_groupset, sizes = [],
     frame_size_canonical, vendor_name, city, location_count = 1,
-    sku_vendor_count = 0, scraped_at, price_original, price_sale,
+    scraped_at, price_original, price_sale,
     discount_percentage, product_url, image_url,
   } = bike
 
@@ -107,6 +107,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
   // usable ("N/A", "One Size"), which is exactly when there is nothing to show.
   const sizeList = sizes.length > 0 ? sizes : [frame_size_canonical].filter(Boolean)
   const listed = listedOn(scraped_at)
+  const compareLine = crossShopLine(bike)
 
   const cell = 'px-3 py-2 border-b border-slate-100 align-middle text-slate-600'
 
@@ -147,9 +148,13 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
 
       <td className={cell}>
         <span className="truncate block max-w-[11rem]">{vendor_name}{city ? `, ${city}` : ''}</span>
-        {sku_vendor_count >= 2 && (
-          <span className="tabular-nums text-[10px] font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-px inline-block mt-0.5">
-            {sku_vendor_count} shops
+        {compareLine && (
+          <span className={`tabular-nums text-[10px] font-semibold rounded px-1.5 py-px inline-block mt-0.5 ${
+            compareLine.cheaper
+              ? 'text-emerald-700 bg-emerald-50'
+              : 'text-slate-500 bg-slate-100'
+          }`}>
+            {compareLine.text}
           </span>
         )}
         {location_count > 1 && (
