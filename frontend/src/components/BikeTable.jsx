@@ -4,6 +4,7 @@ import { isHttpUrl } from '../lib/urls'
 import { crossShopLine } from '../lib/badges'
 import { money } from '../lib/money'
 import { displayModelName } from '../lib/model'
+import { shopImage } from '../lib/images'
 
 // Cards are for browsing; comparing is a table job and the data was always
 // tabular. Nine bikes fit where four cards did, and the saving in dollars sits
@@ -121,7 +122,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
         <div className="flex items-center gap-2.5">
           <span className="w-11 h-8 flex-shrink-0 bg-slate-100 rounded flex items-center justify-center overflow-hidden">
             {safeImageUrl ? (
-              <img src={safeImageUrl} alt="" loading="lazy" className="w-full h-full object-contain mix-blend-multiply" />
+              <img src={shopImage(safeImageUrl, 120)} alt="" loading="lazy" className="w-full h-full object-contain mix-blend-multiply" />
             ) : (
               <BikeGlyph className="text-slate-400" />
             )}
