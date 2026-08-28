@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { CATEGORIES } from '../content/categories'
 
+const INSTAGRAM_HANDLE = '@bikegridau'
+const INSTAGRAM_URL = 'https://www.instagram.com/bikegridau/'
+
 const COMPANY_LINKS = [
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
@@ -38,6 +41,39 @@ export default function Footer() {
             <p className="mt-2 text-slate-400 text-sm leading-relaxed">
               Daily deals from local Australian bike shops — in one place.
             </p>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              // The accessible name repeats the visible handle rather than
+              // replacing it (WCAG 2.5.3): a voice-control user says what they
+              // can see. The icon alone would announce as just "@bikegridau",
+              // which does not say where the link goes.
+              aria-label={`Instagram ${INSTAGRAM_HANDLE}`}
+              // py-1 lifts the tap target to 28px high, over the 24px WCAG 2.2
+              // minimum. mt-3 absorbs the extra padding so the gap below the
+              // tagline still reads as 16px, unchanged.
+              className="mt-3 py-1 inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
+            >
+              {/* Instagram's glyph, drawn with strokes so it inherits the link
+                  colour on hover the way the rest of the footer does. */}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+                focusable="false"
+                className="flex-shrink-0"
+              >
+                <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" />
+                <circle cx="12" cy="12" r="4.25" />
+                <circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none" />
+              </svg>
+              {INSTAGRAM_HANDLE}
+            </a>
           </div>
 
           <nav aria-label="Browse by category">
