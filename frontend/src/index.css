@@ -3,6 +3,10 @@
 @theme {
   --color-navy-700: #28395c;
   --color-navy-800: #18294a;
+  /* The feed's ground. It sits between navy-900 (the chrome around it) and
+     navy-800 (the toolbar), so the results plane reads as its own surface
+     rather than as more chrome, and a white card has something to sit on. */
+  --color-navy-850: #142544;
   --color-navy-900: #0e1c3a;
 
   /* Two faces, and the second one is rationed. Inter sets everything, figures
@@ -20,6 +24,14 @@
   --header-h: 4rem;
   --catbar-h: 2.75rem;
   --chrome-h: calc(var(--header-h) + var(--catbar-h));
+}
+
+/* A native select's popup list inherits the control's own colours in most
+   browsers, so a translucent control on the feed's dark chrome renders white
+   options on white. State the popup's colours outright. */
+.select-dark option {
+  background-color: #18294a;
+  color: #ffffff;
 }
 
 .saved-glow {

@@ -19,7 +19,7 @@ export default function SidebarAd() {
 
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Advertisement</p>
+      <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Advertisement</p>
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}

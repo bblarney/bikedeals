@@ -18,12 +18,12 @@ export default function BikeGrid({
 
   if (isError) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500">
+      <div className="flex-1 flex flex-col items-center justify-center py-24 bg-navy-850">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
         </svg>
-        <p className="font-medium text-slate-700">Could not load bikes</p>
-        <p className="text-sm text-slate-400 mt-1">Check the API is running and try again.</p>
+        <p className="font-medium text-slate-200">Could not load bikes</p>
+        <p className="text-sm text-slate-500 mt-1">Check the API is running and try again.</p>
       </div>
     )
   }
@@ -36,14 +36,14 @@ export default function BikeGrid({
           isFetching={isFetching} params={params} onUpdate={onUpdate}
           savedCount={pinnedBikes.length} onClearSaved={onClearPins}
         />
-        <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
+        <div className="flex-1 flex flex-col items-center justify-center py-24 bg-navy-850">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#5c6f9c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
-          <p className="font-medium text-slate-700">No bikes match your filters</p>
+          <p className="font-medium text-slate-200">No bikes match your filters</p>
           <button
             onClick={() => onUpdate(DEFAULT_FILTERS)}
-            className="mt-3 text-sm text-orange-600 hover:text-orange-700 font-medium"
+            className="mt-3 text-sm text-orange-400 hover:text-orange-300 font-medium"
           >
             Clear all filters
           </button>
@@ -60,7 +60,7 @@ export default function BikeGrid({
         savedCount={pinnedBikes.length} onClearSaved={onClearPins}
       />
 
-      <div className={`flex-1 transition-opacity duration-150 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
+      <div className={`flex-1 bg-navy-850 transition-opacity duration-150 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
         {isLoading && !bikes?.length ? (
           <SkeletonGrid />
         ) : view === 'table' ? (
@@ -86,14 +86,14 @@ export default function BikeGrid({
       </div>
 
       {total > limit && (
-        <div className="flex items-center justify-center gap-2 px-5 py-4 bg-white border-t border-slate-100">
+        <div className="flex items-center justify-center gap-2 px-5 py-4 bg-navy-800 border-t border-white/10">
           <PageButton
             disabled={offset === 0}
             onClick={() => { onUpdate({ offset: Math.max(0, offset - limit) }); scrollMainToTop() }}
           >
             &larr; Prev
           </PageButton>
-          <span className="tabular-nums text-sm text-slate-400 px-2">
+          <span className="tabular-nums text-sm text-slate-500 px-2">
             {page} of {totalPages}
           </span>
           <PageButton
@@ -113,7 +113,7 @@ function PageButton({ disabled, onClick, children }) {
     <button
       disabled={disabled}
       onClick={onClick}
-      className="px-3.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      className="px-3.5 py-1.5 text-sm font-medium text-slate-300 border border-white/15 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
     >
       {children}
     </button>
@@ -124,15 +124,15 @@ function SkeletonGrid() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 p-3">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse flex flex-col">
-          <div className="aspect-[5/4] bg-slate-100" />
+        <div key={i} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden animate-pulse flex flex-col">
+          <div className="aspect-[5/4] bg-white/5" />
           <div className="p-3 flex flex-col gap-2">
-            <div className="h-2.5 bg-slate-100 rounded-full w-16" />
-            <div className="h-3.5 bg-slate-100 rounded-full w-full" />
-            <div className="h-3.5 bg-slate-100 rounded-full w-4/5" />
-            <div className="mt-1 h-4 bg-slate-100 rounded-full w-24" />
-            <div className="h-2.5 bg-slate-100 rounded-full w-20" />
-            <div className="h-8 bg-slate-100 rounded-lg mt-1" />
+            <div className="h-2.5 bg-white/10 rounded-full w-16" />
+            <div className="h-3.5 bg-white/10 rounded-full w-full" />
+            <div className="h-3.5 bg-white/10 rounded-full w-4/5" />
+            <div className="mt-1 h-4 bg-white/10 rounded-full w-24" />
+            <div className="h-2.5 bg-white/10 rounded-full w-20" />
+            <div className="h-8 bg-white/10 rounded-lg mt-1" />
           </div>
         </div>
       ))}
