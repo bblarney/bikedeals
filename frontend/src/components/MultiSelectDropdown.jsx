@@ -75,13 +75,13 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center justify-between gap-2 border rounded-lg px-2.5 py-1.5 text-xs text-left transition ${
           open
-            ? 'border-orange-500 ring-2 ring-orange-500/20'
-            : 'border-slate-200 hover:border-slate-300'
-        } ${hasSelection ? 'bg-orange-50 border-orange-300 text-orange-700 font-semibold' : 'bg-white text-slate-600'}`}
+            ? 'border-orange-500 ring-2 ring-orange-500/25'
+            : 'border-white/15 hover:border-white/30'
+        } ${hasSelection ? 'bg-orange-500/20 border-orange-500/60 text-orange-300 font-semibold' : 'bg-white/5 text-slate-300'}`}
       >
         <span className="truncate">{summary}</span>
         <svg
-          className={`w-3.5 h-3.5 flex-shrink-0 text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          className={`w-3.5 h-3.5 flex-shrink-0 text-slate-500 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 20 20" fill="currentColor"
         >
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -89,31 +89,31 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full bg-navy-800 border border-white/15 rounded-lg shadow-xl overflow-hidden">
           {searchable && (
-            <div className="px-2 pt-2 pb-1 border-b border-slate-100">
+            <div className="px-2 pt-2 pb-1 border-b border-white/10">
               <input
                 ref={searchRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={`Search ${label.toLowerCase()}…`}
-                className="w-full border border-slate-200 rounded-md px-2.5 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full bg-white/5 border border-white/15 rounded-md px-2.5 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
           )}
           <div className="py-1 max-h-52 overflow-y-auto">
             {visible.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-slate-400">No matches</p>
+              <p className="px-3 py-2 text-sm text-slate-500">No matches</p>
             ) : (
               <>
-                <label className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer border-b border-slate-100 text-slate-500 hover:bg-slate-50">
+                <label className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer border-b border-white/10 text-slate-400 hover:bg-white/5">
                   <input
                     ref={selectAllRef}
                     type="checkbox"
                     checked={allVisibleSelected}
                     onChange={toggleAll}
-                    className="accent-orange-600 w-3.5 h-3.5"
+                    className="accent-orange-500 w-3.5 h-3.5"
                   />
                   <span>Select all{query ? ' matches' : ''}</span>
                 </label>
@@ -123,14 +123,14 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
                     <label
                       key={opt}
                       className={`flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer transition-colors ${
-                        checked ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-50'
+                        checked ? 'bg-orange-500/20 text-orange-300' : 'text-slate-300 hover:bg-white/5'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggle(opt)}
-                        className="accent-orange-600 w-3.5 h-3.5"
+                        className="accent-orange-500 w-3.5 h-3.5"
                       />
                       <span className={checked ? 'font-medium' : ''}>{opt}</span>
                     </label>

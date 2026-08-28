@@ -16,17 +16,19 @@ export default function CategoryBar() {
   carried.delete('category')
   const suffix = carried.toString() ? `?${carried}` : ''
 
+  // On the navy shell the active pill can no longer be navy, so the accent
+  // takes the job: orange is the only thing on the page brighter than a card.
   const pill = ({ isActive }) =>
     `flex-shrink-0 px-3 py-1 rounded-full text-sm transition-colors ${
       isActive
-        ? 'bg-navy-900 text-white font-bold'
-        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+        ? 'bg-orange-500 text-white font-bold'
+        : 'text-slate-400 hover:text-white hover:bg-white/10'
     }`
 
   return (
     <nav
       aria-label="Bike categories"
-      className="bg-white border-b border-slate-200 flex items-center gap-1.5 px-4 sm:px-6 py-2 md:py-0 md:h-[var(--catbar-h)] overflow-x-auto flex-shrink-0"
+      className="bg-navy-900 border-b border-white/10 flex items-center gap-1.5 px-4 sm:px-6 py-2 md:py-0 md:h-[var(--catbar-h)] overflow-x-auto flex-shrink-0"
     >
       <NavLink to={`/deals${suffix}`} end className={pill}>
         All bikes
@@ -39,9 +41,9 @@ export default function CategoryBar() {
 
       {/* On a phone the header has no room for the main nav, so it lands here,
           past the categories, rather than only in the footer. */}
-      <span className="md:hidden flex items-center gap-3 flex-shrink-0 pl-3 ml-1 border-l border-slate-200">
-        <NavLink to="/guides" className="text-sm font-medium text-slate-600">Guides</NavLink>
-        <NavLink to="/trends" className="text-sm font-medium text-slate-600">Market</NavLink>
+      <span className="md:hidden flex items-center gap-3 flex-shrink-0 pl-3 ml-1 border-l border-white/10">
+        <NavLink to="/guides" className="text-sm font-medium text-slate-400 hover:text-white">Guides</NavLink>
+        <NavLink to="/trends" className="text-sm font-medium text-slate-400 hover:text-white">Market</NavLink>
       </span>
     </nav>
   )
