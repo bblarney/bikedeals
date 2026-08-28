@@ -13,8 +13,7 @@ import PriceHistoryChart from '../components/PriceHistoryChart'
 import { categoryPath } from '../content/categories'
 import { GUIDES } from '../content/guides'
 import { isHttpUrl } from '../lib/urls'
-
-const money = (n) => `$${Math.round(n).toLocaleString('en-AU')}`
+import { money } from '../lib/money'
 
 // BikeGrid does not sell this bike, so the page is not a shop's product page.
 // Its job is the comparison: the same bike is often at several shops at once,

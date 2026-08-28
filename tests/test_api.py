@@ -322,6 +322,53 @@ def test_one_chain_across_cities_counts_as_one_vendor(client, seed):
     assert next(o for o in body["offers"] if o["vendor_name"] == "Fitzroy Cycles")["location_count"] == 1
 
 
+def test_feed_carries_the_cheapest_price_across_shops(client, seed):
+    """The cross-shop line on a card quotes a floor price, so the feed ships one.
+
+    It rides on the aggregate sku_vendor_count already needs, and covers the
+    same rows: every in-stock listing of the product at any shop, this listing
+    included. So the cheapest row quotes its own price, which is what lets the
+    card say "none cheaper" rather than overclaiming a win.
+    """
+    seed(
+        make_bike(id="dear", sku="SKU9", brand="Trek", vendor_name="Shop A",
+                  city="Sydney", price_sale=1800.0, product_url="https://x/dear"),
+        make_bike(id="cheap", sku="SKU9", brand="Trek", vendor_name="Shop B",
+                  city="Perth", price_sale=1650.0, product_url="https://x/cheap"),
+    )
+    by_id = {b["id"]: b for b in client.get("/api/v1/bikes").json()["results"]}
+    assert by_id["dear"]["sku_min_price"] == 1650.0
+    assert by_id["cheap"]["sku_min_price"] == 1650.0
+    assert by_id["dear"]["sku_vendor_count"] == 2
+
+
+def test_feed_quotes_no_cross_shop_price_without_a_cross_shop_match(client, seed):
+    """No match, no number. A lone listing must not quote itself as a floor."""
+    seed(
+        make_bike(id="alone", sku="SKU8", vendor_name="Shop A",
+                  product_url="https://x/alone"),
+        make_bike(id="nosku", sku=None, vendor_name="Shop B",
+                  product_url="https://x/nosku"),
+    )
+    results = client.get("/api/v1/bikes").json()["results"]
+    assert {b["sku_min_price"] for b in results} == {None}
+
+
+def test_cross_shop_price_ignores_out_of_stock_listings(client, seed):
+    """A floor price nobody can buy is a lie, and the count already excludes it."""
+    seed(
+        make_bike(id="live", sku="SKU7", brand="Trek", vendor_name="Shop A",
+                  price_sale=1800.0, product_url="https://x/live"),
+        make_bike(id="alsolive", sku="SKU7", brand="Trek", vendor_name="Shop B",
+                  price_sale=1750.0, product_url="https://x/alsolive"),
+        make_bike(id="gone", sku="SKU7", brand="Trek", vendor_name="Shop C",
+                  price_sale=1200.0, in_stock=False, product_url="https://x/gone"),
+    )
+    by_id = {b["id"]: b for b in client.get("/api/v1/bikes").json()["results"]}
+    assert by_id["live"]["sku_min_price"] == 1750.0
+    assert by_id["live"]["sku_vendor_count"] == 2
+
+
 def test_product_key_filter_beats_sku_filter_on_collisions(client, seed):
     seed(
         make_bike(id="jamis", sku="COLLIDE", brand="Jamis", model_name="Renegade",

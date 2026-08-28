@@ -529,17 +529,25 @@ async def get_bikes(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
-    # Single GROUP BY: count distinct vendors per product.
+    # Single GROUP BY: count distinct vendors per product, and take the cheapest
+    # price anyone is asking for it. The floor price is what makes the card's
+    # cross-shop line worth reading ("3 shops, from $1,649"); a bare count says
+    # only that the product exists elsewhere, not that it is worth the click.
+    # It rides on the aggregate the count already needs, so it costs no query.
     vendor_key = _vendor_key()
     product_counts_q = (
-        select(Bike.product_key, func.count(distinct(vendor_key)).label("cnt"))
+        select(
+            Bike.product_key,
+            func.count(distinct(vendor_key)).label("cnt"),
+            func.min(Bike.price_sale).label("min_price"),
+        )
         .where(Bike.product_key.isnot(None), Bike.in_stock == True)  # noqa: E712
         .group_by(Bike.product_key)
         .having(func.count(distinct(vendor_key)) >= 2)
     )
     product_counts_r = await db.execute(product_counts_q)
-    product_vendor_counts: dict[str, int] = {
-        row.product_key: row.cnt for row in product_counts_r.all()
+    product_cross_shop: dict[str, tuple[int, float]] = {
+        row.product_key: (row.cnt, row.min_price) for row in product_counts_r.all()
     }
 
     active_filters = dict(
@@ -582,9 +590,13 @@ async def get_bikes(
     for bike_obj, location_count in rows:
         br = BikeResponse.model_validate(bike_obj)
         br.sku = bike_obj.sku
-        br.sku_vendor_count = (
-            product_vendor_counts.get(bike_obj.product_key, 0) if bike_obj.product_key else 0
+        count, min_price = (
+            product_cross_shop.get(bike_obj.product_key, (0, None))
+            if bike_obj.product_key
+            else (0, None)
         )
+        br.sku_vendor_count = count
+        br.sku_min_price = min_price if count else None
         br.location_count = location_count
         br.sizes = sizes_by_product.get(_variant_key_of(bike_obj), [])
         br.product_url = _apply_affiliate_url(bike_obj.vendor_name, br.product_url)
