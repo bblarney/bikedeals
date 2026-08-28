@@ -299,6 +299,38 @@ async def _sizes_for_page(db, bikes, filters, *, in_stock):
     return {key: sorted(values, key=_size_sort_key) for key, values in sizes.items()}
 
 
+async def _cross_shop_for_page(db, product_keys: set[str]) -> dict[str, tuple[int, float]]:
+    """Cross-shop vendor count and floor price, keyed by product_key.
+
+    Single GROUP BY: count distinct vendors per product, and take the cheapest
+    price anyone is asking for it. The floor price is what makes the card's
+    cross-shop line worth reading ("3 shops, from $1,649"); a bare count says
+    only that the product exists elsewhere, not that it is worth the click.
+    It rides on the aggregate the count already needs, so it costs no query.
+
+    Scoped to the page's own product keys, not the whole catalogue: this used
+    to aggregate every product_key in the table on every request and ship
+    thousands of rows to pick out the fifty on the page. The numbers still
+    deliberately ignore the request's filters (they answer "what does this
+    cost elsewhere", not "within my current view"), and the IN list turns the
+    full-table scan into a few probes of idx_bikes_product_key.
+    """
+    if not product_keys:
+        return {}
+    vendor_key = _vendor_key()
+    rows = await db.execute(
+        select(
+            Bike.product_key,
+            func.count(distinct(vendor_key)).label("cnt"),
+            func.min(Bike.price_sale).label("min_price"),
+        )
+        .where(Bike.product_key.in_(product_keys), Bike.in_stock == True)  # noqa: E712
+        .group_by(Bike.product_key)
+        .having(func.count(distinct(vendor_key)) >= 2)
+    )
+    return {row.product_key: (row.cnt, row.min_price) for row in rows.all()}
+
+
 def _distinct_listing_count(*where_clauses):
     """COUNT of the cards the feed would show, for the trust-facing totals.
 
@@ -529,27 +561,6 @@ async def get_bikes(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
-    # Single GROUP BY: count distinct vendors per product, and take the cheapest
-    # price anyone is asking for it. The floor price is what makes the card's
-    # cross-shop line worth reading ("3 shops, from $1,649"); a bare count says
-    # only that the product exists elsewhere, not that it is worth the click.
-    # It rides on the aggregate the count already needs, so it costs no query.
-    vendor_key = _vendor_key()
-    product_counts_q = (
-        select(
-            Bike.product_key,
-            func.count(distinct(vendor_key)).label("cnt"),
-            func.min(Bike.price_sale).label("min_price"),
-        )
-        .where(Bike.product_key.isnot(None), Bike.in_stock == True)  # noqa: E712
-        .group_by(Bike.product_key)
-        .having(func.count(distinct(vendor_key)) >= 2)
-    )
-    product_counts_r = await db.execute(product_counts_q)
-    product_cross_shop: dict[str, tuple[int, float]] = {
-        row.product_key: (row.cnt, row.min_price) for row in product_counts_r.all()
-    }
-
     active_filters = dict(
         city=city, category=category, size=size, vendor=vendor, brand=brand,
         frame_material=frame_material, drivetrain_groupset=drivetrain_groupset,
@@ -582,8 +593,10 @@ async def get_bikes(
         )
     ).all()
 
-    sizes_by_product = await _sizes_for_page(
-        db, [b for b, *_ in rows], active_filters, in_stock=in_stock
+    page_bikes = [b for b, *_ in rows]
+    sizes_by_product = await _sizes_for_page(db, page_bikes, active_filters, in_stock=in_stock)
+    product_cross_shop = await _cross_shop_for_page(
+        db, {b.product_key for b in page_bikes if b.product_key}
     )
 
     results = []
@@ -917,19 +930,27 @@ async def get_stats(
     in_stock = Bike.in_stock == True  # noqa: E712
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
-    new_today_r        = await db.execute(_distinct_listing_count(in_stock, Bike.scraped_at >= cutoff))
-    shops_r            = await db.execute(select(func.count(Bike.vendor_name.distinct())).where(in_stock))
-    biggest_discount_r = await db.execute(select(func.max(Bike.discount_percentage)).where(in_stock))
-    avg_discount_r     = await db.execute(
-        select(func.round(func.avg(Bike.discount_percentage))).where(in_stock, Bike.discount_percentage > 0)
+    new_today_r = await db.execute(_distinct_listing_count(in_stock, Bike.scraped_at >= cutoff))
+    # The three whole-table numbers share one SELECT, for the reason
+    # /meta/filters documents: against a remote Postgres the cost is the round
+    # trips, not the scans. Averaging only the discounted listings needs no
+    # WHERE of its own; the CASE leaves everything else null, and AVG ignores
+    # nulls.
+    summary_r = await db.execute(
+        select(
+            func.count(Bike.vendor_name.distinct()),
+            func.max(Bike.discount_percentage),
+            func.round(func.avg(case((Bike.discount_percentage > 0, Bike.discount_percentage)))),
+        ).where(in_stock)
     )
+    shops_tracked, biggest_discount, avg_discount = summary_r.one()
 
     response.headers["Cache-Control"] = CACHE_STATS
     return StatsResponse(
         new_today=new_today_r.scalar_one() or 0,
-        shops_tracked=shops_r.scalar_one() or 0,
-        biggest_discount=biggest_discount_r.scalar_one() or 0,
-        avg_discount=int(avg_discount_r.scalar_one() or 0),
+        shops_tracked=shops_tracked or 0,
+        biggest_discount=biggest_discount or 0,
+        avg_discount=int(avg_discount or 0),
     )
 
 
