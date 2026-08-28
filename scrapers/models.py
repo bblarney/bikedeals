@@ -96,6 +96,11 @@ class VendorConfig(BaseModel):
     shop_path: str = "shop"
     shop_paths: list[str] | None = None    # multi-path WooCommerce/BigCommerce/Giant stores
     brand_map: dict[str, str] | None = None  # vendor-specific brand name overrides
+    # Set false to keep a shop's listings out of the Instagram post (see
+    # social/select.py). Scraping is unaffected: the bike still appears on the
+    # site, it just never becomes a post. This exists so a shop that objects to
+    # its product photography being reposted is excluded by one line of config.
+    instagram: bool = True
 
 
 class BikeRecord(BaseModel):

@@ -322,3 +322,13 @@ async def test_category_map_still_used_without_collection_override(_patch_shopif
     bikes, _ = await scrape_shopify(config, client=None)
     assert len(bikes) == 1
     assert bikes[0].category == "Gravel"
+
+
+def test_vendors_are_opted_in_to_instagram_unless_they_say_otherwise():
+    """The daily Instagram post reads this flag (social/select.py). Defaulting
+    it to True keeps existing vendor files valid without an edit; a shop that
+    objects to its photos being reposted sets `instagram: false`."""
+    configs = load_registry()
+    assert configs, "registry should not be empty"
+    assert all(isinstance(config.instagram, bool) for config in configs)
+    assert any(config.instagram for config in configs)

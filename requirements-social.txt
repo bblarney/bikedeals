@@ -1,0 +1,9 @@
+# Dependencies for the Instagram poster (social/). Kept out of requirements.txt
+# on purpose: Playwright pulls a browser download, and the API's Docker image
+# has no reason to carry it.
+#
+# Install with:
+#   pip install -r requirements-social.txt
+#   playwright install --with-deps chromium
+-r requirements.txt
+playwright==1.62.0

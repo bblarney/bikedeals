@@ -7,6 +7,7 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
+    LargeBinary,
     Text,
     UniqueConstraint,
 )
@@ -132,3 +133,62 @@ class PriceEvent(Base):
         # Per-bike, time-ordered fetch for the price-history endpoint.
         Index("idx_price_events_bike_observed", "bike_id", "observed_at"),
     )
+
+
+class SocialState(Base):
+    """Key/value store for the Instagram poster's few durable settings.
+
+    Holds the Instagram user id and the long-lived access token. The token lives
+    here rather than in a GitHub secret because it has to be *rewritten* every
+    time it is refreshed, and giving a workflow the ability to write repo
+    secrets means storing a PAT with that scope in the repo, which is a worse
+    thing to hold than the token it would be protecting.
+    """
+
+    __tablename__ = "social_state"
+
+    key = Column(Text, primary_key=True)
+    value = Column(Text, nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class SocialPost(Base):
+    """One row per published Instagram post.
+
+    Read back as the "do not repeat myself" ledger: a product that has been
+    posted in the last 60 days is excluded from selection. Keyed on
+    product_key where the shop publishes a SKU, and on bike_id otherwise, so
+    the same bike at a second shop still counts as already covered.
+    """
+
+    __tablename__ = "social_posts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # NULL for the 13% of listings with no SKU; bike_id carries those.
+    product_key = Column(Text, nullable=True)
+    bike_id = Column(Text, nullable=False)
+    ig_media_id = Column(Text, nullable=True)
+    posted_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("idx_social_posts_product_key_posted", "product_key", "posted_at"),
+        Index("idx_social_posts_bike_posted", "bike_id", "posted_at"),
+    )
+
+
+class SocialImage(Base):
+    """A rendered post card, held only long enough for Instagram to fetch it.
+
+    Instagram will not accept image bytes: it takes a public URL and cURLs it
+    at publish time, then serves its own copy forever after. So these rows are
+    a delivery mechanism, not an archive, and the poster prunes them after 30
+    days. Roughly 300 KB each, so the steady state is under 10 MB.
+    """
+
+    __tablename__ = "social_images"
+
+    id = Column(Text, primary_key=True)
+    jpeg = Column(LargeBinary, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (Index("idx_social_images_created_at", "created_at"),)
