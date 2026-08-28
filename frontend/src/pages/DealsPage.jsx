@@ -62,12 +62,13 @@ export default function DealsPage({ lockedCategory = null }) {
         onUpdate={params.update}
         onOpenSidebar={() => setSidebarOpen(true)}
         savedCount={pinnedBikes.length}
+        dark
       />
       <CategoryBar />
       {/* The only scrollable region on the deals page: the header and category
           bar stay put and the sidebar sticks beside the grid, but the footer
           scrolls up past it full-width. */}
-      <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+      <div id={MAIN_SCROLL_ID} className="flex-1 min-h-0 overflow-y-auto flex flex-col bg-navy-850">
         {/* grow/shrink-0 so a short grid still pushes the footer to the bottom, while a
             tall one grows the row instead of being squeezed under the footer. */}
         <div className="flex grow shrink-0">
@@ -93,7 +94,7 @@ export default function DealsPage({ lockedCategory = null }) {
                 marginLeft: sidebarCollapsed ? '8px' : '-16px',
                 transition: 'margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1)',
               }}
-              className="sticky z-50 flex w-8 h-8 items-center justify-center bg-white border border-slate-200 rounded-full shadow-md text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              className="sticky z-50 flex w-8 h-8 items-center justify-center bg-navy-800 border border-white/20 rounded-full shadow-md text-slate-400 hover:text-white hover:bg-navy-700"
             >
               {sidebarCollapsed ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

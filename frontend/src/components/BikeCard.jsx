@@ -72,11 +72,11 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
       className={`group bg-white rounded-xl border overflow-hidden transition-all duration-150 flex flex-col cursor-pointer ${
         isPinned
           ? 'saved-glow'
-          : 'border-slate-200 hover:shadow-md hover:border-slate-300'
+          : 'border-slate-200 shadow-sm hover:shadow-lg hover:border-slate-300'
       }`}
     >
       {/* Image */}
-      <div className="relative aspect-[5/4] bg-slate-50 flex items-center justify-center p-3">
+      <div className="relative aspect-[5/4] bg-slate-100 flex items-center justify-center p-3">
         {discount_percentage > 0 && (
           <span className={`absolute top-2 left-2 z-10 inline-flex items-center tabular-nums text-[11.5px] font-semibold px-1.5 py-0.5 rounded-md ${
             bigDeal ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700'
@@ -93,7 +93,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
           className={`absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full transition-colors ${
             isPinned
               ? 'bg-orange-50 text-orange-600'
-              : 'bg-white/80 text-slate-300 hover:text-orange-500'
+              : 'bg-white/90 text-slate-400 hover:text-orange-500'
           }`}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -119,7 +119,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
             className="object-contain w-full h-full mix-blend-multiply"
           />
         ) : (
-          <svg width="72" height="45" viewBox="0 0 64 40" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-200" aria-hidden="true">
+          <svg width="72" height="45" viewBox="0 0 64 40" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300" aria-hidden="true">
             <circle cx="14" cy="28" r="10" /><circle cx="50" cy="28" r="10" />
             <path d="M14 28 27 12h16M27 12l5 16M32 28 43 12M32 28h18M24 11h7M40 9h7" />
           </svg>
