@@ -128,13 +128,33 @@ async def main() -> None:
     sem = asyncio.Semaphore(MAX_CONCURRENT_VENDORS)
     ok = failed = total_bikes = 0
 
+    async def record_failure(vendor_name: str, status: str, msg: str) -> None:
+        """Count one failed vendor, and write its scrape_log row if we have a DB.
+
+        The caller logs first: the three failure modes each say something
+        different, and those exact lines feed the daily email via
+        _LogCollector.
+        """
+        nonlocal failed
+        failed += 1
+        failures.append({"vendor": vendor_name, "error": msg})
+        if SessionLocal:
+            async with SessionLocal() as session:
+                await write_scrape_log(
+                    session,
+                    vendor_name=vendor_name,
+                    run_at=run_start,
+                    status=status,
+                    error_msg=msg,
+                )
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        tasks = {
-            asyncio.ensure_future(
+        tasks = [
+            asyncio.create_task(
                 scrape_vendor(v, client, sem, startup_jitter=VENDOR_STARTUP_JITTER)
-            ): v
+            )
             for v in vendors
-        }
+        ]
 
         for coro in asyncio.as_completed(tasks):
             result = await coro
@@ -148,17 +168,7 @@ async def main() -> None:
 
             if result.error:
                 logging.error("Vendor %r failed: %s", result.vendor_name, result.error)
-                failures.append({"vendor": result.vendor_name, "error": result.error})
-                failed += 1
-                if SessionLocal:
-                    async with SessionLocal() as session:
-                        await write_scrape_log(
-                            session,
-                            vendor_name=result.vendor_name,
-                            run_at=run_start,
-                            status="quarantined",
-                            error_msg=result.error,
-                        )
+                await record_failure(result.vendor_name, "quarantined", result.error)
                 continue
 
             # non_bike_count stays in the denominator. The gate runs before this
@@ -173,17 +183,7 @@ async def main() -> None:
                     f"({invalid_ratio:.1%} > {QUARANTINE_INVALID_RATIO:.0%}) — quarantining"
                 )
                 logging.error("[%s] %s", result.vendor_name, msg)
-                failures.append({"vendor": result.vendor_name, "error": msg})
-                failed += 1
-                if SessionLocal:
-                    async with SessionLocal() as session:
-                        await write_scrape_log(
-                            session,
-                            vendor_name=result.vendor_name,
-                            run_at=run_start,
-                            status="quarantined",
-                            error_msg=msg,
-                        )
+                await record_failure(result.vendor_name, "quarantined", msg)
                 continue
 
             # A scrape that returns zero bikes is never trusted: we can't tell a
@@ -194,17 +194,7 @@ async def main() -> None:
             if not result.bikes:
                 msg = "scrape returned 0 bikes — treating as failed; existing data kept (mark_stale skipped)"
                 logging.error("[%s] %s", result.vendor_name, msg)
-                failures.append({"vendor": result.vendor_name, "error": msg})
-                failed += 1
-                if SessionLocal:
-                    async with SessionLocal() as session:
-                        await write_scrape_log(
-                            session,
-                            vendor_name=result.vendor_name,
-                            run_at=run_start,
-                            status="empty",
-                            error_msg=msg,
-                        )
+                await record_failure(result.vendor_name, "empty", msg)
                 continue
 
             ok += 1
