@@ -39,7 +39,7 @@ export default function Footer() {
           <div>
             <img src="/logos/bikegrid/bikegrid_white.png" alt="BikeGrid" className="h-12 w-auto" />
             <p className="mt-2 text-slate-400 text-sm leading-relaxed">
-              Daily deals from local Australian bike shops — in one place.
+              Daily deals from local Australian bike shops, in one place.
             </p>
             <a
               href={INSTAGRAM_URL}
