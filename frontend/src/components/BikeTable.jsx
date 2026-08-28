@@ -36,7 +36,7 @@ export default function BikeTable({ bikes, params, onUpdate, pinnedIds, onToggle
   const navigate = useNavigate()
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto bg-navy-850">
       <table className="w-full min-w-[62rem] border-collapse text-xs">
         <thead>
           <tr>
@@ -70,7 +70,7 @@ export default function BikeTable({ bikes, params, onUpdate, pinnedIds, onToggle
 
 function Th({ children, right = false, column = null, params, onUpdate }) {
   const base = `tabular-nums text-[9.5px] uppercase tracking-[0.12em] text-slate-400 font-medium
-    px-3 py-2.5 border-b border-slate-200 bg-slate-50 whitespace-nowrap ${right ? 'text-right' : 'text-left'}`
+    px-3 py-2.5 border-b border-white/10 bg-navy-800 whitespace-nowrap ${right ? 'text-right' : 'text-left'}`
 
   if (!column) return <th scope="col" className={base}>{children}</th>
 
@@ -80,10 +80,10 @@ function Th({ children, right = false, column = null, params, onUpdate }) {
       <button
         type="button"
         onClick={() => onUpdate({ sort: sortFor(column, params.sort) })}
-        className={`inline-flex items-center gap-1 hover:text-slate-700 transition-colors ${isSorted ? 'text-slate-900' : ''}`}
+        className={`inline-flex items-center gap-1 hover:text-white transition-colors ${isSorted ? 'text-white' : ''}`}
       >
         {children}
-        <span aria-hidden="true" className={isSorted ? 'text-orange-600' : 'text-slate-300'}>
+        <span aria-hidden="true" className={isSorted ? 'text-orange-400' : 'text-slate-600'}>
           {params.sort === 'price_asc' && column === 'now' ? '↑' : '↓'}
         </span>
       </button>
@@ -109,28 +109,28 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
   const listed = listedOn(scraped_at)
   const compareLine = crossShopLine(bike)
 
-  const cell = 'px-3 py-2 border-b border-slate-100 align-middle text-slate-600'
+  const cell = 'px-3 py-2 border-b border-white/5 align-middle text-slate-300'
 
   return (
     <tr
       onClick={onOpen}
-      className="cursor-pointer hover:bg-slate-50/80 transition-colors"
+      className="cursor-pointer hover:bg-white/5 transition-colors"
     >
       <td className={cell}>
         <div className="flex items-center gap-2.5">
-          <span className="w-11 h-8 flex-shrink-0 bg-slate-50 rounded flex items-center justify-center overflow-hidden">
+          <span className="w-11 h-8 flex-shrink-0 bg-slate-100 rounded flex items-center justify-center overflow-hidden">
             {safeImageUrl ? (
               <img src={safeImageUrl} alt="" loading="lazy" className="w-full h-full object-contain mix-blend-multiply" />
             ) : (
-              <BikeGlyph className="text-slate-300" />
+              <BikeGlyph className="text-slate-400" />
             )}
           </span>
           <span className="min-w-0">
-            <span className="block tabular-nums text-[9.5px] uppercase tracking-[0.1em] text-slate-400 truncate">{brand}</span>
+            <span className="block tabular-nums text-[9.5px] uppercase tracking-[0.1em] text-slate-500 truncate">{brand}</span>
             <Link
               to={`/bikes/${bike.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="block text-[13px] font-bold text-slate-900 leading-tight hover:text-orange-600 line-clamp-1"
+              className="block text-[13px] font-bold text-white leading-tight hover:text-orange-400 line-clamp-1"
             >
               {model_name}
             </Link>
@@ -139,11 +139,11 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
       </td>
 
       <td className={cell}>
-        {spec || <span className="text-slate-300">not published</span>}
+        {spec || <span className="text-slate-600">not published</span>}
       </td>
 
       <td className={`${cell} tabular-nums`}>
-        {sizeList.length > 0 ? sizeList.join(' ') : <span className="text-slate-300">n/a</span>}
+        {sizeList.length > 0 ? sizeList.join(' ') : <span className="text-slate-600">n/a</span>}
       </td>
 
       <td className={cell}>
@@ -151,34 +151,34 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
         {compareLine && (
           <span className={`tabular-nums text-[10px] font-semibold rounded px-1.5 py-px inline-block mt-0.5 ${
             compareLine.cheaper
-              ? 'text-emerald-700 bg-emerald-50'
-              : 'text-slate-500 bg-slate-100'
+              ? 'text-emerald-300 bg-emerald-500/15'
+              : 'text-slate-400 bg-white/10'
           }`}>
             {compareLine.text}
           </span>
         )}
         {location_count > 1 && (
-          <span className="tabular-nums text-[10px] text-slate-400 ml-1">+{location_count - 1} stores</span>
+          <span className="tabular-nums text-[10px] text-slate-500 ml-1">+{location_count - 1} stores</span>
         )}
       </td>
 
-      <td className={`${cell} tabular-nums text-slate-400 whitespace-nowrap`}>{listed ?? ''}</td>
+      <td className={`${cell} tabular-nums text-slate-500 whitespace-nowrap`}>{listed ?? ''}</td>
 
-      <td className={`${cell} text-right tabular-nums text-slate-400 line-through`}>
+      <td className={`${cell} text-right tabular-nums text-slate-500 line-through`}>
         {price_original && price_original > price_sale ? money(price_original) : ''}
       </td>
 
-      <td className={`${cell} text-right tabular-nums text-[13px] font-semibold text-slate-900`}>
+      <td className={`${cell} text-right tabular-nums text-[13px] font-semibold text-white`}>
         {money(price_sale)}
       </td>
 
-      <td className={`${cell} text-right tabular-nums text-emerald-700`}>
+      <td className={`${cell} text-right tabular-nums text-emerald-400`}>
         {saving > 0 ? money(saving) : ''}
       </td>
 
       <td className={`${cell} text-right`}>
         {discount_percentage > 0 && (
-          <span className="tabular-nums font-semibold text-orange-700 bg-orange-50 rounded px-1.5 py-0.5">
+          <span className="tabular-nums font-semibold text-orange-300 bg-orange-500/20 rounded px-1.5 py-0.5">
             {discount_percentage}%
           </span>
         )}
@@ -190,7 +190,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
           onClick={(e) => { e.stopPropagation(); onTogglePin(bike) }}
           aria-label={isPinned ? 'Remove from saved' : 'Save deal'}
           aria-pressed={isPinned}
-          className={`align-middle mr-2 ${isPinned ? 'text-orange-600' : 'text-slate-300 hover:text-orange-500'}`}
+          className={`align-middle mr-2 ${isPinned ? 'text-orange-400' : 'text-slate-500 hover:text-orange-400'}`}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -201,7 +201,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => { e.stopPropagation(); if (!safeProductUrl) { e.preventDefault(); return } api.recordClick(bike.id) }}
-          className="text-orange-600 hover:text-orange-700 font-bold"
+          className="text-orange-400 hover:text-orange-300 font-bold"
         >
           View
         </a>

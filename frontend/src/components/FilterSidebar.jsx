@@ -64,20 +64,20 @@ export default function FilterSidebar({
         />
       )}
       <aside
-        className={`bg-white border-r border-slate-200 flex flex-col flex-shrink-0
+        className={`bg-navy-900 border-r border-white/10 flex flex-col flex-shrink-0
           fixed inset-y-0 left-0 z-40 w-72 max-w-[85%] transform transition-transform duration-200
           md:sticky md:inset-y-auto md:top-0 md:left-auto md:h-[calc(100dvh-var(--chrome-h))]
           md:transform-none md:transition-[width] md:duration-200
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           ${desktopCollapsed ? 'md:w-0 md:min-w-0 md:overflow-hidden md:border-r-0' : 'md:w-[15.5rem]'}`}
       >
-        <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100">
-          <span className="text-sm font-bold text-slate-900">Filters</span>
+        <div className="px-4 py-3 flex items-center justify-between border-b border-white/10">
+          <span className="text-sm font-bold text-white">Filters</span>
           <div className="flex items-center gap-3">
             {active && (
               <button
                 onClick={() => onUpdate(DEFAULT_FILTERS)}
-                className="text-xs text-orange-600 hover:text-orange-700 font-bold"
+                className="text-xs text-orange-400 hover:text-orange-300 font-bold"
               >
                 Clear all
               </button>
@@ -87,7 +87,7 @@ export default function FilterSidebar({
                 type="button"
                 onClick={onCloseMobile}
                 aria-label="Close filters"
-                className="md:hidden text-slate-400 hover:text-slate-700"
+                className="md:hidden text-slate-400 hover:text-white"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -118,10 +118,10 @@ export default function FilterSidebar({
                     }}
                     className={`py-1 rounded-md border text-[11px] font-medium transition-colors text-center ${
                       activeRegion?.abbr === r.abbr
-                        ? 'bg-orange-50 border-orange-300 text-orange-700 font-bold'
+                        ? 'bg-orange-500/20 border-orange-500/60 text-orange-300 font-bold'
                         : empty
-                          ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          ? 'bg-white/5 border-white/10 text-slate-600 cursor-not-allowed'
+                          : 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
                     }`}
                   >
                     {r.abbr}
@@ -144,8 +144,8 @@ export default function FilterSidebar({
                   onClick={() => onUpdate({ added_since: added_since === value ? '' : value })}
                   className={`px-2 py-1 rounded-md border text-[11px] font-medium transition-colors ${
                     added_since === value
-                      ? 'bg-orange-50 border-orange-300 text-orange-700 font-bold'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? 'bg-orange-500/20 border-orange-500/60 text-orange-300 font-bold'
+                      : 'bg-white/5 border-white/15 text-slate-300 hover:border-white/30'
                   }`}
                 >
                   {label}
@@ -234,7 +234,7 @@ export default function FilterSidebar({
 
           <FilterSection
             label="Minimum discount"
-            note={<span className={min_discount > 0 ? 'text-orange-700 font-semibold' : ''}>{min_discount}%</span>}
+            note={<span className={min_discount > 0 ? 'text-orange-300 font-semibold' : ''}>{min_discount}%</span>}
           >
             <input
               type="range"
@@ -244,9 +244,9 @@ export default function FilterSidebar({
               value={min_discount}
               aria-label="Minimum discount"
               onChange={(e) => onUpdate({ min_discount: parseInt(e.target.value, 10) })}
-              className="w-full accent-orange-600"
+              className="w-full accent-orange-500"
             />
-            <div className="flex justify-between tabular-nums text-[10px] text-slate-400 mt-0.5">
+            <div className="flex justify-between tabular-nums text-[10px] text-slate-500 mt-0.5">
               <span>0%</span>
               <span>{filters?.discount_range?.max || 80}%</span>
             </div>
@@ -284,7 +284,7 @@ function Facet({ label, options, selected, onChange, isLoading, searchable = fal
 function PriceInput({ value, placeholder, onChange, label }) {
   return (
     <div className="relative flex-1 min-w-0">
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none tabular-nums">$</span>
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none tabular-nums">$</span>
       <input
         type="text"
         inputMode="numeric"
@@ -292,7 +292,7 @@ function PriceInput({ value, placeholder, onChange, label }) {
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full tabular-nums border border-slate-200 rounded-lg pl-5 pr-2 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+        className="w-full tabular-nums bg-white/5 border border-white/15 rounded-lg pl-5 pr-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
       />
     </div>
   )
@@ -303,7 +303,7 @@ function FilterSection({ label, note = null, children }) {
     <div>
       <p className="tabular-nums text-[9.5px] uppercase tracking-[0.13em] text-slate-400 mb-1.5 flex items-center justify-between gap-2">
         <span>{label}</span>
-        {note && <span className="normal-case tracking-normal text-slate-400">{note}</span>}
+        {note && <span className="normal-case tracking-normal text-slate-500">{note}</span>}
       </p>
       {children}
     </div>
@@ -311,7 +311,7 @@ function FilterSection({ label, note = null, children }) {
 }
 
 function Skeleton() {
-  return <div className="h-8 rounded-lg bg-slate-100 animate-pulse" />
+  return <div className="h-8 rounded-lg bg-white/10 animate-pulse" />
 }
 
 function hasActiveFilters({ category, city, size, vendor, brand, frame_material, drivetrain_groupset, min_discount, min_price, max_price, q, added_since }) {

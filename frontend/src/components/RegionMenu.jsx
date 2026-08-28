@@ -14,7 +14,7 @@ function currentRegion(cities) {
   return PICKABLE.find((r) => r.cities.some((c) => cities.includes(c))) ?? null
 }
 
-export default function RegionMenu({ cities = [], onUpdate }) {
+export default function RegionMenu({ cities = [], onUpdate, dark = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const region = currentRegion(cities)
@@ -61,13 +61,17 @@ export default function RegionMenu({ cities = [], onUpdate }) {
         onClick={() => setOpen((p) => !p)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex items-center gap-1.5 border border-slate-200 rounded-full pl-2.5 pr-2 py-1 text-sm text-slate-700 hover:border-slate-300 transition-colors max-w-[11rem]"
+        className={`inline-flex items-center gap-1.5 border rounded-full pl-2.5 pr-2 py-1 text-sm transition-colors max-w-[11rem] ${
+          dark
+            ? 'border-white/15 text-slate-200 hover:border-white/30'
+            : 'border-slate-200 text-slate-700 hover:border-slate-300'
+        }`}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 flex-shrink-0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`flex-shrink-0 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" />
         </svg>
         <span className="truncate">{label}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 flex-shrink-0">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`flex-shrink-0 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
@@ -75,7 +79,9 @@ export default function RegionMenu({ cities = [], onUpdate }) {
       {open && (
         <ul
           role="listbox"
-          className="absolute right-0 top-full mt-1.5 z-50 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 max-h-[70vh] overflow-y-auto"
+          className={`absolute right-0 top-full mt-1.5 z-50 w-56 border rounded-xl shadow-lg py-1.5 max-h-[70vh] overflow-y-auto ${
+            dark ? 'bg-navy-800 border-white/15' : 'bg-white border-slate-200'
+          }`}
         >
           <li>
             <button
@@ -83,14 +89,16 @@ export default function RegionMenu({ cities = [], onUpdate }) {
               role="option"
               aria-selected={!region && cities.length === 0}
               onClick={() => pick(null)}
-              className={`w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 ${
-                !region && cities.length === 0 ? 'text-orange-600 font-semibold' : 'text-slate-700'
+              className={`w-full text-left px-3 py-1.5 text-sm ${dark ? 'hover:bg-white/5' : 'hover:bg-slate-50'} ${
+                !region && cities.length === 0
+                  ? `font-semibold ${dark ? 'text-orange-400' : 'text-orange-600'}`
+                  : dark ? 'text-slate-300' : 'text-slate-700'
               }`}
             >
               All of Australia
             </button>
           </li>
-          <li aria-hidden="true" className="my-1 border-t border-slate-100" />
+          <li aria-hidden="true" className={`my-1 border-t ${dark ? 'border-white/10' : 'border-slate-100'}`} />
           {PICKABLE.map((r) => (
             <li key={r.abbr}>
               <button
@@ -98,12 +106,14 @@ export default function RegionMenu({ cities = [], onUpdate }) {
                 role="option"
                 aria-selected={region?.abbr === r.abbr}
                 onClick={() => pick(r)}
-                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 ${
-                  region?.abbr === r.abbr ? 'text-orange-600 font-semibold' : 'text-slate-700'
+                className={`w-full text-left px-3 py-1.5 text-sm ${dark ? 'hover:bg-white/5' : 'hover:bg-slate-50'} ${
+                  region?.abbr === r.abbr
+                    ? `font-semibold ${dark ? 'text-orange-400' : 'text-orange-600'}`
+                    : dark ? 'text-slate-300' : 'text-slate-700'
                 }`}
               >
                 {r.name}
-                <span className="block text-xs text-slate-400 truncate">{r.cities.join(', ')}</span>
+                <span className={`block text-xs truncate ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{r.cities.join(', ')}</span>
               </button>
             </li>
           ))}
