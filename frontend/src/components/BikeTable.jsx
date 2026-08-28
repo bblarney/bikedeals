@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { isHttpUrl } from '../lib/urls'
 import { crossShopLine } from '../lib/badges'
 import { money } from '../lib/money'
+import { displayModelName } from '../lib/model'
 
 // Cards are for browsing; comparing is a table job and the data was always
 // tabular. Nine bikes fit where four cards did, and the saving in dollars sits
@@ -132,7 +133,7 @@ function Row({ bike, isPinned, onTogglePin, onOpen }) {
               onClick={(e) => e.stopPropagation()}
               className="block text-[13px] font-bold text-slate-900 leading-tight hover:text-orange-600 line-clamp-1"
             >
-              {model_name}
+              {displayModelName(brand, model_name)}
             </Link>
           </span>
         </div>
