@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { CATEGORIES, categoryPath } from '../content/categories'
 import { GUIDES } from '../content/guides'
-import { REGIONS, SIZE_ORDER } from '../constants'
+import { REGIONS, sortSizes } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 import { pick } from '../lib/market'
 import { formatDayLabel } from '../lib/time'
@@ -85,17 +85,7 @@ export default function HomePage() {
 
   const figures = useMemo(() => marketFigures(market), [market])
 
-  const sizes = useMemo(() => {
-    if (!filters?.sizes) return []
-    return [...filters.sizes].sort((a, b) => {
-      const ai = SIZE_ORDER.indexOf(a)
-      const bi = SIZE_ORDER.indexOf(b)
-      if (ai !== -1 && bi !== -1) return ai - bi
-      if (ai !== -1) return -1
-      if (bi !== -1) return 1
-      return a.localeCompare(b)
-    })
-  }, [filters])
+  const sizes = useMemo(() => (filters?.sizes ? sortSizes(filters.sizes) : []), [filters])
 
   if (redirect) return <Navigate to={redirect} replace />
 

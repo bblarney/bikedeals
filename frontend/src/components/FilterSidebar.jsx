@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
 import SidebarAd from './SidebarAd'
-import { DEFAULT_FILTERS, REGIONS, SIZE_ORDER } from '../constants'
+import { DEFAULT_FILTERS, REGIONS, sortSizes } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 
 // The instrument panel. Category is not here: it is the route, and the category
@@ -37,17 +37,7 @@ export default function FilterSidebar({
   )
   const cityOptions = activeRegion ? activeRegion.cities : (filters?.cities ?? [])
 
-  const sizes = useMemo(() => {
-    if (!filters?.sizes) return []
-    return [...filters.sizes].sort((a, b) => {
-      const ai = SIZE_ORDER.indexOf(a)
-      const bi = SIZE_ORDER.indexOf(b)
-      if (ai !== -1 && bi !== -1) return ai - bi
-      if (ai !== -1) return -1
-      if (bi !== -1) return 1
-      return a.localeCompare(b)
-    })
-  }, [filters])
+  const sizes = useMemo(() => (filters?.sizes ? sortSizes(filters.sizes) : []), [filters])
 
   // On /gravel-bikes the category comes from the route, so it is not something
   // "Clear all" can clear and must not be what makes the button appear.

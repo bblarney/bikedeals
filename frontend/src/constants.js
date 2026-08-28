@@ -16,6 +16,21 @@ export const SIZE_ORDER = [
   'XXXS', 'XXS', 'XS', 'S', 'S/M', 'M', 'M/L', 'L', 'XL', 'XXL', 'XXXL',
 ]
 
+// A size facet in display order: the alpha scale first, everything else
+// (centimetres, inches) after it by name. One implementation rather than a
+// copy per component, so the hero finder and the filter sidebar cannot
+// disagree about the order of the same list.
+export function sortSizes(sizes) {
+  return [...sizes].sort((a, b) => {
+    const ai = SIZE_ORDER.indexOf(a)
+    const bi = SIZE_ORDER.indexOf(b)
+    if (ai !== -1 && bi !== -1) return ai - bi
+    if (ai !== -1) return -1
+    if (bi !== -1) return 1
+    return a.localeCompare(b)
+  })
+}
+
 export const DEFAULT_FILTERS = {
   category: [],
   city: [],
