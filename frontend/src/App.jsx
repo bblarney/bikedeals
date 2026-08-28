@@ -5,6 +5,7 @@ import BackToTop from './components/BackToTop'
 import ScrollToTop from './components/ScrollToTop'
 import ErrorBoundary from './components/ErrorBoundary'
 import { CATEGORIES } from './content/categories'
+import { isFeedPath } from './lib/routes'
 import HomePage from './pages/HomePage'
 import DealsPage from './pages/DealsPage'
 import AboutPage from './pages/AboutPage'
@@ -22,10 +23,6 @@ import MountainBikesPage from './pages/guides/MountainBikesPage'
 import RoadBikesPage from './pages/guides/RoadBikesPage'
 import GravelBikesPage from './pages/guides/GravelBikesPage'
 import CommuterBikesPage from './pages/guides/CommuterBikesPage'
-
-// Every route that is the deal feed. They share one component and differ only
-// in which category is pinned by the URL.
-const FEED_PATHS = ['/deals', ...CATEGORIES.map((c) => c.path)]
 
 function StaticLayout({ children }) {
   return (
@@ -48,7 +45,12 @@ function HomeLayout({ children }) {
 export default function App() {
   // The deal feed is a fixed app shell: the viewport never scrolls, its inner
   // grid column does. Every other route keeps normal document scrolling.
-  const isShell = FEED_PATHS.includes(useLocation().pathname)
+  //
+  // isFeedPath, not a bare === : a reload of /deals lands on /deals/ (see
+  // lib/routes.js), and treating that as a non-feed route both dropped the
+  // shell and rendered the footer a second time, since DealsPage renders its
+  // own inside the scrolling column.
+  const isShell = isFeedPath(useLocation().pathname)
 
   return (
     // `relative` is load-bearing, not decoration. Tailwind's `sr-only` is
