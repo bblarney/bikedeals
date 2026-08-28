@@ -119,6 +119,11 @@ class BikeRecord(BaseModel):
     scraped_at: datetime
     last_seen_at: datetime
     sku: str | None = None
+    # Reserved and deliberately unpopulated. Weight is a property of the model
+    # and size, not of the shop, and no pipeline has a trustworthy source for
+    # it: Shopify's `grams` is a flat shipping default, and a real spec weight
+    # appeared on 1 of 22 sampled product pages. Filling it needs an enrichment
+    # table keyed on product_key, not a shop scrape.
     weight_grams: int | None = None
     product_updated_at: datetime | None = None
     tags: list[str] | None = None
