@@ -14,6 +14,7 @@ import { categoryPath } from '../content/categories'
 import { GUIDES } from '../content/guides'
 import { isHttpUrl } from '../lib/urls'
 import { money } from '../lib/money'
+import { displayModelName } from '../lib/model'
 
 // BikeGrid does not sell this bike, so the page is not a shop's product page.
 // Its job is the comparison: the same bike is often at several shops at once,
@@ -71,9 +72,7 @@ export default function BikeDetailPage() {
   const safeProductUrl = isHttpUrl(bike.product_url) ? bike.product_url : null
   const saving = bike.price_original ? Math.round(bike.price_original - bike.price_sale) : null
   const flags = recencyFlags(bike)
-  const displayModel = bike.model_name.toLowerCase().startsWith(bike.brand.toLowerCase())
-    ? bike.model_name.slice(bike.brand.length).trim()
-    : bike.model_name
+  const displayModel = displayModelName(bike.brand, bike.model_name)
 
   // Canonical size first: it is what the size filter matches, with the shop's
   // own wording alongside when it differs, because "54cm" and "M" are not

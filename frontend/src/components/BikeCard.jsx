@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 import { recencyFlags, crossShopLine } from '../lib/badges'
 import { money } from '../lib/money'
+import { displayModelName } from '../lib/model'
 import { isHttpUrl } from '../lib/urls'
 
 // Enough chips to read a size run (XS-XL is six) without the row wrapping to a
@@ -35,9 +36,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
   const saving = price_original && price_original > price_sale ? price_original - price_sale : 0
   const bigDeal = discount_percentage >= 30
   const { isPriceDrop, isNewDiscount, isNew } = recencyFlags(bike)
-  const displayModel = model_name.toLowerCase().startsWith(brand.toLowerCase())
-    ? model_name.slice(brand.length).trim()
-    : model_name
+  const displayModel = displayModelName(brand, model_name)
 
   // One card is one product, so the sizes behind it go in a chip row. A single
   // size stays in the spec line below: a lone chip looks like a filter you can
