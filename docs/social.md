@@ -66,6 +66,14 @@ slack, so it can fail every night for a week and still recover unattended. With
 five days or fewer remaining a failed refresh stops being a warning and fails the
 run, so the failure email arrives while manual re-authorisation is still possible.
 
+`bootstrap_token` refreshes the token as it loads it, and stores what comes
+back. That is not a formality: the 60-day clock starts when Meta issues the
+token, not when you paste it in, so loading a token that has sat in a clipboard
+for a fortnight would otherwise start the refresh countdown two weeks late and
+land it past expiry. Refreshing on load makes "now" the true start whenever the
+token was generated. A token under 24 hours old cannot be refreshed yet, which
+is fine: for that one, "issued now" is already true.
+
 A token left unrefreshed for 60 days is dead and can only be replaced by
 repeating step 3 above.
 

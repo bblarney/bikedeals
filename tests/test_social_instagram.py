@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 import pytest
 
-from social import instagram, post_daily
+from social import bootstrap_token, instagram, post_daily
 
 
 def client_for(handler):
@@ -164,3 +164,47 @@ async def test_a_failed_refresh_near_expiry_fails_the_run():
     async with client_for(handler) as client:
         with pytest.raises(RuntimeError, match="Re-authorise"):
             await post_daily.ensure_fresh_token(client, store, "tok")
+
+
+async def test_bootstrap_stores_the_refreshed_token_not_the_pasted_one():
+    """The refresh hands back a full 60 days. Storing the pasted token instead
+    would throw that away for nothing."""
+    def handler(request):
+        return httpx.Response(200, json={"access_token": "fresh", "expires_in": 5183944})
+
+    async with client_for(handler) as client:
+        token, note = await bootstrap_token.resolve_token(client, "pasted")
+
+    assert token == "fresh"
+    assert "59 days" in note or "60 days" in note
+
+
+async def test_bootstrap_refresh_anchors_the_clock_to_now():
+    """The nightly job counts 50 days from the stored timestamp, but the real
+    clock starts when Meta issued the token. A token pasted a fortnight after it
+    was generated would otherwise be refreshed at day 64 of a 60-day life: past
+    saving. Refreshing on load makes 'now' the true start."""
+    def handler(request):
+        # An old token: Meta reports what is left of the original 60 days.
+        return httpx.Response(200, json={"access_token": "fresh", "expires_in": 5183944})
+
+    async with client_for(handler) as client:
+        token, _ = await bootstrap_token.resolve_token(client, "two-weeks-old")
+
+    # The stored token is the freshly issued one, so "issued now" is exact.
+    assert token == "fresh"
+
+
+async def test_bootstrap_keeps_the_pasted_token_when_it_is_too_new_to_refresh():
+    """Under 24 hours old, Meta refuses to refresh. That is the normal case for
+    a token generated minutes ago, and 'issued now' is true for it anyway."""
+    def handler(request):
+        return httpx.Response(
+            400, json={"error": {"message": "cannot refresh a token this new", "code": 190}}
+        )
+
+    async with client_for(handler) as client:
+        token, note = await bootstrap_token.resolve_token(client, "brand-new")
+
+    assert token == "brand-new"
+    assert "re-run this tomorrow" in note
