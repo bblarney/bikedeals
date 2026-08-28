@@ -4,8 +4,6 @@ import { api } from '../api/client'
 import { CATEGORIES } from '../content/categories'
 
 const COMPANY_LINKS = [
-  { label: 'Market trends', to: '/trends' },
-  { label: 'Bike guides', to: '/guides' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
   { label: 'Data services', to: '/data' },
