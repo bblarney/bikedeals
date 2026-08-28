@@ -15,6 +15,7 @@ import { GUIDES } from '../content/guides'
 import { isHttpUrl } from '../lib/urls'
 import { money } from '../lib/money'
 import { displayModelName } from '../lib/model'
+import { shopImage } from '../lib/images'
 
 // BikeGrid does not sell this bike, so the page is not a shop's product page.
 // Its job is the comparison: the same bike is often at several shops at once,
@@ -160,7 +161,7 @@ export default function BikeDetailPage() {
           )}
           {safeImageUrl ? (
             <img
-              src={safeImageUrl}
+              src={shopImage(safeImageUrl, 1000)}
               alt={`${bike.brand} ${bike.model_name}`}
               className="object-contain w-full h-full mix-blend-multiply"
               onError={(e) => { e.currentTarget.style.display = 'none' }}

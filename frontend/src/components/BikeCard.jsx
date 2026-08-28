@@ -5,6 +5,7 @@ import { VENDOR_LOGOS, BRAND_LOGOS } from '../logos'
 import { recencyFlags, crossShopLine } from '../lib/badges'
 import { money } from '../lib/money'
 import { displayModelName } from '../lib/model'
+import { shopImage } from '../lib/images'
 import { isHttpUrl } from '../lib/urls'
 
 // Enough chips to read a size run (XS-XL is six) without the row wrapping to a
@@ -112,7 +113,7 @@ const BikeCard = memo(function BikeCard({ bike, isPinned = false, onTogglePin = 
 
         {safeImageUrl ? (
           <img
-            src={safeImageUrl}
+            src={shopImage(safeImageUrl, 600)}
             alt={`${brand} ${model_name}`}
             loading="lazy"
             onError={(e) => { e.currentTarget.style.display = 'none' }}
