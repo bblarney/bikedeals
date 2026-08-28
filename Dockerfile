@@ -19,6 +19,17 @@ COPY scrapers/ ./scrapers/
 COPY migrations/ ./migrations/
 COPY alembic.ini .
 
+# Same reasoning as migrations/ above: the API never imports this, but carrying
+# it means one-off admin commands run against the same image and the same
+# DATABASE_URL compose already composes, rather than needing the database
+# password copied onto a laptop. Chiefly:
+#
+#     docker compose run --rm -e IG_ACCESS_TOKEN api python -m social.bootstrap_token
+#
+# Costs a few KB and no extra dependencies: the poster's Playwright import is
+# inside render_card, so nothing here pulls a browser into the API image.
+COPY social/ ./social/
+
 RUN useradd --system --create-home --uid 10001 bikegrid
 USER bikegrid
 
