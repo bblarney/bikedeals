@@ -64,8 +64,9 @@ A failing vendor is quarantined for that run: nothing is written, yesterday's da
 ```
 
 Optional enrichment fields where the shop publishes them: `sku` (the shop's own,
-not globally unique; `product_key` is the cross-shop matching key), `weight_grams`, `product_updated_at`, `tags`, `frame_material`,
-`drivetrain_groupset`. `city` is nullable. See
+not globally unique; `product_key` is the cross-shop matching key), `product_updated_at`, `tags`, `frame_material`,
+`drivetrain_groupset`. `city` is nullable. `weight_grams` exists in the schema
+but no pipeline fills it: shops publish shipping weight, not the bike's. See
 [`docs/data-model.md`](docs/data-model.md) for the authoritative definition.
 
 ### API endpoints

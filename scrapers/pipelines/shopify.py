@@ -254,8 +254,10 @@ async def _scrape_collection(
                 product_url = f"{config.base_url}/products/{handle}?variant={variant_id}"
 
                 sku = variant.get("sku") or None
-                raw_grams = variant.get("grams")
-                weight_grams = int(raw_grams) if raw_grams else None
+                # No weight here on purpose. Shopify's `grams` is the shipping
+                # weight, and shops set it as a flat per-store default: one had
+                # 20kg on all 1,274 variants including a kids' scooter, another
+                # 1,000kg on 1,270. It is not the bike's weight and never was.
 
                 price_sale = parse_price(variant.get("price"))
                 price_original = parse_price(variant.get("compare_at_price"))
@@ -289,7 +291,6 @@ async def _scrape_collection(
                         scraped_at=now,
                         last_seen_at=now,
                         sku=sku,
-                        weight_grams=weight_grams,
                         product_updated_at=product_updated_at,
                         tags=tags if tags else None,
                         frame_material=frame_material,

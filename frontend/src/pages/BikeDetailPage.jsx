@@ -306,14 +306,14 @@ export default function BikeDetailPage() {
           {/* What the shop actually published. The blank rows are the point:
               frame material is named on about three fifths of listings and
               groupset on about a third, and a comparison tool that pads its own
-              coverage is not one you can trust. */}
+              coverage is not one you can trust. Weight is not listed here at
+              all: no shop publishes a real one, so the row was blank on every
+              bike. See BikeRecord.weight_grams. */}
           <dl className="mt-6 border-t border-slate-100">
             <Spec label="Category" value={bike.category} />
             <Spec label="Frame size" value={sizeLabel} />
             <Spec label="Frame material" value={bike.frame_material} />
             <Spec label="Groupset" value={bike.drivetrain_groupset} />
-            <Spec label="Weight" value={bike.weight_grams ? `${(bike.weight_grams / 1000).toFixed(1)} kg` : null} />
-            <Spec label="Shop SKU" value={bike.sku} mono />
             <Spec label="First listed" value={bike.scraped_at ? formatShortDate(new Date(bike.scraped_at)) : null} />
           </dl>
 
@@ -488,13 +488,13 @@ function Th({ children, right = false }) {
 }
 
 // A spec row that prints the gap rather than hiding it.
-function Spec({ label, value, mono = false }) {
+function Spec({ label, value }) {
   return (
     <div className="flex items-baseline gap-4 py-1.5 border-b border-slate-50">
       <dt className="tabular-nums text-[9.5px] uppercase tracking-[0.12em] text-slate-400 w-32 flex-shrink-0">
         {label}
       </dt>
-      <dd className={`text-[13px] ${value ? 'text-slate-900' : 'text-slate-300'} ${mono && value ? 'tabular-nums' : ''}`}>
+      <dd className={`text-[13px] ${value ? 'text-slate-900' : 'text-slate-300'}`}>
         {value || 'Not published by this shop'}
       </dd>
     </div>

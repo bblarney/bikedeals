@@ -33,7 +33,7 @@ class BikeRecord(BaseModel):        # scrapers/models.py — what a pipeline emi
     last_seen_at: datetime
     sku: str | None                 # shop's own SKU (not globally unique)
     product_key: str | None         # cross-shop matching key: <brand>:<sku>
-    weight_grams: int | None
+    weight_grams: int | None        # reserved; no pipeline populates it
     product_updated_at: datetime | None
     tags: list[str] | None
     frame_material: str | None
