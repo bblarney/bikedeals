@@ -176,6 +176,15 @@ _CANONICAL: dict[str, str] = {
 # "Santa Cruz" is matched before "Santa".
 _KNOWN_BRAND_KEYS = frozenset(_CANONICAL)
 
+def is_known_brand(brand: str) -> bool:
+    """Is this one of the manufacturers we recognise, however it is spelled?
+
+    Reads the same folded vocabulary canonical_brand_name recovers into, so a
+    caller cannot drift from the brand list the scrapers already agree on.
+    """
+    return fold_brand(brand) in _KNOWN_BRAND_KEYS
+
+
 # Brands that name a distributor or a placeholder rather than a manufacturer.
 # A shop's own name is caught generically (see canonical_brand_name), so this
 # list only needs the ones whose text matches no vendor.

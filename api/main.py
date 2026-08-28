@@ -32,7 +32,7 @@ from sqlalchemy.sql.functions import FunctionElement
 from scrapers.utils import canonical_frame_size
 
 from api.db import get_db, get_engine
-from api.models import Base, Bike, PriceEvent, ScrapeLog, Subscriber
+from api.models import Base, Bike, PriceEvent, ScrapeLog, SocialImage, Subscriber
 from api.schemas import (
     BikeDetailResponse,
     BikeResponse,
@@ -1377,4 +1377,42 @@ async def sitemap(
         content=body,
         media_type="application/xml",
         headers={"Cache-Control": "max-age=3600"},
+    )
+
+
+
+@app.get("/social/{image_id}.jpg")
+@limiter.limit("60/minute")
+async def social_image(
+    request: Request,
+    image_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Serve a rendered Instagram card so Meta's fetcher can collect it.
+
+    Instagram's publishing API takes a public URL rather than image bytes: it
+    cURLs this endpoint once when a post is created, then serves its own copy.
+    So this exists to be read a handful of times by one client, and the rows
+    behind it are pruned after 30 days (see social/state.py). A 404 here for an
+    old id is expected and harmless — the live post is unaffected.
+
+    Serving it from our own domain rather than a git-hosted URL keeps the fetch
+    a plain 200 with no cross-host redirect, which is the shape Meta's fetcher
+    is happiest with, and it keeps image hosting independent of the frontend's
+    build configuration.
+    """
+    row = await db.get(SocialImage, image_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    return Response(
+        content=row.jpeg,
+        media_type="image/jpeg",
+        headers={
+            # The id is a random token and the bytes behind it never change,
+            # so this is safe to cache for as long as anything will keep it.
+            "Cache-Control": "public, max-age=31536000, immutable",
+            # These are post artefacts, not site content. Keep them out of
+            # search results and out of the sitemap's company.
+            "X-Robots-Tag": "noindex",
+        },
     )

@@ -106,6 +106,7 @@ Detailed planning and critique for each layer. Read these before touching that l
 - [`docs/developer.md`](docs/developer.md): PR conventions, vendor testing, coding guidelines
 - [`docs/vendors.md`](docs/vendors.md): coverage tracker for scraped and blocked shops, and why
 - [`docs/implementation-plan.md`](docs/implementation-plan.md): **historical**; the original build guide, superseded by the docs above
+- [`docs/social.md`](docs/social.md): the daily Instagram post, its Meta setup, token lifecycle, and per-vendor opt-out
 - [`worker/README.md`](worker/README.md): the egress proxy, its allowlist, and deployment
 
 ## Status
@@ -113,3 +114,6 @@ Detailed planning and critique for each layer. Read these before touching that l
 Phases 1–4 are complete: 77 vendors scraping daily into Supabase, the API on
 Render, the frontend on Cloudflare Pages. Work now is incremental: new vendors,
 pipeline fixes, and frontend iteration.
+
+One Instagram post per day is published unattended from the `social/` package,
+chained to the nightly scrape. See [`docs/social.md`](docs/social.md).

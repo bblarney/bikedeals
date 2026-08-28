@@ -24,7 +24,7 @@ from sqlalchemy import create_engine, delete
 from sqlalchemy.orm import Session
 
 import api.main as main_module
-from api.models import Bike, PriceEvent, ScrapeLog, Subscriber
+from api.models import Bike, PriceEvent, ScrapeLog, SocialImage, SocialPost, SocialState, Subscriber
 from scrapers.models import make_product_key
 from scrapers.utils import canonical_frame_size
 
@@ -62,7 +62,7 @@ def sync_engine(client):
 def clean_db(sync_engine):
     """Empty all tables before each test for isolation."""
     with Session(sync_engine) as s:
-        for model in (Bike, Subscriber, ScrapeLog, PriceEvent):
+        for model in (Bike, Subscriber, ScrapeLog, PriceEvent, SocialImage, SocialPost, SocialState):
             s.execute(delete(model))
         s.commit()
     yield

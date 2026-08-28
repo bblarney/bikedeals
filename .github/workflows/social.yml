@@ -1,0 +1,79 @@
+name: Daily Instagram Post
+
+# Chained to the scrape rather than run on its own cron. The post is only as
+# good as the data behind it, and the scrape's duration varies: a fixed time
+# would eventually fire while the run was still in progress and post yesterday's
+# feed. workflow_run fires when there is something new to post about.
+on:
+  workflow_run:
+    workflows: ["Daily Scrape"]
+    types: [completed]
+  workflow_dispatch:
+
+# One post at a time. A manual dispatch racing the nightly run could otherwise
+# publish twice, and the ledger only prevents repeats across days.
+concurrency:
+  group: instagram-daily
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    # A failed scrape means stale or partial data. Skip the night rather than
+    # advertise a price nothing verified.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-social.txt
+
+      - name: Install Chromium
+        run: playwright install --with-deps chromium
+
+      # The ledger and the access token live on the VPS Postgres, which has no
+      # public listener: the tailnet address is the only route to it. Same
+      # arrangement as the scrape workflow.
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Post today's deal
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m social.post_daily
+
+      # A post that stops happening is invisible: there is no failing page to
+      # notice and no user to complain. An expired token or a Meta outage has to
+      # arrive somewhere a human reads.
+      - name: Report a failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST || 'ventraip.email' }}
+          server_port: 587
+          secure: false
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Bikedeals Instagram post - FAILED"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: Bikedeals Scraper <${{ secrets.SMTP_USER }}>
+          body: |
+            The daily Instagram post failed.
+
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            If the token has expired, re-authorise from the Meta App Dashboard
+            (Instagram > API setup with Instagram login) and reload it with
+            social.bootstrap_token. See docs/social.md.
