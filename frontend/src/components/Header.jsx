@@ -5,24 +5,66 @@ import RegionMenu from './RegionMenu'
 // The site's whole map, in the one piece of chrome every page shares. It used
 // to hold a logo, a search box and a bike count, which said the site only did
 // one thing; the guides and the market report were reachable from the footer
-// and nowhere else.
+// and nowhere else. The icons are the same 16px stroke family as the search,
+// heart and hamburger glyphs; only the md+ nav draws them, because the compact
+// nav's row has no room to spare at 360px.
 const NAV = [
-  { label: 'Deals', to: '/deals' },
-  { label: 'Guides', to: '/guides' },
-  { label: 'Market', to: '/trends' },
+  {
+    label: 'Deals',
+    to: '/deals',
+    icon: (
+      <>
+        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+      </>
+    ),
+  },
+  {
+    label: 'Guides',
+    to: '/guides',
+    icon: (
+      <>
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </>
+    ),
+  },
+  {
+    label: 'Market',
+    to: '/trends',
+    icon: (
+      <>
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+        <polyline points="16 7 22 7 22 13" />
+      </>
+    ),
+  },
 ]
 
 // `dark` is the feed's shell. Every other route keeps the white header, so the
 // prop is what stops the marketing pages from inheriting the tool's chrome.
 const navClass = (dark) => ({ isActive }) =>
-  `text-sm transition-colors ${
+  `group inline-flex items-center gap-1.5 text-sm transition-colors ${
     isActive
-      ? `font-bold ${dark ? 'text-white' : 'text-slate-900'}`
+      ? `font-semibold ${dark ? 'text-white' : 'text-slate-900'}`
       : `font-medium ${dark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`
+  }`
+
+// The label carries the route state through text colour; the icon carries it
+// through the accent, warming to orange on hover and staying orange where you
+// are, with a one-pixel lift so the hover reads as motion, not just a repaint.
+const iconClass = (dark) => (isActive) =>
+  `transition group-hover:-translate-y-px ${
+    isActive
+      ? (dark ? 'text-orange-400' : 'text-orange-600')
+      : dark
+        ? 'text-slate-500 group-hover:text-orange-400'
+        : 'text-slate-400 group-hover:text-orange-600'
   }`
 
 export default function Header({ params, onUpdate, onOpenSidebar, savedCount = 0, dark = false }) {
   const nav = navClass(dark)
+  const ico = iconClass(dark)
 
   return (
     <header
@@ -55,9 +97,21 @@ export default function Header({ params, onUpdate, onOpenSidebar, savedCount = 0
       </Link>
 
       <nav aria-label="Main" className="hidden md:flex items-center gap-6 flex-shrink-0">
-        {NAV.map(({ label, to }) => (
+        {NAV.map(({ label, to, icon }) => (
           <NavLink key={to} to={to} className={nav}>
-            {label}
+            {({ isActive }) => (
+              <>
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  aria-hidden="true"
+                  className={ico(isActive)}
+                >
+                  {icon}
+                </svg>
+                {label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
