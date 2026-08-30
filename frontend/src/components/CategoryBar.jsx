@@ -43,6 +43,7 @@ export default function CategoryBar() {
           past the categories, rather than only in the footer. */}
       <span className="md:hidden flex items-center gap-3 flex-shrink-0 pl-3 ml-1 border-l border-white/10">
         <NavLink to="/guides" className="text-sm font-medium text-slate-400 hover:text-white">Guides</NavLink>
+        <NavLink to="/shops" className="text-sm font-medium text-slate-400 hover:text-white">Shops</NavLink>
         <NavLink to="/trends" className="text-sm font-medium text-slate-400 hover:text-white">Market</NavLink>
       </span>
     </nav>

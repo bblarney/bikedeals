@@ -16,6 +16,8 @@ import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import UnsubscribePage from './pages/UnsubscribePage'
 import TrendsPage from './pages/TrendsPage'
+import ShopsPage from './pages/ShopsPage'
+import ShopDetailPage from './pages/ShopDetailPage'
 import BikeDetailPage from './pages/BikeDetailPage'
 import GuidesHubPage from './pages/guides/GuidesHubPage'
 import ElectricBikesPage from './pages/guides/ElectricBikesPage'
@@ -87,6 +89,11 @@ export default function App() {
           <Route path="/guides/gravel-bikes" element={<StaticLayout><GravelBikesPage /></StaticLayout>} />
           <Route path="/guides/commuter-bikes" element={<StaticLayout><CommuterBikesPage /></StaticLayout>} />
           <Route path="/trends" element={<StaticLayout><TrendsPage /></StaticLayout>} />
+          {/* Shops: the index and one page per shop. Both are prerendered, and
+              the slugs come from src/content/shops.js, which scripts/prerender.js
+              reads to build that list. A shop missing from there 404s. */}
+          <Route path="/shops" element={<StaticLayout><ShopsPage /></StaticLayout>} />
+          <Route path="/shops/:slug" element={<StaticLayout><ShopDetailPage /></StaticLayout>} />
           <Route path="/about" element={<StaticLayout><AboutPage /></StaticLayout>} />
           <Route path="/contact" element={<StaticLayout><ContactPage /></StaticLayout>} />
           <Route path="/data" element={<StaticLayout><DataPage /></StaticLayout>} />

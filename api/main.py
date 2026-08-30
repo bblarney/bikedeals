@@ -29,7 +29,8 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import FunctionElement
 
-from scrapers.utils import canonical_frame_size
+from scrapers.registry import load_registry
+from scrapers.utils import canonical_frame_size, vendor_slug
 
 from api.db import get_db, get_engine
 from api.models import Base, Bike, PriceEvent, ScrapeLog, SocialImage, Subscriber
@@ -47,6 +48,8 @@ from api.schemas import (
     SubscribeRequest,
     UnsubscribeRequest,
     VariantResponse,
+    VendorSummary,
+    VendorsResponse,
 )
 
 logging.basicConfig(
@@ -954,6 +957,85 @@ async def get_stats(
     )
 
 
+@app.get("/api/v1/vendors", response_model=VendorsResponse)
+@limiter.limit("120/minute")
+async def get_vendors(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Every shop with stock, and how much of its range is currently cut.
+
+    Backs both /shops and /shops/<slug>: the list is ~100 rows, so the shop page
+    reads the same cached response rather than paying for an endpoint of its
+    own, which is also what lets it show its own rank without recomputing one.
+
+    Counted on _VARIANT_GROUP, the same collapse /meta/filters uses for its
+    total, so a shop's "listings" here matches what /bikes?vendor= returns.
+    Counting raw rows instead would report a chain's catalogue once per city:
+    99 Bikes would claim ~8x its real range.
+
+    Deliberately returns no city: a chain stores one catalogue per city, so
+    filtering these counts by city would not narrow them, and a per-city count
+    would read as local stock when it is nothing of the kind. Which cities a
+    shop trades in comes from the YAML registry via
+    frontend/src/content/shops.js, and the UI ranks local shops separately.
+    """
+    # One row per collapsed listing. max() over the group because a listing's
+    # storefront and size rows carry the same discount; max is the aggregate
+    # that says so without assuming a row order.
+    listings = (
+        select(
+            Bike.vendor_name.label("vendor_name"),
+            func.max(Bike.discount_percentage).label("discount"),
+        )
+        .where(Bike.in_stock == True)  # noqa: E712
+        .group_by(*_VARIANT_GROUP)
+        .subquery()
+    )
+    per_vendor = (
+        select(
+            listings.c.vendor_name.label("vendor_name"),
+            func.count().label("listings"),
+            func.sum(case((listings.c.discount > 0, 1), else_=0)).label("on_sale"),
+            func.max(listings.c.discount).label("deepest_cut"),
+        )
+        .group_by(listings.c.vendor_name)
+        .subquery()
+    )
+    # LEFT join: a vendor that has stock but no scrape_log row (seeded fixtures,
+    # or a log trimmed by hand) still appears, just without a checked-at time.
+    rows = await db.execute(
+        select(
+            per_vendor.c.vendor_name,
+            per_vendor.c.listings,
+            per_vendor.c.on_sale,
+            per_vendor.c.deepest_cut,
+            ScrapeLog.last_success_at,
+        )
+        .select_from(
+            per_vendor.outerjoin(
+                ScrapeLog, ScrapeLog.vendor_name == per_vendor.c.vendor_name
+            )
+        )
+        .order_by(per_vendor.c.vendor_name)
+    )
+
+    response.headers["Cache-Control"] = CACHE_STATS
+    return VendorsResponse(
+        vendors=[
+            VendorSummary(
+                vendor_name=name,
+                listings=listings_n or 0,
+                on_sale=on_sale or 0,
+                deepest_cut=deepest or 0,
+                last_success_at=last_success_at,
+            )
+            for name, listings_n, on_sale, deepest, last_success_at in rows.all()
+        ]
+    )
+
+
 # --- /meta/market -------------------------------------------------------------
 #
 # The site knows what is on Australian shop floors today, and nothing about what
@@ -1357,11 +1439,20 @@ async def sitemap(
         "/guides/commuter-bikes",
         "/guides/electric-bikes",
         "/trends",
+        "/shops",
         "/data",
         "/about",
         "/contact",
     )
     entries = [url_entry(f"{SITE_URL}{path}") for path in static_paths]
+    # One <url> per shop page. Derived from the registry rather than hand-listed
+    # because there are ~108 of them and the list turns over; the frontend's
+    # own copy (src/content/shops.js) is generated from the same registry with
+    # the same vendor_slug, so the two cannot drift.
+    entries.extend(
+        url_entry(f"{SITE_URL}/shops/{vendor_slug(cfg.vendor_name)}")
+        for cfg in load_registry()
+    )
     entries.extend(
         url_entry(f"{SITE_URL}/bikes/{bike_id}", last_seen_at)
         for bike_id, last_seen_at in rows.all()

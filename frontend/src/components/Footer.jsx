@@ -7,6 +7,7 @@ const INSTAGRAM_HANDLE = '@bikegridau'
 const INSTAGRAM_URL = 'https://www.instagram.com/bikegridau/'
 
 const COMPANY_LINKS = [
+  { label: 'Bike shops', to: '/shops' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
   { label: 'Data services', to: '/data' },

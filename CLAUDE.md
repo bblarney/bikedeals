@@ -75,6 +75,7 @@ but no pipeline fills it: shops publish shipping weight, not the bike's. See
 - `GET /api/v1/bikes/{id}`: detail, with cross-shop offers for the same SKU and other size variants
 - `GET /api/v1/bikes/{id}/price-history` · `POST /api/v1/bikes/{id}/click`
 - `GET /api/v1/meta/filters`: faceted dropdown options (each facet excludes itself)
+- `GET /api/v1/vendors`: per-shop listing and discount counts, for the shops tab
 - `GET /api/v1/meta/stats` · `GET /api/v1/health` · `GET /sitemap.xml`
 - `POST /api/v1/subscribe` · `POST /api/v1/unsubscribe`
 

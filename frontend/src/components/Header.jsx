@@ -30,6 +30,17 @@ const NAV = [
     ),
   },
   {
+    label: 'Shops',
+    to: '/shops',
+    icon: (
+      <>
+        <path d="M3 9l1.5-5h15L21 9" />
+        <path d="M3 9h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+        <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+      </>
+    ),
+  },
+  {
     label: 'Market',
     to: '/trends',
     icon: (
