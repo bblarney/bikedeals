@@ -65,7 +65,6 @@ const ALLOWED_HOSTS = new Set([
   "electricbikesbrisbane.com.au",
   "empirecycles.com.au",
   "fitzroycycles.com.au",
-  "georgesbikeshop.com.au",
   "giantbairnsdale.com.au",
   "giantballarat.com.au",
   "giantbendigo.com.au",

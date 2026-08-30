@@ -1,6 +1,6 @@
 # Scraper Design
 
-Reflects the implementation in `scrapers/` as of the 97-vendor registry. When the
+Reflects the implementation in `scrapers/` as of the 96-vendor registry. When the
 code and this document disagree, the code wins — please fix the document.
 
 ---

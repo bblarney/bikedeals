@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Bikedeals** is a deal-aggregation site for Australian local bike shops. Daily scrapers ingest shop inventories from 77 vendors into a normalized database; a FastAPI layer serves the data; a React SPA presents it.
+**Bikedeals** is a deal-aggregation site for Australian local bike shops. Daily scrapers ingest shop inventories from 96 vendors into a normalized database; a FastAPI layer serves the data; a React SPA presents it.
 
 ```
 [Shop Web Nodes] <── (Cloudflare Worker proxy, CI only)
@@ -111,7 +111,7 @@ Detailed planning and critique for each layer. Read these before touching that l
 
 ## Status
 
-Phases 1–4 are complete: 77 vendors scraping daily into Supabase, the API on
+Phases 1–4 are complete: 96 vendors scraping daily into Supabase, the API on
 Render, the frontend on Cloudflare Pages. Work now is incremental: new vendors,
 pipeline fixes, and frontend iteration.
 

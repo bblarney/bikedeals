@@ -15,7 +15,7 @@ Vendors are grouped into:
 
 ## 1. Scraped
 
-97 vendors live in the registry. `pipeline` matches the loader in
+96 vendors live in the registry. `pipeline` matches the loader in
 [`scrapers/pipelines/`](../scrapers/pipelines). Multi-store chains use a `cities`
 list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 
@@ -34,17 +34,23 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 > `base_url` scrapes the homepage's featured tiles for every path — 6 bikes
 > instead of 130, and `scrape_check` still reports PASS.
 
-> **Registered but not currently returning data (checked 2026-08-04):**
+> **Retired 2026-08-30 (97 → 96).** George's Bike Shop, the last shop in the
+> "registered but not returning data" state, is gone from the registry. It had
+> failed all 14 of the nightly runs from 16 to 29 August on the identical
+> Cloudflare 403, and every run since it was first diagnosed on 2026-08-04:
+> nothing in the repo could have fixed it, because the block is on the egress IP
+> class (see its row in [Not scraped](#3-not-scraped-blocked)). Its YAML is
+> deleted, its host is out of the Worker allowlist, and migration `595a0ae4dcf0`
+> deletes its `bikes`, `price_events` and `scrape_log` rows.
 >
-> - **George's Bike Shop** — Cloudflare challenges our datacenter egress
->   (403 `cf-mitigated`) on both the HTML category pages and the Store API,
->   from a GitHub runner directly *and* through the Worker proxy. The block is
->   on the egress IP class, not a path, so it needs a challenge-solving egress
->   to unblock. Its config is on the `woocommerce_api` pipeline and is verified
->   working off a residential IP, so it recovers with no edits if egress changes.
->
-> It keeps its existing rows in the DB — the orchestrator treats a failed vendor
-> as "keep the data, skip `mark_stale`" rather than wiping it.
+> Waiting was the right call for a while: the config is verified working off a
+> residential IP, so a change of egress would have revived it with no edits. It
+> is retired now because the cost of waiting is not zero. Its rows were frozen at
+> the early-August scrape and still flagged in stock, which means a Perth
+> catalogue that no longer moves was being served to visitors, counted in the
+> facets, and eligible for the daily Instagram pick. If the egress ever gains
+> challenge-solving, re-add the YAML (recoverable from this commit) and the
+> nightly run repopulates it from scratch.
 
 > **Retired 2026-08-11 (100 → 97).** Cranks, Cycle Co-op and NRG Cycles had each
 > been failing every nightly run for weeks, for three unrelated reasons (all
@@ -111,7 +117,6 @@ list (modelled on [`99bikes.yaml`](../scrapers/vendors/99bikes.yaml)).
 | Electric Bikes Brisbane | Brisbane | electricbikesbrisbane.com.au | shopify |
 | Empire Cycles | Perth | empirecycles.com.au | shopify |
 | Fitzroy Cycles | Melbourne | fitzroycycles.com.au | shopify |
-| George's Bike Shop | Perth | georgesbikeshop.com.au | woocommerce |
 | Giant Bairnsdale | Bairnsdale | giantbairnsdale.com.au | giant |
 | Giant Ballarat | Ballarat | giantballarat.com.au | giant |
 | Giant Bendigo | Bendigo | giantbendigo.com.au | giant |
@@ -216,6 +221,7 @@ Permanently blocked, JS-rendered, or no accessible product catalog. Re-probed
 |---|---|---|---|---|
 | Cranks | cranks.com.au | Sydney | Next.js + Ecwid | **Retired 2026-08-11**, previously scraped. Replatformed off WooCommerce: the old category path still answers 200 with no product markup, and the new storefront server-renders no products anywhere — no `products.json`, no Store API, and per-product JSON-LD with a price but no sale price and no category. The live catalogue reaches the browser only inside a content-hashed Next.js build chunk |
 | Cycle Co-op | cycleco-op.au | Canberra | Shopify | **Retired 2026-08-11**, previously scraped. Store closed: the domain returns Cloudflare error 1016 (origin DNS failure, surfaced as HTTP 409) and the Shopify store behind it, `870a95.myshopify.com`, answers "Store unavailable". Canberra is still covered by My Ride, the same shop's former banner |
+| George's Bike Shop | georgesbikeshop.com.au | Perth | WooCommerce | **Retired 2026-08-30**, previously scraped. Cloudflare serves a JS bot challenge (403, `cf-mitigated`) to our datacenter egress, on the HTML category pages *and* on `/wp-json/wc/store/v1`, from a GitHub runner directly and through the Worker proxy alike. The mitigation is scoped to the egress IP class rather than to a path, so no endpoint or pipeline choice reaches it; unblocking needs a challenge-solving egress (residential proxy or scraping API). Verified working off an Australian residential IP (430 records / 142 products, 0 invalid) on the `woocommerce_api` pipeline, so a re-add is worth trying the day the egress changes |
 | NRG Cycles | nrgcycles.com.au | Brisbane | WooCommerce | **Retired 2026-08-11**, previously scraped. Its Cloudflare zone 403s ("Attention Required", no `cf-mitigated` header) on **every** path — category HTML, the Store API, product pages, `/robots.txt` — from every overseas/datacenter egress tried, while the same requests from an Australian residential IP scrape 65 bikes. A zone-wide source block, so no pipeline or endpoint change reaches it |
 | Pushys | pushys.com.au | National (online) | Non-Shopify | **Added 2026-06-21.** Large online retailer; `/products.json` returns HTTP 404 — not Shopify (BigCommerce/custom). No standard product API |
 | Hillside Cycles | hillsidecycles.com | Perth (Glen Forrest) | Shopify | **Added 2026-06-21.** Shopify confirmed but `/products.json` returns `{"products":[]}` — empty online catalog; hire/service shop with no online bike sales |
