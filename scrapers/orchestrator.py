@@ -8,6 +8,7 @@ from scrapers.models import ScrapeResult, VendorConfig
 from scrapers.pipelines.bigcommerce import scrape_bigcommerce
 from scrapers.pipelines.canyon import scrape_canyon
 from scrapers.pipelines.giant import scrape_giant
+from scrapers.pipelines.lightspeed import scrape_lightspeed
 from scrapers.pipelines.shopify import scrape_shopify
 from scrapers.pipelines.woocommerce import scrape_woocommerce
 from scrapers.pipelines.woocommerce_api import scrape_woocommerce_api
@@ -25,6 +26,7 @@ _PIPELINES = {
     "woocommerce_api": scrape_woocommerce_api,
     "bigcommerce": scrape_bigcommerce,
     "giant": scrape_giant,
+    "lightspeed": scrape_lightspeed,
     "canyon": scrape_canyon,
 }
 

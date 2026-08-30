@@ -79,7 +79,7 @@ category.
 
 ## Pipelines
 
-Six are implemented; `custom` is declarable but unimplemented and raises
+Seven are implemented; `custom` is declarable but unimplemented and raises
 `NotImplementedError`. Dispatch lives in `scrapers/orchestrator.py`.
 
 | Pipeline | Source | Notes |
@@ -90,6 +90,49 @@ Six are implemented; `custom` is declarable but unimplemented and raises
 | `bigcommerce` | Listing-page DOM | |
 | `giant` | Giant franchise storefronts | Per-store `vendor_name` to avoid collisions. **`base_url` must use the www host** — see below |
 | `canyon` | Canyon direct-to-consumer | Outlet path falls back to URL-segment categories |
+| `lightspeed` | Lightspeed eCom `?format=json` on a category URL | `collections` are category *paths*; the walk recurses into subcategory grids (see below) |
+
+### Lightspeed eCom: the JSON renderer, and three quiet traps
+
+Any Lightspeed page answers `?format=json`. On the **homepage** that returns page
+metadata, which is what an earlier probe tested, and on the strength of it eight
+shops were filed in [`vendors.md`](vendors.md) as "JS-rendered". On a **category**
+URL the same parameter returns the whole listing server-side, with an explicit
+sale/RRP pair, a stock flag, the SKU, a brand field, and the frame size on a
+declared size axis:
+
+```
+GET /bikes/?format=json&limit=100
+{"collection": {"count": 192, "pages": 2,
+                "products": {"61574275": {"title": "…", "sku": "…",
+                    "price": {"price_incl": 2999, "price_old_incl": 4499},
+                    "available": true, "brand": {"title": "Cannondale"},
+                    "variant": "\"Size: 56\",\"Colour: Jet Black\""}}}}
+```
+
+Three things fail silently, all with an HTTP 200:
+
+- **Pagination is a path segment.** Page two is
+  `/bikes/page2.html?format=json&limit=100`. A plain `&page=2` re-serves page one,
+  which the dedupe then discards, capping the shop at 100 bikes.
+- **`limit` is not free-form.** `limit=250` falls back to the theme default of 12.
+  100 is honoured; nothing larger is.
+- **A category can be a listing, a grid of subcategories, or both.** A grid
+  returns `catalog.categories` instead of `collection`, so the walk recurses until
+  it finds products. When a category is *both* (Evolution Bikes' `/bikes/` serves
+  192 products and also parents six disciplines) the walk stops at the products
+  and never sees the children, so those shops must list the child paths in
+  `collections` explicitly or every bike arrives with only "bikes" to categorise
+  it.
+
+Categories resolve from the path the product was walked to, deepest segment
+first, with electric segments promoted ahead of the rest: the same rule, for the
+same reason, as `woocommerce_api`. Frame size is read off the `Size:` axis in the
+flat `variant` string and never off `Colour:`.
+
+Images are not URLs in the payload; `image` is a numeric id, and the CDN path is
+`https://cdn.shoplightspeed.com/shops/<shop id>/files/<image id>/500x500x2/image.jpg`.
+The shop id comes from `shop.id` on any payload.
 
 ### Giant franchise stores — www, and a shared catalogue
 
@@ -126,6 +169,17 @@ silently truncates a shop at 250 products:
 Stop when a page returns fewer than `SHOPIFY_PAGE_SIZE` (250) products, or when
 `max_pages` is hit. A guard also drops products whose handle was already seen, so
 a looping cursor can't duplicate rows.
+
+**Not every shop honours `since_id` on the root endpoint either.** Freedom
+Machine and Corry Cycles both ignore it and re-serve page one, which the
+"added no new products" guard reads as an exhausted catalogue: Freedom Machine
+arrived as 250 products of 1,260, with no error and a `scrape_check` PASS. So
+when a root-endpoint page adds nothing new, the pipeline spends one request
+retrying with `?page=N` before believing it. Both shops page correctly that way.
+
+Note the page number is tracked separately from the loop counter: the iteration
+that detects the repeat consumes no products, so reusing the loop counter would
+skip a page.
 
 ### Frame size, not colour
 
@@ -192,7 +246,7 @@ two shops selling the same bike as "Cervelo" and "Cervélo" are never compared.
 `make_product_key` already strips suffixes, which is why `Norco Bicycles`
 matched `Norco` — but it does not strip accents, so those did not.
 
-`scrapers/brands.py` runs as a `BikeRecord` validator, so all six pipelines get
+`scrapers/brands.py` runs as a `BikeRecord` validator, so all seven pipelines get
 it. (The global alias table it replaces lived in the Shopify pipeline and
 covered one.) Per-vendor `brand_map` overrides in the YAML still apply first.
 
@@ -238,7 +292,7 @@ validation. Aggressive matching is safe here: a `product_type` of "Brakes" or
 "Chargers" is unambiguously a part.
 
 **Product titles — `scrapers/product_filter.py`, applied in the orchestrator.**
-Runs for all six pipelines, not just Shopify, and screens on the title, the
+Runs for all seven pipelines, not just Shopify, and screens on the title, the
 frame size and the price. Three rules, each independently defensible:
 
 1. An accessory noun in the name, word-bounded so "Ultralite" is not a light and

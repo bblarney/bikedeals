@@ -71,6 +71,9 @@ def test_a_brand_that_only_needs_a_suffix_stripped_keeps_its_own_name():
         ("Monza Imports", 'Mongoose Switchback 20"', "Bicycle Centre Belmont", "Mongoose"),
         ("Sheppard Cycles", "2026 Scott Voltage", "The Mountain Biker", "Scott"),
         ("Pon Performance", "2025 Santa Cruz Nomad", "Wheelhaus", "Santa Cruz"),
+        ("psi cycling", "GT 24 Stomper Prime", "Freedom Machine", "GT"),
+        ("psi cycling", 'GT Grunge 16"', "Freedom Machine", "GT"),
+        ("Cassons", "Haro Downtown 16", "Freedom Machine", "Haro"),
         # Placeholders.
         ("Not specified", "JAMIS Durango A2 19 Midnight blue", "Fitzroy Cycles", "Jamis"),
         ("My Store", "2018 Canyon Strive CF 9.0", "West Coast Cycles", "Canyon"),

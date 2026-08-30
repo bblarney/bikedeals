@@ -1,0 +1,43 @@
+vendor_name: "Cyclery Northside"
+city: "Sydney"
+max_pages: 5
+base_url: "https://www.cyclerynorthside.com.au"
+pipeline: "lightspeed"
+# Specialized concept store on the north shore. Previously filed as blocked
+# ("JS-rendered products, same platform as BAM"): same platform, same fix.
+#
+# The `bikes` root is itself a listing, so its disciplines are listed explicitly
+# or every bike would arrive with only "bikes" to categorise it.
+collections:
+  - bikes/road
+  - bikes/gravel-adventure
+  - bikes/trail-xc
+  - bikes/hardtail-mtb
+  - bikes/all-mountain-enduro
+  - bikes/downhill-freeride
+  - bikes/dirt-jumper
+  - bikes/fitness-urban
+  - bikes/kids
+  - bikes/mountain-e-bikes
+  - bikes/road-gravel-e-bikes
+  - bikes/urban-e-bikes
+  - bikes/active-e-bikes
+category_map:
+  # The e-bike categories are named "<discipline>-e-bikes", so the electric-first
+  # ordering in the pipeline is what keeps a Levo out of the Mountain category.
+  mountain-e-bikes: E-Bike
+  road-gravel-e-bikes: E-Bike
+  urban-e-bikes: E-Bike
+  active-e-bikes: E-Bike
+  trail-xc: Mountain
+  hardtail-mtb: Mountain
+  all-mountain-enduro: Mountain
+  downhill-freeride: Mountain
+  dirt-jumper: Mountain
+  gravel-adventure: Gravel
+  road: Road
+  fitness-urban: Commuter
+  kids: Commuter
+# NOTE: `bikes/ex-demo-clearance` and `bikes/enquire-for-special-order-availability`
+# are not collected. Neither names a discipline, and their bikes are already
+# reachable through the categories above.

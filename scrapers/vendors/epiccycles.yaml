@@ -1,0 +1,27 @@
+vendor_name: "Epic Cycles"
+city: "Brisbane"
+max_pages: 5
+base_url: "https://www.epiccycles.com.au"
+pipeline: "lightspeed"
+# Twenty brands across road, gravel and e-bikes. Previously filed as blocked on
+# "connection fails (HTTP 000) on automated requests". The host answers fine
+# now, and the JSON renderer serves the whole catalogue.
+#
+# `bikes/framesets` is excluded; `electric-bikes` is a plain tree, so its
+# children (e-cargo, e-mountain, e-road, e-urban) are reached by recursion.
+collections:
+  - bikes/road-bikes
+  - bikes/mountain-bikes
+  - bikes/gravel-touring-adventure-bikes
+  - bikes/fitness-city-leisure-bikes
+  - bikes/kids-bikes
+  - bikes/folding-bikes
+  - electric-bikes
+category_map:
+  electric-bikes: E-Bike
+  mountain-bikes: Mountain
+  gravel-touring-adventure-bikes: Gravel
+  road-bikes: Road
+  fitness-city-leisure-bikes: Commuter
+  folding-bikes: Commuter
+  kids-bikes: Commuter

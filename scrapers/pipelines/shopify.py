@@ -159,6 +159,9 @@ async def _scrape_collection(
 
     next_url: str | None = f"{config.base_url}{products_path}?limit={SHOPIFY_PAGE_SIZE}"
     page = 0
+    # The ?page=N cursor this shop's root endpoint is being paged with, or 0
+    # while since_id cursoring is still working. See the fallback below.
+    page_cursor = 0
 
     while next_url:
         page += 1
@@ -185,6 +188,26 @@ async def _scrape_collection(
         # already seen (since_id cursoring can loop when products aren't id-ordered).
         # If a page adds nothing new, stop — there's no more data to gather.
         if all(p.get("handle", "") in seen_handles for p in products):
+            # ...unless this is the root endpoint on a shop that ignores
+            # since_id outright and re-serves page one. That is indistinguishable
+            # here from a genuinely exhausted catalogue, and reading it as the
+            # end truncates the vendor at 250 products with no error and a
+            # scrape_check PASS (Freedom Machine: 250 of 1,260). Those shops do
+            # honour ?page=N, so spend one request finding out before believing
+            # it. Collections already page that way, so they never get here.
+            if collection_handle is None and not page_cursor:
+                page_cursor = page
+                logger.debug(
+                    "[%s] Page %d added no new products; root endpoint appears to "
+                    "ignore since_id, retrying with ?page=%d",
+                    config.vendor_name, page, page_cursor,
+                )
+                next_url = (
+                    f"{config.base_url}{products_path}"
+                    f"?limit={SHOPIFY_PAGE_SIZE}&page={page_cursor}"
+                )
+                await asyncio.sleep(random.uniform(*SCRAPER_DELAY_RANGE))
+                continue
             logger.debug("[%s] Page %d added no new products; stopping", config.vendor_name, page)
             break
 
@@ -324,6 +347,15 @@ async def _scrape_collection(
             next_url = (
                 f"{config.base_url}{products_path}"
                 f"?limit={SHOPIFY_PAGE_SIZE}&page={page + 1}"
+            )
+        elif page_cursor:
+            # Root endpoint already switched to ?page=N above. Keep counting in
+            # page numbers, not loop iterations: the iteration that detected the
+            # repeat consumed no new products and must not advance the cursor.
+            page_cursor += 1
+            next_url = (
+                f"{config.base_url}{products_path}"
+                f"?limit={SHOPIFY_PAGE_SIZE}&page={page_cursor}"
             )
         else:
             since_id = products[-1]["id"]

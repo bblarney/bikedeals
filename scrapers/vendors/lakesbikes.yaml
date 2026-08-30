@@ -1,0 +1,25 @@
+vendor_name: "Lakes Bikes"
+city: "Perth"
+max_pages: 5
+base_url: "https://www.lakesbikes.com.au"
+pipeline: "lightspeed"
+# Joondalup-area Specialized dealer. Previously filed as blocked, JS-rendered
+# ("Austin Theme").
+#
+# `bikes/frames` is excluded for the same reason as BAM: framesets are dropped
+# by the accessory filter, so walking six brand-keyed frame categories a night
+# buys nothing.
+collections:
+  - bikes/electric-bikes
+  - bikes/mountain-bikes
+  - bikes/gravel-bikes
+  - bikes/road-bikes
+  - bikes/active-bikes
+  - bikes/kids-bikes
+category_map:
+  electric-bikes: E-Bike
+  mountain-bikes: Mountain
+  gravel-bikes: Gravel
+  road-bikes: Road
+  active-bikes: Commuter
+  kids-bikes: Commuter

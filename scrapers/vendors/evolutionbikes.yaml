@@ -1,0 +1,39 @@
+vendor_name: "Evolution Bikes"
+city: "Perth"
+max_pages: 5
+base_url: "https://www.evolutionbikes.com.au"
+pipeline: "lightspeed"
+# Central Perth, and the most discounted feed of the Lightspeed group: over half
+# the catalogue carries a markdown. Previously filed as blocked, JS-rendered.
+#
+# `bikes` and `e-bikes` are both listings AND parents, so the pipeline's walk
+# stops at them and never sees the disciplines underneath. Listing the children
+# explicitly is what gives these bikes a category at all.
+#
+# The `e-bikes/e-moto` subtree (e-scooters, e-skateboards, electric motorcycles)
+# is excluded on purpose: none of them are bicycles.
+collections:
+  - bikes/road
+  - bikes/mountain
+  - bikes/gravel-adventure
+  - bikes/urban-commuter
+  - bikes/kids
+  - bikes/folding
+  - e-bikes/e-road
+  - e-bikes/e-mountain
+  - e-bikes/e-gravel
+  - e-bikes/e-urban
+  - e-bikes/e-commuter
+  - e-bikes/e-cargo
+  - e-bikes/e-touring
+  - e-bikes/e-folding
+  - e-bikes/e-trike
+  - e-bikes/e-utility
+category_map:
+  e-bikes: E-Bike
+  mountain: Mountain
+  gravel-adventure: Gravel
+  road: Road
+  urban-commuter: Commuter
+  folding: Commuter
+  kids: Commuter
