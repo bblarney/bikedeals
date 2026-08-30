@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import re
+import unicodedata
 from urllib import robotparser
 from urllib.parse import urljoin
 
@@ -546,3 +547,20 @@ def resolve_category(candidates: list[str], category_map: dict[str, str]) -> str
             if key in candidate:
                 return category_map[key]
     return None
+
+
+# The URL slug for a shop: /shops/<vendor_slug(vendor_name)>.
+#
+# Lives here rather than in either caller because it has two consumers in two
+# deployables. scripts/gen_shops.py bakes it into the frontend's shop list, and
+# the API's sitemap derives it straight from the registry. They must agree, or
+# the sitemap advertises URLs the site does not serve.
+#
+# ASCII-folded so an accented shop name does not become a percent-encoded URL.
+def vendor_slug(vendor_name: str) -> str:
+    folded = (
+        unicodedata.normalize("NFKD", vendor_name)
+        .encode("ascii", "ignore")
+        .decode()
+    )
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", folded.lower())).strip("-")

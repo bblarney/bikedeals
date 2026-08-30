@@ -136,6 +136,22 @@ class StatsResponse(BaseModel):
     avg_discount: int
 
 
+class VendorSummary(BaseModel):
+    # vendor_name is the join key to everything else: bikes.vendor_name,
+    # scrape_log.vendor_name, and `name` in frontend/src/content/shops.js. The
+    # shop's cities, URL and slug live in that file rather than here, because
+    # they come from the YAML registry the API does not import.
+    vendor_name: str
+    listings: int
+    on_sale: int
+    deepest_cut: int
+    last_success_at: datetime | None = None
+
+
+class VendorsResponse(BaseModel):
+    vendors: list[VendorSummary]
+
+
 class SubscribeRequest(BaseModel):
     email: EmailStr
 

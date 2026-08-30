@@ -30,11 +30,20 @@ const { CATEGORY_PATHS } = await import(
   pathToFileURL(join(root, 'src', 'content', 'categories.js')).href
 )
 
+// Every shop page. Generated from the vendor registry by scripts/gen_shops.py,
+// so adding a vendor and regenerating is what makes its page exist; there is no
+// hand-maintained list to forget. ~108 routes, each a small static file.
+const { SHOP_PATHS } = await import(
+  pathToFileURL(join(root, 'src', 'content', 'shops.js')).href
+)
+
 const ROUTES = [
   '/',
   '/deals',
   ...CATEGORY_PATHS,
   '/trends',
+  '/shops',
+  ...SHOP_PATHS,
   '/about',
   '/contact',
   '/data',
@@ -160,7 +169,7 @@ for (const route of ROUTES) {
   await writeFile(file, html, 'utf8')
 
   const kb = (Buffer.byteLength(html) / 1024).toFixed(1)
-  console.log(`  prerendered ${route.padEnd(18)} -> ${kb} kB`)
+  console.log(`  prerendered ${route.padEnd(34)} -> ${kb} kB`)
 }
 
 console.log(`\nPrerendered ${ROUTES.length} routes.`)

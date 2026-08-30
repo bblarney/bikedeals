@@ -175,6 +175,8 @@ Derive filter state from `useSearchParams()` on mount; update URL on filter chan
 | `/guides` | Guide hub: comparison table and cards, `pages/guides/` |
 | `/guides/:type` | Five bike-type guides, enumerated in `src/content/guides.js` |
 | `/trends` | `TrendsPage`: the market report |
+| `/shops` | `ShopsPage`: every shop ranked by share on sale, filtered by city |
+| `/shops/:slug` | `ShopDetailPage`: one shop's counts, price range and current deals. Slugs are enumerated in the generated `src/content/shops.js` |
 | `/about`, `/contact`, `/data`, `/sitemap`, `/terms`, `/privacy` | Static pages |
 | `/unsubscribe` | `UnsubscribePage`: posts the token from the email link |
 

@@ -37,10 +37,23 @@ below is ticked. Steps 3 and 4 are the ones that have bitten us.
    drifts from the registry, but **it cannot detect a stale deploy** — the
    deployed Worker is a separate artifact. Redeploying is a manual step.
 
-4. **If the shop needs a new *pipeline*** (not just a new YAML), see
+4. **Regenerate the frontend's shop list and commit it:**
+
+   ```bash
+   python scripts/gen_shops.py
+   ```
+
+   `frontend/src/content/shops.js` is generated from this registry and committed,
+   because `frontend/scripts/prerender.js` reads it offline to decide which
+   `/shops/<slug>` pages to build. Skip this and the new shop appears in the feed
+   but its shop page 404s, since `public/_redirects` has no catch-all.
+   `tests/test_gen_shops.py` fails the build if the committed file is stale, so
+   this is caught rather than shipped, but the fix is still this command.
+
+5. **If the shop needs a new *pipeline*** (not just a new YAML), see
    "Requirements for a new pipeline" at the end of this document.
 
-5. **Confirm on the next nightly run** — the summary email lists per-vendor
+6. **Confirm on the next nightly run** — the summary email lists per-vendor
    failures and every warning logged during the run.
 
 ---

@@ -34,6 +34,7 @@ disagree, the code wins — please fix the document.
 | `POST` | `/api/v1/bikes/{bike_id}/click` | Increment the click counter (204) |
 | `GET` | `/api/v1/meta/filters` | Faceted filter options |
 | `GET` | `/api/v1/meta/stats` | Headline counters for the landing page |
+| `GET` | `/api/v1/vendors` | Per-shop listing and discount counts, for the shops tab |
 | `POST` | `/api/v1/subscribe` | Newsletter signup (201) |
 | `POST` | `/api/v1/unsubscribe` | Newsletter removal by token |
 | `GET` | `/sitemap.xml` | One entry per in-stock bike, for crawlers |
@@ -236,6 +237,35 @@ budget so a future facet cannot quietly add a query.
 
 ---
 
+### `GET /api/v1/vendors`
+
+Every shop with stock, and how much of its range is currently discounted. Backs
+both `/shops` and `/shops/<slug>`: the payload is one row per shop (~100), so the
+shop page reads this same cached response rather than paying for an endpoint of
+its own, which is also what lets it show its rank among its neighbours.
+
+```json
+{ "vendors": [
+  { "vendor_name": "Bike Zone Fitzroy", "listings": 93, "on_sale": 81,
+    "deepest_cut": 69, "last_success_at": "2026-08-29T13:36:11Z" }
+] }
+```
+
+Counted on `_VARIANT_GROUP`, the same collapse `/meta/filters` uses for its
+total, so a shop's `listings` matches what `/bikes?vendor=` returns. Counting raw
+rows would report a chain's catalogue once per city: 99 Bikes would claim roughly
+eight times its real range on a page whose entire job is comparing shops.
+
+`last_success_at` comes from a LEFT join on `scrape_log`, so a vendor with stock
+but no log row still appears, just without a checked-at time.
+
+**No city is returned, deliberately.** A chain stores one catalogue row per city,
+so filtering these counts by city would not narrow them, and a per-city count
+would read as local stock when it is nothing of the kind. Which cities a shop
+trades in comes from the YAML registry via `frontend/src/content/shops.js`, and
+the UI ranks local storefronts separately from the national sellers that merely
+deliver there.
+
 ### `GET /api/v1/meta/stats`
 
 Landing-page counters, all over in-stock bikes:
@@ -341,6 +371,7 @@ scrape, and filter options change whenever a vendor is added.
 | `/api/v1/bikes`, `/bikes/{id}`, price history | `max-age=300` |
 | `/api/v1/meta/filters` | `max-age=60` |
 | `/api/v1/meta/stats` | `max-age=300` |
+| `/api/v1/vendors` | `max-age=300` |
 | `/sitemap.xml` | `max-age=3600` |
 | `/api/v1/health` | none |
 
