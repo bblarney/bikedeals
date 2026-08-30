@@ -1,12 +1,86 @@
 vendor_name: "Bicycle Express"
 city: "Adelaide"
-collection: "bikes"
-max_pages: 15
 base_url: "https://www.bicycleexpress.com.au"
 pipeline: "shopify"
+max_pages: 15
 # 3 locations (City, Norwood, Mitcham); single Shopify store.
-# product_type values: "ROAD", "Bicycle", "Bicycles" — too generic for category resolution.
-# Category resolved from model name and tags.
+#
+# There IS a /collections/bikes handle, and it holds exactly one product: it is
+# a nav placeholder, not the catalogue. The real inventory (234 products) lives
+# in the per-discipline collections listed below, so `collection: bikes` was
+# scraping 1 bike a night while the shop had a full range.
+#
+# product_type values are "ROAD", "Bicycle", "Bicycles", or empty, so they carry
+# no discipline. The collection handle does, hence collection_category_map.
+collections:
+  - road
+  - road-racing-bikes
+  - endurance-road-bikes
+  - aero-road-bikes
+  - recreational-road-bikes-1
+  - triathlon-tt-bikes
+  - gravel-road-bikes
+  - mtb
+  - mtb-2
+  - mountain
+  - all-mountain-bikes
+  - xc-bikes
+  - trail
+  - enduro-bikes
+  - downhill-bikes
+  - dh
+  - recreational-mtbs-1
+  - e-bikes
+  - e-mtb
+  - e-mountain-bikes
+  - hybrid-commuter-e-bikes
+  - kids-bikes
+  - children-12-24
+  - fitness-recreation
+  - 2027-cervelo-bikes
+  - 2027-norco-bikes
+# Every scraped handle needs an entry here (tests/test_registry.py enforces it),
+# so the two model-year collections that survive are the ones whose contents are
+# single-discipline: 2027 Cervelo is all road, 2027 Norco is two Range VLT
+# e-MTBs. `ex-demo` and `2026-trek-bikes-available-now` mix road, gravel, TT and
+# e-bikes and are deliberately not scraped: all but one product in each is
+# already reached through a discipline collection above.
+collection_category_map:
+  road: Road
+  road-racing-bikes: Road
+  endurance-road-bikes: Road
+  aero-road-bikes: Road
+  recreational-road-bikes-1: Road
+  triathlon-tt-bikes: Road
+  gravel-road-bikes: Gravel
+  mtb: Mountain
+  mtb-2: Mountain
+  mountain: Mountain
+  all-mountain-bikes: Mountain
+  xc-bikes: Mountain
+  trail: Mountain
+  enduro-bikes: Mountain
+  downhill-bikes: Mountain
+  dh: Mountain
+  recreational-mtbs-1: Mountain
+  e-bikes: E-Bike
+  e-mtb: E-Bike
+  e-mountain-bikes: E-Bike
+  hybrid-commuter-e-bikes: E-Bike
+  kids-bikes: Commuter
+  children-12-24: Commuter
+  fitness-recreation: Commuter
+  2027-cervelo-bikes: Road
+  2027-norco-bikes: E-Bike
+# Shopify's `vendor` field is the shop's own name on 42 products, not the
+# manufacturer. Folding it onto vendor_name lets canonical_brand_name recover
+# the real brand from the model name.
+brand_map:
+  "Bicycle Express City, Norwood & Mitcham stores": "Bicycle Express"
+  "Bicycle Express City & Norwood stores": "Bicycle Express"
+# Unused for category resolution now that every collection is mapped above, but
+# kept because the registry requires a category_map and it is the fallback if a
+# handle is ever added to `collections` without a mapping.
 category_map:
   e-mtb: E-Bike
   e-bike: E-Bike
