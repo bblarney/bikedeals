@@ -1,0 +1,23 @@
+vendor_name: "Wembley Cycles"
+city: "Perth"
+max_pages: 5
+base_url: "https://www.wembleycycles.com"
+pipeline: "lightspeed"
+# Specialized / Cervelo dealer in Wembley. Previously filed as blocked,
+# JS-rendered. Its bikes sit three levels deep (bikes/road/adventure-gravel),
+# which is why the pipeline recurses rather than fetching a fixed path.
+collections:
+  - bikes/road
+  - bikes/mountain-bikes
+  - bikes/electric-bikes
+  - bikes/fitness
+  - bikes/kids-bikes
+category_map:
+  electric-bikes: E-Bike
+  mountain-bikes: Mountain
+  # Gravel lives under `road`, so it needs its own exact key: the deepest
+  # segment is tried first, and without this every gravel bike here is a Road.
+  adventure-gravel: Gravel
+  road: Road
+  fitness: Commuter
+  kids-bikes: Commuter

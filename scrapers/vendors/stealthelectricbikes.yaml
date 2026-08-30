@@ -1,0 +1,23 @@
+vendor_name: "Stealth Electric Bikes"
+city: "Melbourne"
+base_url: "https://stealthelectricbikes.com"
+pipeline: "shopify"
+# Australian high-performance electric bike manufacturer selling direct, same
+# shape as Velectrix and Canyon in the registry.
+#
+# Small and deliberately narrow: only these three collections are complete
+# bikes. The root /products.json carries 71 products, but ~45 of them are spare
+# parts (hubs, controller shields, skid plates, crank sets, gear selectors)
+# whose names clear the accessory filter ("hub" and "frame" are excluded from
+# it on purpose), so scraping the root would file dozens of parts as bikes.
+collections:
+  - legacy-range
+  - urban-range
+  - au_sale
+collection_category_map:
+  legacy-range: E-Bike
+  urban-range: E-Bike
+  au_sale: E-Bike
+category_map:
+  electric: E-Bike
+  stealth: E-Bike

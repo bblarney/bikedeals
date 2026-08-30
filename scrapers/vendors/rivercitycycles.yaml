@@ -1,0 +1,23 @@
+vendor_name: "River City Cycles"
+city: "Brisbane"
+max_pages: 5
+base_url: "https://rivercitycycles.com.au"
+pipeline: "woocommerce_api"
+# Cannondale / Cervelo / Focus / Orbea dealer. Previously filed as blocked on
+# "/products.json 404; not Shopify". Correct, and beside the point: it is
+# WooCommerce, and the Store API serves the whole catalogue.
+collections:
+  - bicycle
+category_map:
+  # Electric slugs are sorted first by the pipeline, so a Kalkhoff carrying both
+  # `ebike` and `hybrid` resolves as E-Bike.
+  ebike: E-Bike
+  road: Road
+  triathlon: Road
+  gravel: Gravel
+  hybrid: Commuter
+  kids: Commuter
+# NOTE: `bicycle` is the umbrella slug on every product and is deliberately
+# unmapped: mapping it would flatten the catalogue into one category. The brand
+# slugs (cannondale, cervelo, focus, orbea, kask) are likewise unmapped: they
+# say who made it, not what it is.

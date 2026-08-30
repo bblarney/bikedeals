@@ -1,0 +1,54 @@
+vendor_name: "Peak Cycles"
+city: "Melbourne"
+max_pages: 5
+base_url: "https://www.peakcycles.com.au"
+pipeline: "woocommerce_api"
+# Trek dealer on Burgundy Street, Heidelberg. Small catalogue (~31 bikes) but
+# clean discipline categories and real Trek markdowns.
+collections:
+  - road-bikes
+  - gravel-bikes
+  - mountain-bikes
+  - electric-bikes
+  - city-bikes
+  - family-bikes
+# This shop publishes no `brands` term on any product, and its model names are
+# bare Trek families ("Domane SL 5", "Marlin 7 Gen 3") with no brand word for
+# the pipeline's name-matching fallback to find. Without an override every bike
+# would enter the brand facet as "Peak Cycles", which is the failure that
+# fallback exists to avoid. The whole catalogue is Trek today, so the shop name
+# is rewritten to Trek.
+#
+# REVISIT IF the shop starts listing a second brand: they advertise Ridley as
+# well, and a Ridley would silently be labelled Trek. A brand term appearing on
+# any product removes the need for this line entirely.
+brand_map:
+  Peak Cycles: "Trek"
+category_map:
+  # Slug keys first. The pipeline sorts a product's slugs electric-first, so an
+  # FX+ carrying both `electric-bikes` and `city-bikes` resolves as E-Bike.
+  electric-bikes: E-Bike
+  mountain-bikes: Mountain
+  gravel-bikes: Gravel
+  road-bikes: Road
+  city-bikes: Commuter
+  family-bikes: Commuter
+  # Model-family keys, matched against the product name by the substring pass.
+  # These are not redundant: this shop returns an EMPTY `categories` array on
+  # the product payload for its road bikes, even though the category filter
+  # returns them under road-bikes. With slugs alone every road bike in the shop
+  # was dropped as "no category match" and the feed had zero Road listings.
+  #
+  # "domane+" is listed as well as "domane" because keys are tried longest-first
+  # within a candidate, so the e-bike variant wins on its own name.
+  "speed concept": Road
+  "domane+": E-Bike
+  domane: Road
+  madone: Road
+  emonda: Road
+  checkpoint: Gravel
+  checkmate: Gravel
+  marlin: Mountain
+  "fuel ex": Mountain
+  roscoe: Mountain
+  precaliber: Commuter

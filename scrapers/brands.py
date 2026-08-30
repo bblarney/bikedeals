@@ -195,6 +195,13 @@ _PLACEHOLDER_BRANDS = frozenset(
         # Australian distributors, which front for real marques.
         "advancetraders", "monzaimports", "sheppard", "ponperformance",
         "bikecorp", "dirtworks", "lusty", "lustyindustries",
+        # "PSI Cycling" (folds to "psi" once the "cycling" suffix is stripped)
+        # and "Cassons" both arrive as the brand on GT and Haro listings at
+        # Freedom Machine. "psi" is short for a key here, but these are exact
+        # folded-key matches, not prefixes, and recovery is allowed to fail: a
+        # marque genuinely called PSI keeps its name unless its model line
+        # happens to open with a different known brand.
+        "psi", "cassons",
     }
 )
 

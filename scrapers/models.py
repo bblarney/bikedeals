@@ -79,7 +79,8 @@ class VendorConfig(BaseModel):
     cities: list[str] | None = None  # national chains: one record per city
     base_url: str
     pipeline: Literal[
-        "shopify", "woocommerce", "woocommerce_api", "bigcommerce", "giant", "canyon", "custom"
+        "shopify", "woocommerce", "woocommerce_api", "bigcommerce", "giant", "canyon",
+        "lightspeed", "custom",
     ]
     category_map: dict[str, str]
     selectors: dict[str, str] | None = None

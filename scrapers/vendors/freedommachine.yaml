@@ -1,0 +1,83 @@
+vendor_name: "Freedom Machine"
+city: "Byron Bay"
+base_url: "https://freedommachine.com.au"
+pipeline: "shopify"
+# E-bike and bike shop on Jonson Street, Byron Bay (second store at
+# Murwillumbah). First vendor in the Northern Rivers.
+#
+# Curated collections rather than the root /products.json for two reasons.
+# First, categorisation: 143 of the ~340 bike products carry an empty
+# product_type, and the tags are a mix of brand, campaign and discipline
+# ("requiereswaiver", "Freedom Machine Byron Bay"), so the shop's own
+# collections are by far the best category signal. Second, the root endpoint
+# here ignores since_id and re-serves page one; the pipeline now falls back to
+# ?page=N when that happens, but collections page correctly to begin with.
+#
+# Ordered specific-first: the pipeline keeps the FIRST collection a product is
+# found in, and `ebikes` is an umbrella over most of the electric ones.
+collections:
+  - mountain-non-electric-bike-mtb
+  - ebikes-road-gravel-non-electric-bike
+  - kids-non-electric-bikes-bicycles-push
+  - cruiser-retro-bikes-gold-coast
+  - mountain-hybrid-bikes-gold-coast
+  - road-gravel-ebikes
+  - e-commuter
+  - electric-cruiser
+  - cargo-ebikes
+  - kids-ebikes
+  - fat-tire-ebike
+  - ebikes
+# Handle -> category, which takes precedence over category_map. Several handles
+# say the opposite of what they mean: `ebikes-road-gravel-non-electric-bike` is
+# the shop's "Road Bikes" collection and `mountain-hybrid-bikes-gold-coast` is
+# its "E-Mountain Bikes". The collection *titles* are the reliable guide, not
+# the handles.
+collection_category_map:
+  mountain-non-electric-bike-mtb: Mountain
+  ebikes-road-gravel-non-electric-bike: Road
+  kids-non-electric-bikes-bicycles-push: Commuter
+  cruiser-retro-bikes-gold-coast: Commuter
+  mountain-hybrid-bikes-gold-coast: E-Bike
+  road-gravel-ebikes: E-Bike
+  e-commuter: E-Bike
+  electric-cruiser: E-Bike
+  cargo-ebikes: E-Bike
+  kids-ebikes: E-Bike
+  fat-tire-ebike: E-Bike
+  ebikes: E-Bike
+# Shopify's `vendor` field here is a mix of marque, importer and legal entity.
+# Only the ones that are unambiguous are rewritten; a distributor whose listings
+# name the real marque in the model name ("PSI Cycling" -> "GT ...") is handled
+# globally by scrapers/brands.py instead, so it stays correct if they take on a
+# second marque.
+brand_map:
+  Bianchi Australia: "Bianchi"
+  # The shop's own house-brand bikes (SWELL, COAST), listed under two casings
+  # that fold to the same key but keep their original spelling, so they arrived
+  # as two separate entries in the brand facet.
+  Freedommachine: "Freedom Machine"
+  freedommachine: "Freedom Machine"
+  TREK BICYCLE CORP (AUST) PTY LTD: "Trek"
+  flightriskco: "Flight Risk"
+  vallkree: "Vallkree"
+  zooz: "Zooz"
+  Zooz Bikes: "Zooz"
+  CRUZR: "Cruzr"
+# Unused while every configured collection is mapped above, but required by
+# VendorConfig and a sane fallback if a collection handle is ever renamed.
+category_map:
+  e-bike: E-Bike
+  ebike: E-Bike
+  electric: E-Bike
+  mtb: Mountain
+  mountain: Mountain
+  gravel: Gravel
+  road: Road
+  commuter: Commuter
+  cruiser: Commuter
+  kids: Commuter
+# NOTE: `bmx` (19), `skateboards`, `onewheel`, `evolve` and `stacyc` are
+# deliberately not collected. BMX has no home in our five categories, and the
+# rest are not bicycles. `bikes` (49) and `bikes-and-frames` (8) are umbrellas
+# whose members already arrive through the discipline collections above.

@@ -1,0 +1,38 @@
+vendor_name: "PM Cycles"
+city: "Melbourne"
+max_pages: 5
+base_url: "https://pmcycles.com.au"
+pipeline: "woocommerce_api"
+# Road specialist in Port Melbourne: Scott / Cannondale / BMC / Pinarello.
+# Previously filed as blocked on "HTTP 403 (nginx) on all automated requests",
+# which is true of the listing HTML and of /products.json, but not of the Store
+# API: the same split that unblocked Cycle World.
+collections:
+  - road-bikes
+  - kids-bikes
+  - x-lab-bikes
+# NOTE: `bike-frames` (62 products) is deliberately not collected. Framesets are
+# legitimate deals, but this shop files them under the discipline of the bike
+# they build into, so they arrive indistinguishable from complete bikes.
+category_map:
+  # Every bike here carries the umbrella `road-bikes` slug AND a year slug
+  # (`2026-road-bikes`), so neither can be a key: resolve_category's exact pass
+  # takes the first candidate that is a key, candidates are sorted, and
+  # "2026-road-bikes" sorts ahead of "scott-addict-gravel". Mapping either would
+  # file every gravel and commuter bike in the shop as Road.
+  #
+  # So: the non-road disciplines are mapped by their exact leaf slug (which the
+  # exact pass finds first, wherever it sorts), and Road is left to the
+  # substring pass via the bare "road" key below, which matches no slug exactly
+  # and therefore never pre-empts them.
+  cannondale-topstone: Gravel
+  scott-addict-gravel: Gravel
+  scott-scale-gravel: Gravel
+  scott-speedster-gravel: Gravel
+  scott-metrix: Commuter
+  scott-sub-cross: Commuter
+  scott-sub-cross-womens: Commuter
+  kids-bikes: Commuter
+  x-lab-bikes: Road
+  # Substring-only catch-all: reached only when no leaf slug above matched.
+  road: Road

@@ -1,0 +1,50 @@
+vendor_name: "Bike Force Clarkson"
+city: "Perth"
+max_pages: 5
+base_url: "https://www.bikeforceclarkson.com.au"
+pipeline: "lightspeed"
+# Second Bike Force store in the registry after Joondalup, and on a different
+# platform to it. Carries genuine Scott markdowns the national chains list at
+# RRP: the Contessa Genius 920 is $3,000 here against $6,799.99 at My Ride.
+#
+# Previously filed under Perth's blocked Lightspeed shops.
+collections:
+  - bikes/road
+  - bikes/tt-tri
+  - bikes/gravel-cx
+  - bikes/mtb-dual-suspension
+  - bikes/mtb-hardtail
+  - bikes/dirt-jump
+  - bikes/fat-bikes
+  - bikes/e-bike-off-road
+  - bikes/e-bike-on-road
+  - bikes/flat-bar-road
+  - bikes/hybrid
+  - bikes/urban-cruiser
+  - bikes/balance-bikes
+  - bikes/12-kids
+  - bikes/14-kids
+  - bikes/16-kids
+  - bikes/20-kids
+  - bikes/24-kids
+category_map:
+  e-bike-off-road: E-Bike
+  e-bike-on-road: E-Bike
+  mtb-dual-suspension: Mountain
+  mtb-hardtail: Mountain
+  dirt-jump: Mountain
+  fat-bikes: Mountain
+  gravel-cx: Gravel
+  # Exact keys, so they are found before the substring pass can see the "road"
+  # inside "flat-bar-road": a flat-bar road bike is a commuter, not a racer.
+  flat-bar-road: Commuter
+  hybrid: Commuter
+  urban-cruiser: Commuter
+  balance-bikes: Commuter
+  road: Road
+  tt-tri: Road
+  # Substring key: covers 12-kids through 24-kids without five near-identical
+  # entries.
+  kids: Commuter
+# NOTE: `bikes/bmx` and `bikes/frames` are not collected. BMX has no home in
+# our five categories, and framesets are dropped by the accessory filter.

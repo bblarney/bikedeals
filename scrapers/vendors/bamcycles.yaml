@@ -1,0 +1,32 @@
+vendor_name: "BAM Cycles"
+city: "Melbourne"
+max_pages: 5
+base_url: "https://www.bamcycles.com.au"
+pipeline: "lightspeed"
+# The largest of the Lightspeed shops: ~560 bikes with 37% of them discounted.
+# Previously filed as blocked ("product listings are client-side JS-rendered"),
+# which was true of the HTML and false of ?format=json. See the pipeline
+# docstring.
+#
+# Subcategories are listed rather than the `bicycles` root because the root is a
+# subcategory grid and `bicycles/frames` (112 framesets) is deliberately left
+# out: framesets are not rideable bikes, and the accessory filter drops them
+# anyway, so walking that subtree is 112 wasted rejects a night.
+collections:
+  - bicycles/electric-bikes
+  - bicycles/mountain
+  - bicycles/gravel
+  - bicycles/road
+  - bicycles/active-hybrid
+  - bicycles/kids
+  - bicycles/dirt-jump-bmx
+category_map:
+  # Matched against path segments, deepest first, electric segments first of
+  # all. `bicycles` is the umbrella on every path and is deliberately unmapped.
+  electric-bikes: E-Bike
+  mountain: Mountain
+  dirt-jump-bmx: Mountain
+  gravel: Gravel
+  road: Road
+  active-hybrid: Commuter
+  kids: Commuter
