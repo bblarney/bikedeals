@@ -37,7 +37,7 @@ disagree, the code wins — please fix the document.
 | `GET` | `/api/v1/vendors` | Per-shop listing and discount counts, for the shops tab |
 | `POST` | `/api/v1/subscribe` | Newsletter signup (201) |
 | `POST` | `/api/v1/unsubscribe` | Newsletter removal by token |
-| `GET` | `/sitemap.xml` | One entry per in-stock bike, for crawlers |
+| `GET` | `/sitemap.xml` | The landing pages, guides and shop pages, for crawlers. Bike pages are deliberately omitted (see the endpoint's comment) |
 
 ---
 

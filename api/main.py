@@ -113,8 +113,7 @@ _STOREFRONT_GROUP = (Bike.vendor_name, Bike.product_url, Bike.frame_size)
 # Which storefront represents the group. Cheapest first (chains price nationally,
 # but if one city undercuts, that is the honest row to show), then city, then id
 # as a deterministic tiebreak so the choice is stable across requests and
-# backends. The sitemap MUST order identically or it advertises a different URL
-# than the feed links to.
+# backends.
 _STOREFRONT_PICK = (Bike.price_sale.asc(), Bike.city.asc(), Bike.id.asc())
 
 
@@ -1381,44 +1380,23 @@ async def _build_market(db):
 
 @app.get("/sitemap.xml")
 @limiter.limit("30/minute")
-async def sitemap(
-    request: Request,
-    response: Response,
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    # One <url> per in-stock bike detail page so Google can discover them, plus
-    # the core landing pages. Without this the detail pages never get crawled.
+async def sitemap(request: Request, response: Response):
+    # The landing pages, the guides and one page per shop. Deliberately NOT one
+    # <url> per bike.
     #
-    # Chain storefronts are collapsed with the same rule (and the same pick
-    # order) the feed uses, so we advertise exactly the URL the feed links to.
-    #
-    # Size variants are deliberately NOT collapsed here, though the feed does
-    # collapse them. The two are answering different questions: the feed is
-    # asking what a browsing human should scroll past, and a size is not a
-    # reason to show the same bike twice; the sitemap is asking what pages
-    # exist, and /bikes/<id> for an L is a distinct, canonical, self-describing
-    # page that can rank for "… size L". Collapsing here would drop roughly half
-    # the indexable pages on the site — a real SEO decision, not a side effect
-    # of a feed change, and not one to make silently.
-    # Previously this listed all 38,725 rows — ~44% of them near-identical pages
-    # for one chain product in 8-11 cities, which is duplicate content pointed
-    # at Google on purpose, on a domain that also has a finite crawl budget.
-    ranked = (
-        select(Bike.id, Bike.last_seen_at, _storefront_rank())
-        .where(Bike.in_stock == True)  # noqa: E712
-        .subquery()
-    )
-    rows = await db.execute(
-        select(ranked.c.id, ranked.c.last_seen_at)
-        .where(ranked.c.storefront_rank == 1)
-        .order_by(ranked.c.last_seen_at.desc())
-    )
-
-    def url_entry(loc: str, lastmod: datetime | None = None) -> str:
-        parts = [f"<loc>{xml_escape(loc)}</loc>"]
-        if lastmod is not None:
-            parts.append(f"<lastmod>{lastmod.date().isoformat()}</lastmod>")
-        return f"<url>{''.join(parts)}</url>"
+    # It used to be: one entry per in-stock bike, storefronts collapsed with the
+    # feed's pick order, sizes kept separate. That put 27,000-odd URLs in front
+    # of Google, 99.5% of the sitemap, and every one of them a product name, a
+    # price and a link out to the shop: the definition of thin, auto-generated
+    # content in Google's publisher guidelines, and the stated reason AdSense
+    # kept refusing the site. The sitemap is Google's summary of what the site
+    # is, so it now describes the written pages. Bike pages still exist, are
+    # still linked from every feed and shop page, and are still edge-rendered
+    # with a full head (frontend/functions/bikes/[id].js); they are simply not
+    # what we lead with. The old query is in git history if the trade-off ever
+    # reverses.
+    def url_entry(loc: str) -> str:
+        return f"<url><loc>{xml_escape(loc)}</loc></url>"
 
     # The static pages, in the order a reader would meet them. Kept in step with
     # frontend/src/content/categories.js and content/guides.js by hand: they are
@@ -1452,10 +1430,6 @@ async def sitemap(
     entries.extend(
         url_entry(f"{SITE_URL}/shops/{vendor_slug(cfg.vendor_name)}")
         for cfg in load_registry()
-    )
-    entries.extend(
-        url_entry(f"{SITE_URL}/bikes/{bike_id}", last_seen_at)
-        for bike_id, last_seen_at in rows.all()
     )
 
     body = (

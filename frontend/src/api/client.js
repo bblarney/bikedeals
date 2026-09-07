@@ -1,3 +1,5 @@
+import { queryString } from '../lib/queries'
+
 const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 // Error carrying the HTTP status so callers can branch on it (e.g. 409, 404)
@@ -11,13 +13,7 @@ export class ApiError extends Error {
 }
 
 async function request(path, params = {}) {
-  const url = new URL(BASE + path, window.location.origin)
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === '') return
-    if (Array.isArray(v)) v.forEach((i) => url.searchParams.append(k, i))
-    else url.searchParams.set(k, v)
-  })
-  const res = await fetch(url.toString())
+  const res = await fetch(BASE + path + queryString(params))
   if (!res.ok) throw new ApiError(res.status, res.statusText)
   return res.json()
 }

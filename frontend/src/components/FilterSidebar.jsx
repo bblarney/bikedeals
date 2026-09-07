@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import MultiSelectDropdown from './MultiSelectDropdown'
-import SidebarAd from './SidebarAd'
 import { DEFAULT_FILTERS, REGIONS, sortSizes } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 
@@ -241,10 +240,6 @@ export default function FilterSidebar({
               <span>{filters?.discount_range?.max || 80}%</span>
             </div>
           </FilterSection>
-
-          {/* Only mount the ad when the sidebar is actually shown: a responsive
-              unit pushed at 0 width (desktop-collapsed) stays permanently blank. */}
-          {!desktopCollapsed && <SidebarAd />}
         </div>
       </aside>
     </>

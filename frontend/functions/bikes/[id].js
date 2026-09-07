@@ -2,13 +2,16 @@
 //
 // WHY THIS EXISTS
 // ---------------
-// /bikes/* is rewritten to app-shell.html — a bare <div id="root"></div>. The
-// API's sitemap.xml advertises one URL per in-stock bike (38k+ of them), so the
-// highest-volume, longest-tail pages on the site were all served to crawlers as
-// the same empty document: no title, no description, no canonical, and no
-// Product JSON-LD. Google renders JavaScript eventually, but render budget is
-// the binding constraint on a young domain with tens of thousands of URLs, and
-// merchant/rich results are driven by that JSON-LD specifically.
+// /bikes/* is rewritten to app-shell.html, a bare <div id="root"></div>. Tens
+// of thousands of bike pages are linked from the feed, the shop pages and
+// shared links, so the highest-volume, longest-tail pages on the site were all
+// served to crawlers as the same empty document: no title, no description, no
+// canonical, and no Product JSON-LD. Google renders JavaScript eventually, but
+// render budget is the binding constraint on a young domain with tens of
+// thousands of URLs, and merchant/rich results are driven by that JSON-LD
+// specifically. (The API's sitemap.xml no longer lists bike pages, so Google
+// leads with the written pages; this head is what a bike page has when Google
+// arrives by a link instead.)
 //
 // A Pages Function runs BEFORE the static-asset and _redirects lookup, so this
 // intercepts /bikes/:id, fetches the bike, and returns the same shell with a
