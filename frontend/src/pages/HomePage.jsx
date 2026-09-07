@@ -5,6 +5,7 @@ import { GUIDES } from '../content/guides'
 import { REGIONS, sortSizes } from '../constants'
 import { REGION_KEY } from '../lib/landing'
 import { pick } from '../lib/market'
+import { homeDealsParams } from '../lib/queries'
 import { formatDayLabel } from '../lib/time'
 import { canonicalFor } from '../seo'
 import { useBikes } from '../hooks/useBikes'
@@ -80,7 +81,7 @@ export default function HomePage() {
   const { data: stats } = useStats()
   const { data: filters } = useFilters({})
   const { data: market } = useMarket()
-  const { data: deals } = useBikes({ sort: 'discount_desc', limit: 4, offset: 0 })
+  const { data: deals } = useBikes(homeDealsParams())
   const { pinnedIds, togglePin } = usePins()
 
   const figures = useMemo(() => marketFigures(market), [market])

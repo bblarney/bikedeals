@@ -1,16 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { bikeQueryKey, bikeQueryParams, readBikeParams } from '../lib/queries'
 
-// `lockedCategory` comes from the route: /road-bikes is the category, so it is
-// not in the query string and the sidebar does not offer to change it. The
-// category bar switches routes instead.
+// The feed's parameters live in the URL. Reading them is lib/queries.js's job,
+// shared with the prerender; this hook adds the two ways of writing them.
 export function useBikeParams(lockedCategory = null) {
   const [params, setParams] = useSearchParams()
-
-  const get = (key, fallback = '') => params.get(key) ?? fallback
-  const getAll = (key) => params.getAll(key)
-  const getInt = (key, fallback = 0) => parseInt(params.get(key) ?? fallback, 10)
 
   function update(changes, { replace = false } = {}) {
     setParams((prev) => {
@@ -33,43 +29,16 @@ export function useBikeParams(lockedCategory = null) {
   }
 
   return {
-    category: lockedCategory ? [lockedCategory] : getAll('category'),
-    city: getAll('city'),
-    size: getAll('size'),
-    vendor: getAll('vendor'),
-    brand: getAll('brand'),
-    frame_material: getAll('frame_material'),
-    drivetrain_groupset: getAll('drivetrain_groupset'),
-    min_discount: getInt('min_discount', 0),
-    min_price: get('min_price'),
-    max_price: get('max_price'),
-    q: get('q'),
-    added_since: get('added_since'),
-    sort: get('sort', 'discount_desc'),
-    // Grid or table. A URL preference rather than component state, so a
-    // comparison view survives a refresh and can be linked to.
-    view: get('view', 'grid') === 'table' ? 'table' : 'grid',
-    offset: getInt('offset', 0),
-    limit: 48,
-    sku: get('sku'),
-    product_key: get('product_key'),
-    lockedCategory,
+    ...readBikeParams(params, lockedCategory),
     update,
     filterByProduct,
   }
 }
 
 export function useBikes(bikeParams) {
-  const {
-    update: _update,
-    filterByProduct: _filterByProduct,
-    lockedCategory: _lockedCategory,
-    view: _view,
-    ...queryParams
-  } = bikeParams
   return useQuery({
-    queryKey: ['bikes', queryParams],
-    queryFn: () => api.getBikes(queryParams),
+    queryKey: bikeQueryKey(bikeParams),
+    queryFn: () => api.getBikes(bikeQueryParams(bikeParams)),
     placeholderData: (prev) => prev,
   })
 }

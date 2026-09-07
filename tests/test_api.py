@@ -251,12 +251,18 @@ def test_unknown_sort_is_rejected(client, seed):
     assert client.get("/api/v1/bikes?sort=nonsense_desc").status_code == 422
 
 
-def test_sitemap_lists_bike_urls(client, seed):
+def test_sitemap_omits_bike_pages(client, seed):
+    # Bike pages are deliberately not advertised: 27k auto-generated URLs is
+    # what Google's "low value content" verdict was about. The pages still
+    # exist and are still linked from the feed; they just do not lead the
+    # sitemap. See the comment on the endpoint before adding them back.
     seed(make_bike(id="mapme"))
     r = client.get("/sitemap.xml")
     assert r.status_code == 200
     assert "application/xml" in r.headers["content-type"]
-    assert "/bikes/mapme" in r.text
+    assert "/bikes/" not in r.text
+    assert "<loc>https://bikegrid.com.au/</loc>" in r.text
+    assert "<loc>https://bikegrid.com.au/guides/road-bikes</loc>" in r.text
 
 
 # --- cross-shop matching: the two ways it used to lie -----------------------
@@ -525,16 +531,6 @@ def test_total_bikes_matches_the_collapsed_feed(client, seed):
     assert client.get("/api/v1/meta/stats").json()["new_today"] == 1
 
 
-def test_sitemap_advertises_one_url_per_listing(client, seed):
-    seed(*_chain_rows(["Sydney", "Melbourne", "Brisbane", "Hobart"]))
-    sitemap = client.get("/sitemap.xml").text
-    feed_id = client.get("/api/v1/bikes").json()["results"][0]["id"]
-
-    assert sitemap.count("/bikes/") == 1
-    # Same pick order as the feed, or we advertise a URL the site doesn't link.
-    assert f"/bikes/{feed_id}" in sitemap
-
-
 # --- size variants are one card, not N -------------------------------------
 #
 # A shop publishes each size (and on Shopify each colourway) as its own variant
@@ -691,15 +687,6 @@ def test_total_bikes_matches_the_size_collapsed_feed(client, seed):
     seed(*_variant_rows(["S", "M", "L", "XL"]))
     # The header's trust number and the feed must not disagree.
     assert client.get("/api/v1/meta/filters").json()["total_bikes"] == 1
-    assert client.get("/api/v1/bikes").json()["total"] == 1
-
-
-def test_sitemap_still_advertises_every_size(client, seed):
-    # Deliberately divergent from the feed: /bikes/<id> for an L is a distinct
-    # canonical page, and collapsing here would drop half the indexable site.
-    seed(*_variant_rows(["S", "M", "L", "XL"]))
-
-    assert client.get("/sitemap.xml").text.count("/bikes/") == 4
     assert client.get("/api/v1/bikes").json()["total"] == 1
 
 

@@ -42,6 +42,14 @@ The API URL must be an environment variable:
 VITE_API_BASE_URL=https://api.bikegrid.example.com
 ```
 
+It is read at build time as well as bundled: `scripts/prerender.js` fetches
+from it to bake shop stats and deal cards into the static HTML (see
+Prerendering). Pages builds on push. To keep those baked numbers current, the
+nightly scrape also triggers a rebuild through a Pages deploy hook: create one
+under the Pages project's Settings, Builds & deployments, and store its URL as
+the `CF_PAGES_DEPLOY_HOOK` repository secret. With the secret absent the step
+is skipped and the numbers refresh on the next push instead.
+
 ---
 
 ## Prerendering
@@ -56,10 +64,35 @@ This exists because the SPA otherwise ships `<div id="root"></div>` and nothing
 else. Crawlers that don't execute JavaScript — including the AdSense review
 crawler — saw an empty document on every URL.
 
-**The prerender never calls the API.** React Query only fetches from an effect,
-which `renderToString` doesn't run, so pages render in their empty-data shape:
-headings, copy, nav, footer. Dropdown options and deal data fill in on the
-client. A build therefore succeeds while the API is cold or down.
+**The prerender fetches data, but never depends on it.** React Query only
+fetches from an effect, which `renderToString` doesn't run, so on its own a
+page renders in its empty-data shape: headings, copy, nav, footer, a dash where
+a number goes. That shape is what a reviewer opening a shop page saw, and it is
+what AdSense called low value content. So when `VITE_API_BASE_URL` is set (it
+is, in the Pages build) `prerender.js` first fetches the API responses each
+route needs and seeds them into the render's query cache, and the shop pages
+ship their stats and the feeds their first page of cards.
+
+Which responses, under which keys, is `src/lib/prerenderData.js`; the key
+shaping it shares with the hooks is `src/lib/queries.js`, and
+`test/prerender-data.test.js` checks the two agree. A page whose hook builds
+its params inline rather than through `lib/queries.js` still works in the
+browser; it just prerenders empty. Every fetch fails open: a timeout, a
+non-200 or a dead API drops that one seed with a build warning and the route
+renders empty, exactly as before. A build therefore still succeeds while the
+API is cold or down, and a local build with no API URL stays offline.
+
+The seed is also inlined into the page as `<script id="prerender-state"
+type="application/json">`, which `main.jsx` loads into the browser's cache
+before the first client render. Without that, `createRoot` would replace the
+prerendered numbers with a dash until the refetch landed. The seed's
+`updatedAt` is the build time, so it is stale on arrival and refetches at once;
+a visitor sees the build's numbers for one round trip.
+
+Because the numbers are baked in at build time, the nightly scrape asks
+Cloudflare Pages to rebuild when it finishes (`scrape.yml`, via the
+`CF_PAGES_DEPLOY_HOOK` secret; a no-op when the secret is absent). Otherwise a
+shop page's "Last checked" would drift until the next push.
 
 Three things are load-bearing:
 
@@ -100,11 +133,18 @@ of a bike detail page at the edge, before any JavaScript runs.
 
 Detail pages are the one route the prerender cannot cover — there are 38k+ of
 them and they change daily — so they were served as `app-shell.html`: no title,
-no description, no canonical, no Product JSON-LD. The API's `sitemap.xml`
-advertises every one of them, so the site's entire long tail looked like the
-same empty document to a crawler. Google does render JavaScript, but render
-budget is the constraint on a young domain with tens of thousands of URLs, and
+no description, no canonical, no Product JSON-LD. Every feed, shop page and
+shared link points at one, so the site's entire long tail looked like the same
+empty document to a crawler. Google does render JavaScript, but render budget
+is the constraint on a young domain with tens of thousands of URLs, and
 merchant/rich results are driven by that JSON-LD specifically.
+
+The API's `sitemap.xml` used to advertise every bike page too, 27,000-odd
+URLs and 99.5% of the sitemap. It no longer does: that many auto-generated
+product pages is what Google's "low value content" verdict on the AdSense
+application was about, and the sitemap is Google's summary of what the site
+is. Bike pages are still reachable, still indexable and still get this head;
+they are just not what the site leads with.
 
 A Pages Function is matched **before** static assets and `_redirects`, so this
 intercepts the route. The `/bikes/*` line in `public/_redirects` stays as the

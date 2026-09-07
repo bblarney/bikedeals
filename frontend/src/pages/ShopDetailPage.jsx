@@ -8,8 +8,7 @@ import BikeCard from '../components/BikeCard'
 import { money } from '../lib/money'
 import { formatDayLabel } from '../lib/time'
 import { mergeShops, rankInCity, ordinal, shopWhere } from '../lib/shops'
-
-const DEAL_LIMIT = 8
+import { shopDealsParams, shopFacetParams } from '../lib/queries'
 
 // The slug is resolved here and the shop is handed to a child, so the hooks
 // below it never run for a URL that names no shop. Guarding inside one
@@ -38,9 +37,10 @@ function ShopNotFound() {
 }
 
 function ShopDetail({ shop }) {
-  // Name, cities and outbound link come from the generated registry copy, so
-  // the page renders in full at prerender time. Only the numbers wait on the
-  // API, which scripts/prerender.js never calls.
+  // Name, cities and outbound link come from the generated registry copy. The
+  // numbers come from the API: at build time scripts/prerender.js seeds these
+  // three queries (keyed by lib/queries.js, so they match), and in the browser
+  // they refetch; either way the empty shape below is what a cold build ships.
   const { data: vendorData } = useVendors()
   const rows = vendorData ? mergeShops(vendorData.vendors) : null
   const row = rows ? rows.find((r) => r.slug === shop.slug) : null
@@ -48,13 +48,8 @@ function ShopDetail({ shop }) {
 
   // The vendor-scoped facets already carry this shop's price range and the
   // categories it stocks, so neither needs an endpoint of its own.
-  const { data: facets } = useFilters({ vendor: [shop.name] })
-  const { data: deals } = useBikes({
-    vendor: [shop.name],
-    min_discount: 1,
-    sort: 'discount_desc',
-    limit: DEAL_LIMIT,
-  })
+  const { data: facets } = useFilters(shopFacetParams(shop.name))
+  const { data: deals } = useBikes(shopDealsParams(shop.name))
 
   const homeCity = shop.cities.length === 1 ? shop.cities[0] : null
   const backTo = homeCity ? `/shops?city=${encodeURIComponent(homeCity)}` : '/shops'
